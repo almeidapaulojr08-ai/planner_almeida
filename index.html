@@ -76,6 +76,10 @@
       font-size: 13px; color: #475569; cursor: pointer; transition: all 0.15s; white-space: nowrap; }
     .suggestion:hover { border-color: #6366f1; color: #4f46e5; background: #eef2ff; }
 
+    /* Titular filter buttons */
+    .tf-btn { padding:7px 14px;border-radius:9px;border:none;font-size:13px;font-weight:600;cursor:pointer;background:transparent;color:#64748b;transition:all 0.15s; }
+    .tf-btn.tf-active { background:white;color:#4f46e5;box-shadow:0 1px 4px rgba(0,0,0,0.1); }
+
     /* No data placeholder */
     .empty-state { text-align: center; padding: 60px 20px; color: #94a3b8; }
     .empty-state .icon { font-size: 48px; margin-bottom: 12px; }
@@ -130,6 +134,9 @@
     <a class="nav-item" data-page="dashboard" onclick="goto('dashboard')">
       <span style="font-size:18px;">📊</span> Dashboard
     </a>
+    <a class="nav-item" data-page="contas" onclick="goto('contas')">
+      <span style="font-size:18px;">🏦</span> Contas
+    </a>
     <a class="nav-item" data-page="nova" onclick="goto('nova')">
       <span style="font-size:18px;">➕</span> Nova Transação
     </a>
@@ -159,13 +166,21 @@
 
 <!-- ==================== DASHBOARD ==================== -->
 <section id="page-dashboard" style="display:none;max-width:1100px;">
-  <div style="margin-bottom:28px;">
-    <h1 style="font-size:24px;font-weight:800;color:#0f172a;">Dashboard</h1>
-    <p id="dash-subtitle" style="color:#94a3b8;font-size:14px;margin-top:2px;"></p>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:28px;flex-wrap:wrap;gap:12px;">
+    <div>
+      <h1 style="font-size:24px;font-weight:800;color:#0f172a;">Dashboard</h1>
+      <p id="dash-subtitle" style="color:#94a3b8;font-size:14px;margin-top:2px;"></p>
+    </div>
+    <!-- Titular filter -->
+    <div style="display:flex;gap:6px;background:#f1f5f9;border-radius:12px;padding:4px;">
+      <button id="tf-ambos"  onclick="setTitularFilter('ambos')"  class="tf-btn tf-active">Ambos</button>
+      <button id="tf-paulo"  onclick="setTitularFilter('paulo')"  class="tf-btn" id="tf-paulo"></button>
+      <button id="tf-esposa" onclick="setTitularFilter('esposa')" class="tf-btn" id="tf-esposa"></button>
+    </div>
   </div>
 
   <!-- Summary cards -->
-  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px;">
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px;">
     <div class="card">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
         <span style="font-size:22px;">💳</span>
@@ -193,16 +208,10 @@
       <p id="c-despesas" style="font-size:22px;font-weight:800;" class="red">R$ 0,00</p>
       <p id="c-despesas-n" style="font-size:11px;color:#94a3b8;margin-top:4px;">0 lançamentos</p>
     </div>
-    <div class="card">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-        <span style="font-size:22px;">📈</span>
-        <span class="badge" style="background:#eff6ff;color:#1e40af;">Investimentos</span>
-      </div>
-      <p style="font-size:12px;color:#94a3b8;margin-bottom:4px;">Total Investido</p>
-      <p id="c-invest" style="font-size:22px;font-weight:800;" class="blue">R$ 0,00</p>
-      <p id="c-invest-n" style="font-size:11px;color:#94a3b8;margin-top:4px;">0 aportes no total</p>
-    </div>
   </div>
+
+  <!-- Per-bank breakdown -->
+  <div id="bank-breakdown" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px;margin-bottom:24px;"></div>
 
   <!-- Charts row -->
   <div style="display:grid;grid-template-columns:280px 1fr;gap:16px;margin-bottom:24px;">
@@ -248,7 +257,7 @@
       <div style="margin-bottom:18px;">
         <label class="flabel">Valor</label>
         <div style="position:relative;">
-          <span style="position:absolute;left:14px;top:50%;transform:translateY(-50%);color:#64748b;font-weight:600;font-size:14px;">R$</span>
+          <span id="f-currency-prefix" style="position:absolute;left:14px;top:50%;transform:translateY(-50%);color:#64748b;font-weight:600;font-size:14px;">R$</span>
           <input class="finput" type="number" id="f-valor" step="0.01" min="0.01" placeholder="0,00" required style="padding-left:42px;font-size:18px;font-weight:700;">
         </div>
       </div>
@@ -265,6 +274,12 @@
         <input class="finput" type="text" id="f-descricao" placeholder="Ex: Supermercado, Salário, Tesouro Direto…">
       </div>
 
+      <!-- Account -->
+      <div style="margin-bottom:18px;">
+        <label class="flabel">Conta / Titular</label>
+        <select class="finput" id="f-conta" onchange="onContaChange()"></select>
+      </div>
+
       <!-- Date + User -->
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px;">
         <div>
@@ -272,8 +287,8 @@
           <input class="finput" type="date" id="f-data" required>
         </div>
         <div>
-          <label class="flabel">Quem lançou</label>
-          <select class="finput" id="f-usuario"></select>
+          <label class="flabel">Titular</label>
+          <input class="finput" type="text" id="f-usuario" readonly style="background:#f8fafc;color:#64748b;">
         </div>
       </div>
 
@@ -501,6 +516,18 @@
   </div>
 </section>
 
+<!-- ==================== CONTAS ==================== -->
+<section id="page-contas" style="display:none;max-width:700px;">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:28px;">
+    <div>
+      <h1 style="font-size:24px;font-weight:800;color:#0f172a;">Contas</h1>
+      <p style="color:#94a3b8;font-size:14px;margin-top:2px;">Gerencie suas contas bancárias</p>
+    </div>
+    <button onclick="abrirModalConta()" style="padding:10px 18px;background:#4f46e5;color:white;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;">+ Adicionar Conta</button>
+  </div>
+  <div id="contas-list" style="display:flex;flex-direction:column;gap:12px;"></div>
+</section>
+
 </main><!-- end main -->
 
 <!-- ============================================================ TOAST -->
@@ -520,21 +547,74 @@
   </div>
 </div>
 
+<!-- ============================================================ CONTA MODAL -->
+<div id="conta-modal" style="display:none;">
+  <div id="modal-backdrop" onclick="fecharModalConta()">
+    <div onclick="event.stopPropagation()" style="background:white;border-radius:18px;padding:28px;max-width:440px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.15);">
+      <p id="conta-modal-title" style="font-weight:800;font-size:17px;color:#0f172a;margin-bottom:20px;">Nova Conta</p>
+
+      <div style="margin-bottom:14px;">
+        <label class="flabel">Banco</label>
+        <select class="finput" id="cm-banco" onchange="onBancoChange()">
+          <option value="bradesco">Bradesco</option>
+          <option value="nubank">Nubank</option>
+          <option value="sicredi">Sicredi</option>
+          <option value="binance">Binance (USD)</option>
+        </select>
+      </div>
+
+      <div style="margin-bottom:14px;">
+        <label class="flabel">Apelido da conta</label>
+        <input class="finput" type="text" id="cm-label" placeholder="Ex: Nubank Paulo">
+      </div>
+
+      <div style="margin-bottom:14px;">
+        <label class="flabel">Titular</label>
+        <select class="finput" id="cm-owner"></select>
+      </div>
+
+      <div id="cm-limit-row" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:14px;">
+        <div>
+          <label class="flabel">Limite</label>
+          <input class="finput" type="number" id="cm-limite" placeholder="0,00" min="0">
+        </div>
+        <div>
+          <label class="flabel">Fecha dia</label>
+          <input class="finput" type="number" id="cm-fecha" placeholder="1-31" min="1" max="31">
+        </div>
+        <div>
+          <label class="flabel">Vence dia</label>
+          <input class="finput" type="number" id="cm-vence" placeholder="1-31" min="1" max="31">
+        </div>
+      </div>
+
+      <div style="display:flex;gap:10px;margin-top:4px;">
+        <button onclick="fecharModalConta()" style="flex:1;padding:12px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:14px;font-weight:600;color:#64748b;background:white;cursor:pointer;">Cancelar</button>
+        <button onclick="salvarConta()" style="flex:1;padding:12px;background:#4f46e5;color:white;border:none;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;">Salvar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- ============================================================ JAVASCRIPT -->
 <script>
 // ─── STATE ────────────────────────────────────────────────────────────────────
 let S = {
   transactions: [],
+  accounts: [],
   chatHistory: [],
   settings: {
     u1: 'Paulo', u2: 'Esposa',
     apiKey: '', apiProvider: 'openai',
-    password: '1234'
+    password: '1234',
+    usdRate: null, usdRateAt: null
   }
 };
 let currentType = 'receita';
 let charts = {};
 let deleteId = null;
+let editContaId = null;
+let titularFilter = 'ambos';
 
 const CATS = {
   receita:      ['Salário','Freelance','Aluguel Recebido','Dividendos','Bônus','Outros'],
@@ -546,11 +626,19 @@ const COLORS = ['#6366f1','#f59e0b','#10b981','#f43f5e','#3b82f6','#8b5cf6','#ec
 const MESES  = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
 const MESES_FULL = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 
+const BANKS = {
+  bradesco: { name:'Bradesco', color:'#CC0000', bg:'#FFF0F0', abbr:'B',  currency:'BRL' },
+  nubank:   { name:'Nubank',   color:'#820AD1', bg:'#F5E6FF', abbr:'nu', currency:'BRL' },
+  sicredi:  { name:'Sicredi',  color:'#00A859', bg:'#E6FFF2', abbr:'SC', currency:'BRL' },
+  binance:  { name:'Binance',  color:'#F0B90B', bg:'#FFFBEA', abbr:'BN', currency:'USD' },
+};
+
 // ─── PERSISTENCE ──────────────────────────────────────────────────────────────
 function load() {
   try {
     const d = JSON.parse(localStorage.getItem('fincasal_v2') || '{}');
     if (d.transactions) S.transactions = d.transactions;
+    if (d.accounts)     S.accounts     = d.accounts;
     if (d.chatHistory)  S.chatHistory  = d.chatHistory;
     if (d.settings)     S.settings     = { ...S.settings, ...d.settings };
   } catch(e) {}
@@ -558,6 +646,138 @@ function load() {
 
 function save() {
   localStorage.setItem('fincasal_v2', JSON.stringify(S));
+}
+
+// ─── USD RATE ─────────────────────────────────────────────────────────────────
+async function fetchUsdRate() {
+  const ONE_HOUR = 60 * 60 * 1000;
+  const now = Date.now();
+  if (S.settings.usdRate && S.settings.usdRateAt && (now - S.settings.usdRateAt) < ONE_HOUR) return;
+  try {
+    const r = await fetch('https://open.er-api.com/v6/latest/USD');
+    const d = await r.json();
+    S.settings.usdRate   = d.rates.BRL;
+    S.settings.usdRateAt = now;
+    save();
+  } catch(e) {
+    if (!S.settings.usdRate) S.settings.usdRate = 5.7; // fallback
+  }
+}
+
+function usdToBrl(amount) {
+  return amount * (S.settings.usdRate || 5.7);
+}
+
+// ─── CONTAS ────────────────────────────────────────────────────────────────────
+function bankIcon(bankKey, size=40) {
+  const b = BANKS[bankKey] || { color:'#64748b', bg:'#f1f5f9', abbr:'?' };
+  return `<div style="width:${size}px;height:${size}px;background:${b.color};border-radius:${size*0.28}px;display:flex;align-items:center;justify-content:center;color:white;font-weight:800;font-size:${size*0.35}px;flex-shrink:0;">${b.abbr}</div>`;
+}
+
+function renderContas() {
+  const el = document.getElementById('contas-list');
+  if (!S.accounts.length) {
+    el.innerHTML = `<div class="empty-state"><div class="icon">🏦</div><p style="font-weight:600;color:#64748b;">Nenhuma conta cadastrada</p><button onclick="abrirModalConta()" style="margin-top:12px;padding:10px 20px;background:#4f46e5;color:white;border:none;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;">Adicionar primeira conta</button></div>`;
+    return;
+  }
+  el.innerHTML = S.accounts.map(a => {
+    const b = BANKS[a.bank];
+    const isUSD = b.currency === 'USD';
+    const rate = S.settings.usdRate ? `<span style="font-size:11px;color:#94a3b8;margin-left:6px;">USD → R$ ${S.settings.usdRate?.toFixed(2)}</span>` : '';
+    return `<div class="card" style="display:flex;align-items:center;gap:16px;">
+      ${bankIcon(a.bank, 48)}
+      <div style="flex:1;">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <p style="font-weight:700;font-size:15px;color:#0f172a;">${b.name}</p>
+          <span style="font-size:12px;color:#94a3b8;">•</span>
+          <p style="font-size:13px;color:#64748b;">${a.label}</p>
+          ${isUSD ? `<span class="badge" style="background:#FFFBEA;color:#92400e;">USD${rate}</span>` : ''}
+        </div>
+        <p style="font-size:13px;color:#94a3b8;margin-top:2px;">Titular: <strong style="color:#475569;">${a.owner}</strong>${a.limite ? ` &nbsp;·&nbsp; Limite: ${isUSD ? '$' : 'R$'} ${Number(a.limite).toLocaleString('pt-BR')}` : ''}${a.fecha ? ` &nbsp;·&nbsp; Fecha dia ${a.fecha} &nbsp;·&nbsp; Vence dia ${a.vence}` : ''}</p>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button onclick="editarConta('${a.id}')" style="background:none;border:none;cursor:pointer;padding:8px;border-radius:8px;color:#6366f1;font-size:18px;" title="Editar">✏️</button>
+        <button onclick="deletarConta('${a.id}')" style="background:none;border:none;cursor:pointer;padding:8px;border-radius:8px;color:#e11d48;font-size:18px;" title="Excluir">🗑️</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function abrirModalConta() {
+  editContaId = null;
+  document.getElementById('conta-modal-title').textContent = 'Nova Conta';
+  document.getElementById('cm-banco').value  = 'bradesco';
+  document.getElementById('cm-label').value  = '';
+  document.getElementById('cm-limite').value = '';
+  document.getElementById('cm-fecha').value  = '';
+  document.getElementById('cm-vence').value  = '';
+  const { u1, u2 } = S.settings;
+  document.getElementById('cm-owner').innerHTML = `<option value="${u1}">${u1}</option><option value="${u2}">${u2}</option>`;
+  document.getElementById('conta-modal').style.display = 'block';
+}
+
+function editarConta(id) {
+  const a = S.accounts.find(x => x.id === id);
+  if (!a) return;
+  editContaId = id;
+  document.getElementById('conta-modal-title').textContent = 'Editar Conta';
+  document.getElementById('cm-banco').value  = a.bank;
+  document.getElementById('cm-label').value  = a.label;
+  document.getElementById('cm-limite').value = a.limite || '';
+  document.getElementById('cm-fecha').value  = a.fecha  || '';
+  document.getElementById('cm-vence').value  = a.vence  || '';
+  const { u1, u2 } = S.settings;
+  document.getElementById('cm-owner').innerHTML = `<option value="${u1}"${a.owner===u1?' selected':''}>${u1}</option><option value="${u2}"${a.owner===u2?' selected':''}>${u2}</option>`;
+  document.getElementById('conta-modal').style.display = 'block';
+}
+
+function fecharModalConta() {
+  document.getElementById('conta-modal').style.display = 'none';
+  editContaId = null;
+}
+
+function onBancoChange() { /* future: auto-fill label */ }
+
+function salvarConta() {
+  const bank   = document.getElementById('cm-banco').value;
+  const label  = document.getElementById('cm-label').value.trim();
+  const owner  = document.getElementById('cm-owner').value;
+  const limite = document.getElementById('cm-limite').value;
+  const fecha  = document.getElementById('cm-fecha').value;
+  const vence  = document.getElementById('cm-vence').value;
+  if (!label) { toast('❌ Informe um apelido para a conta'); return; }
+  if (editContaId) {
+    const a = S.accounts.find(x => x.id === editContaId);
+    if (a) { a.bank=bank; a.label=label; a.owner=owner; a.limite=limite; a.fecha=fecha; a.vence=vence; }
+  } else {
+    S.accounts.push({ id: Date.now().toString(), bank, label, owner, limite, fecha, vence });
+  }
+  save();
+  fecharModalConta();
+  renderContas();
+  toast('✅ Conta salva!');
+}
+
+function deletarConta(id) {
+  if (!confirm('Excluir esta conta? As transações vinculadas não serão apagadas.')) return;
+  S.accounts = S.accounts.filter(a => a.id !== id);
+  save();
+  renderContas();
+  toast('🗑️ Conta removida');
+}
+
+// ─── TITULAR FILTER ────────────────────────────────────────────────────────────
+function setTitularFilter(f) {
+  titularFilter = f;
+  document.querySelectorAll('.tf-btn').forEach(b => b.classList.remove('tf-active'));
+  document.getElementById('tf-' + f)?.classList.add('tf-active');
+  renderDashboard();
+}
+
+function txByTitular(txs) {
+  if (titularFilter === 'ambos') return txs;
+  const name = titularFilter === 'paulo' ? S.settings.u1 : S.settings.u2;
+  return txs.filter(t => t.user === name);
 }
 
 // ─── LOGIN ────────────────────────────────────────────────────────────────────
@@ -610,7 +830,8 @@ function goto(page) {
   if (page === 'graficos')  renderGraficos();
   if (page === 'config')    loadConfig();
   if (page === 'chat')      checkChatKey();
-  if (page === 'nova')      { setTodayDate(); refreshUserSelects(); }
+  if (page === 'contas')    renderContas();
+  if (page === 'nova')      { setTodayDate(); refreshContaSelect(); }
 }
 
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
@@ -639,10 +860,33 @@ function toast(msg, dur=3000) {
 
 function refreshUserSelects() {
   const { u1, u2 } = S.settings;
-  const sel = document.getElementById('f-usuario');
-  sel.innerHTML = `<option value="Casal">Casal</option><option value="${u1}">${u1}</option><option value="${u2}">${u2}</option>`;
   const fu = document.getElementById('fil-usuario');
-  if (fu) fu.innerHTML = `<option value="">Todos</option><option value="Casal">Casal</option><option value="${u1}">${u1}</option><option value="${u2}">${u2}</option>`;
+  if (fu) fu.innerHTML = `<option value="">Todos</option><option value="${u1}">${u1}</option><option value="${u2}">${u2}</option>`;
+}
+
+function refreshContaSelect() {
+  const sel = document.getElementById('f-conta');
+  if (!sel) return;
+  if (!S.accounts.length) {
+    sel.innerHTML = '<option value="">— Nenhuma conta cadastrada —</option>';
+    document.getElementById('f-usuario').value = '';
+    return;
+  }
+  sel.innerHTML = S.accounts.map(a => {
+    const b = BANKS[a.bank];
+    const cur = b.currency === 'USD' ? ' (USD)' : '';
+    return `<option value="${a.id}">${b.name} — ${a.label} [${a.owner}]${cur}</option>`;
+  }).join('');
+  onContaChange();
+}
+
+function onContaChange() {
+  const sel = document.getElementById('f-conta');
+  const acc = S.accounts.find(a => a.id === sel.value);
+  if (!acc) return;
+  document.getElementById('f-usuario').value = acc.owner;
+  const isUSD = BANKS[acc.bank].currency === 'USD';
+  document.getElementById('f-currency-prefix').textContent = isUSD ? '$' : 'R$';
 }
 
 function destroyChart(id) {
@@ -663,16 +907,22 @@ function setType(t) {
 // ─── SAVE TRANSACTION ─────────────────────────────────────────────────────────
 function saveTransacao(e) {
   e.preventDefault();
+  const contaId = document.getElementById('f-conta').value;
+  const acc = S.accounts.find(a => a.id === contaId);
+  const isUSD = acc && BANKS[acc.bank].currency === 'USD';
+  const amountRaw = parseFloat(document.getElementById('f-valor').value);
   const tx = {
-    id:       Date.now().toString(),
-    type:     currentType,
-    amount:   parseFloat(document.getElementById('f-valor').value),
-    category: document.getElementById('f-categoria').value,
-    desc:     document.getElementById('f-descricao').value.trim() || document.getElementById('f-categoria').value,
-    date:     document.getElementById('f-data').value,
-    user:     document.getElementById('f-usuario').value,
-    notes:    document.getElementById('f-notas').value.trim(),
-    at:       new Date().toISOString()
+    id:        Date.now().toString(),
+    type:      currentType,
+    amount:    amountRaw,
+    currency:  isUSD ? 'USD' : 'BRL',
+    accountId: contaId || null,
+    category:  document.getElementById('f-categoria').value,
+    desc:      document.getElementById('f-descricao').value.trim() || document.getElementById('f-categoria').value,
+    date:      document.getElementById('f-data').value,
+    user:      document.getElementById('f-usuario').value,
+    notes:     document.getElementById('f-notas').value.trim(),
+    at:        new Date().toISOString()
   };
   S.transactions.push(tx);
   save();
@@ -694,25 +944,35 @@ function confirmarDelete() {
 }
 
 // ─── DASHBOARD ────────────────────────────────────────────────────────────────
+function amountBrl(tx) {
+  if (tx.currency === 'USD') return usdToBrl(tx.amount);
+  return tx.amount;
+}
+
 function renderDashboard() {
+  // Update filter button labels
+  document.getElementById('tf-paulo').textContent  = S.settings.u1;
+  document.getElementById('tf-esposa').textContent = S.settings.u2;
+
   const now = new Date();
   const ym = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
   const prev = new Date(now.getFullYear(), now.getMonth()-1, 1);
   const ymPrev = `${prev.getFullYear()}-${String(prev.getMonth()+1).padStart(2,'0')}`;
 
-  const mTx = S.transactions.filter(t => t.date.startsWith(ym));
-  const pTx = S.transactions.filter(t => t.date.startsWith(ymPrev));
+  const allMTx  = S.transactions.filter(t => t.date.startsWith(ym));
+  const mTx = txByTitular(allMTx);
+  const pTx = txByTitular(S.transactions.filter(t => t.date.startsWith(ymPrev)));
 
-  const rec  = mTx.filter(t=>t.type==='receita').reduce((s,t)=>s+t.amount,0);
-  const desp = mTx.filter(t=>t.type==='despesa').reduce((s,t)=>s+t.amount,0);
-  const inv  = S.transactions.filter(t=>t.type==='investimento').reduce((s,t)=>s+t.amount,0);
+  const rec   = mTx.filter(t=>t.type==='receita').reduce((s,t)=>s+amountBrl(t),0);
+  const desp  = mTx.filter(t=>t.type==='despesa').reduce((s,t)=>s+amountBrl(t),0);
   const saldo = rec - desp;
 
-  const pRec  = pTx.filter(t=>t.type==='receita').reduce((s,t)=>s+t.amount,0);
-  const pDesp = pTx.filter(t=>t.type==='despesa').reduce((s,t)=>s+t.amount,0);
+  const pRec   = pTx.filter(t=>t.type==='receita').reduce((s,t)=>s+amountBrl(t),0);
+  const pDesp  = pTx.filter(t=>t.type==='despesa').reduce((s,t)=>s+amountBrl(t),0);
   const pSaldo = pRec - pDesp;
 
-  document.getElementById('dash-subtitle').textContent = `Visão geral de ${MESES_FULL[now.getMonth()]} ${now.getFullYear()}`;
+  const filterLabel = titularFilter === 'ambos' ? 'Geral' : (titularFilter === 'paulo' ? S.settings.u1 : S.settings.u2);
+  document.getElementById('dash-subtitle').textContent = `${filterLabel} — ${MESES_FULL[now.getMonth()]} ${now.getFullYear()}`;
 
   const cs = document.getElementById('c-saldo');
   cs.textContent = brl(saldo);
@@ -722,18 +982,52 @@ function renderDashboard() {
     const diff = saldo - pSaldo;
     document.getElementById('c-saldo-sub').textContent = `${diff>=0?'↑':'↓'} ${brl(Math.abs(diff))} vs mês anterior`;
     document.getElementById('c-saldo-sub').style.color = diff >= 0 ? '#059669' : '#e11d48';
+  } else {
+    document.getElementById('c-saldo-sub').textContent = '';
   }
 
   document.getElementById('c-receitas').textContent = brl(rec);
   document.getElementById('c-receitas-n').textContent = `${mTx.filter(t=>t.type==='receita').length} lançamentos`;
   document.getElementById('c-despesas').textContent = brl(desp);
   document.getElementById('c-despesas-n').textContent = `${mTx.filter(t=>t.type==='despesa').length} lançamentos`;
-  document.getElementById('c-invest').textContent = brl(inv);
-  document.getElementById('c-invest-n').textContent = `${S.transactions.filter(t=>t.type==='investimento').length} aportes no total`;
+
+  // Per-bank breakdown
+  renderBankBreakdown(mTx);
 
   renderDonutDash(mTx.filter(t=>t.type==='despesa'));
   renderBarDash();
   renderRecent();
+}
+
+function renderBankBreakdown(mTx) {
+  const el = document.getElementById('bank-breakdown');
+  if (!S.accounts.length) { el.innerHTML = ''; return; }
+
+  const accToShow = titularFilter === 'ambos'
+    ? S.accounts
+    : S.accounts.filter(a => a.owner === (titularFilter === 'paulo' ? S.settings.u1 : S.settings.u2));
+
+  el.innerHTML = accToShow.map(a => {
+    const b = BANKS[a.bank];
+    const isUSD = b.currency === 'USD';
+    const accTx = mTx.filter(t => t.accountId === a.id);
+    const rec  = accTx.filter(t=>t.type==='receita').reduce((s,t)=>s+t.amount,0);
+    const desp = accTx.filter(t=>t.type==='despesa').reduce((s,t)=>s+t.amount,0);
+    const bal  = rec - desp;
+    const balBrl = isUSD ? usdToBrl(bal) : bal;
+    const usdLine = isUSD ? `<p style="font-size:11px;color:#94a3b8;margin-top:2px;">$ ${bal.toFixed(2)} · cotação R$ ${(S.settings.usdRate||5.7).toFixed(2)}</p>` : '';
+    return `<div class="card" style="display:flex;align-items:center;gap:14px;">
+      ${bankIcon(a.bank, 40)}
+      <div style="flex:1;">
+        <p style="font-size:13px;font-weight:700;color:#334155;">${b.name}</p>
+        <p style="font-size:11px;color:#94a3b8;">${a.label} · ${a.owner}</p>
+      </div>
+      <div style="text-align:right;">
+        <p style="font-size:15px;font-weight:800;color:${balBrl>=0?'#059669':'#e11d48'};">${brl(balBrl)}</p>
+        ${usdLine}
+      </div>
+    </div>`;
+  }).join('');
 }
 
 function renderDonutDash(txs) {
@@ -1210,6 +1504,7 @@ function init() {
   setTodayDate();
   refreshUserSelects();
   document.getElementById('header-users').textContent = `${S.settings.u1} & ${S.settings.u2}`;
+  fetchUsdRate();
   checkAuth();
   if (sessionStorage.getItem('fincasal_auth')) goto('dashboard');
 }
