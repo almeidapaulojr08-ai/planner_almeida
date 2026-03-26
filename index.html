@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ð° FinanÃ§asCasal</title>
+  <title>💰 FinançasCasal</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
@@ -93,9 +93,9 @@
   <!-- Logo -->
   <div style="padding:20px 20px 16px;border-bottom:1px solid #f1f5f9;">
     <div style="display:flex;align-items:center;gap:12px;">
-      <div style="width:40px;height:40px;background:linear-gradient(135deg,#6366f1,#8b5cf6);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;">ð°</div>
+      <div style="width:40px;height:40px;background:linear-gradient(135deg,#6366f1,#8b5cf6);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;">💰</div>
       <div>
-        <div style="font-weight:800;font-size:16px;color:#0f172a;">FinanÃ§asCasal</div>
+        <div style="font-weight:800;font-size:16px;color:#0f172a;">FinançasCasal</div>
         <div id="header-users" style="font-size:12px;color:#94a3b8;margin-top:1px;">Paulo & Esposa</div>
       </div>
     </div>
@@ -104,25 +104,25 @@
   <!-- Nav -->
   <nav style="flex:1;padding:12px 10px;display:flex;flex-direction:column;gap:2px;">
     <a class="nav-item" data-page="dashboard" onclick="goto('dashboard')">
-      <span style="font-size:18px;">ð</span> Dashboard
+      <span style="font-size:18px;">📊</span> Dashboard
     </a>
     <a class="nav-item" data-page="nova" onclick="goto('nova')">
-      <span style="font-size:18px;">â</span> Nova TransaÃ§Ã£o
+      <span style="font-size:18px;">➕</span> Nova Transação
     </a>
     <a class="nav-item" data-page="historico" onclick="goto('historico')">
-      <span style="font-size:18px;">ð</span> HistÃ³rico
+      <span style="font-size:18px;">📋</span> Histórico
     </a>
     <a class="nav-item" data-page="graficos" onclick="goto('graficos')">
-      <span style="font-size:18px;">ð</span> GrÃ¡ficos
+      <span style="font-size:18px;">📈</span> Gráficos
     </a>
     <a class="nav-item" data-page="chat" onclick="goto('chat')">
-      <span style="font-size:18px;">ð¤</span> Chat com IA
+      <span style="font-size:18px;">🤖</span> Chat com IA
     </a>
   </nav>
 
   <div style="padding:10px 10px 16px;border-top:1px solid #f1f5f9;">
     <a class="nav-item" data-page="config" onclick="goto('config')">
-      <span style="font-size:18px;">âï¸</span> ConfiguraÃ§Ãµes
+      <span style="font-size:18px;">⚙️</span> Configurações
     </a>
   </div>
 </aside>
@@ -141,34 +141,34 @@
   <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px;">
     <div class="card">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-        <span style="font-size:22px;">ð³</span>
+        <span style="font-size:22px;">💳</span>
         <span class="badge" style="background:#eef2ff;color:#4f46e5;">Saldo</span>
       </div>
-      <p style="font-size:12px;color:#94a3b8;margin-bottom:4px;">Saldo do MÃªs</p>
+      <p style="font-size:12px;color:#94a3b8;margin-bottom:4px;">Saldo do Mês</p>
       <p id="c-saldo" style="font-size:22px;font-weight:800;color:#0f172a;">R$ 0,00</p>
       <p id="c-saldo-sub" style="font-size:11px;color:#94a3b8;margin-top:4px;"></p>
     </div>
     <div class="card">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-        <span style="font-size:22px;">ð</span>
+        <span style="font-size:22px;">💚</span>
         <span class="badge" style="background:#ecfdf5;color:#065f46;">Receitas</span>
       </div>
-      <p style="font-size:12px;color:#94a3b8;margin-bottom:4px;">Receitas do MÃªs</p>
+      <p style="font-size:12px;color:#94a3b8;margin-bottom:4px;">Receitas do Mês</p>
       <p id="c-receitas" style="font-size:22px;font-weight:800;" class="green">R$ 0,00</p>
-      <p id="c-receitas-n" style="font-size:11px;color:#94a3b8;margin-top:4px;">0 lanÃ§amentos</p>
+      <p id="c-receitas-n" style="font-size:11px;color:#94a3b8;margin-top:4px;">0 lançamentos</p>
     </div>
     <div class="card">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-        <span style="font-size:22px;">â¤ï¸</span>
+        <span style="font-size:22px;">❤️</span>
         <span class="badge" style="background:#fff1f2;color:#9f1239;">Despesas</span>
       </div>
-      <p style="font-size:12px;color:#94a3b8;margin-bottom:4px;">Despesas do MÃªs</p>
+      <p style="font-size:12px;color:#94a3b8;margin-bottom:4px;">Despesas do Mês</p>
       <p id="c-despesas" style="font-size:22px;font-weight:800;" class="red">R$ 0,00</p>
-      <p id="c-despesas-n" style="font-size:11px;color:#94a3b8;margin-top:4px;">0 lanÃ§amentos</p>
+      <p id="c-despesas-n" style="font-size:11px;color:#94a3b8;margin-top:4px;">0 lançamentos</p>
     </div>
     <div class="card">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-        <span style="font-size:22px;">ð</span>
+        <span style="font-size:22px;">📈</span>
         <span class="badge" style="background:#eff6ff;color:#1e40af;">Investimentos</span>
       </div>
       <p style="font-size:12px;color:#94a3b8;margin-bottom:4px;">Total Investido</p>
@@ -185,7 +185,7 @@
       <div id="donut-legend" style="margin-top:12px;display:flex;flex-direction:column;gap:6px;"></div>
     </div>
     <div class="card">
-      <p style="font-weight:700;font-size:14px;color:#334155;margin-bottom:16px;">Receitas vs Despesas â Ãºltimos 6 meses</p>
+      <p style="font-weight:700;font-size:14px;color:#334155;margin-bottom:16px;">Receitas vs Despesas — últimos 6 meses</p>
       <div style="height:200px;"><canvas id="ch-bar-dash"></canvas></div>
     </div>
   </div>
@@ -193,26 +193,26 @@
   <!-- Recent transactions -->
   <div class="card" style="padding:0;overflow:hidden;">
     <div style="display:flex;justify-content:space-between;align-items:center;padding:18px 24px;border-bottom:1px solid #f1f5f9;">
-      <p style="font-weight:700;font-size:14px;color:#334155;">Ãltimas TransaÃ§Ãµes</p>
-      <a onclick="goto('historico')" style="font-size:13px;color:#6366f1;cursor:pointer;font-weight:600;">Ver todas â</a>
+      <p style="font-weight:700;font-size:14px;color:#334155;">Últimas Transações</p>
+      <a onclick="goto('historico')" style="font-size:13px;color:#6366f1;cursor:pointer;font-weight:600;">Ver todas →</a>
     </div>
     <div id="recent-list"></div>
   </div>
 </section>
 
-<!-- ==================== NOVA TRANSAÃÃO ==================== -->
+<!-- ==================== NOVA TRANSAÇÃO ==================== -->
 <section id="page-nova" style="display:none;max-width:600px;">
   <div style="margin-bottom:28px;">
-    <h1 style="font-size:24px;font-weight:800;color:#0f172a;">Nova TransaÃ§Ã£o</h1>
+    <h1 style="font-size:24px;font-weight:800;color:#0f172a;">Nova Transação</h1>
     <p style="color:#94a3b8;font-size:14px;margin-top:2px;">Registre receitas, despesas ou investimentos</p>
   </div>
 
   <div class="card">
     <!-- Type selector -->
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:24px;">
-      <button class="type-btn active-receita" id="btn-receita" onclick="setType('receita')">ð Receita</button>
-      <button class="type-btn" id="btn-despesa" onclick="setType('despesa')">â¤ï¸ Despesa</button>
-      <button class="type-btn" id="btn-invest" onclick="setType('investimento')">ð Investimento</button>
+      <button class="type-btn active-receita" id="btn-receita" onclick="setType('receita')">💚 Receita</button>
+      <button class="type-btn" id="btn-despesa" onclick="setType('despesa')">❤️ Despesa</button>
+      <button class="type-btn" id="btn-invest" onclick="setType('investimento')">📈 Investimento</button>
     </div>
 
     <!-- Form -->
@@ -234,8 +234,8 @@
 
       <!-- Description -->
       <div style="margin-bottom:18px;">
-        <label class="flabel">DescriÃ§Ã£o</label>
-        <input class="finput" type="text" id="f-descricao" placeholder="Ex: Supermercado, SalÃ¡rio, Tesouro Diretoâ¦">
+        <label class="flabel">Descrição</label>
+        <input class="finput" type="text" id="f-descricao" placeholder="Ex: Supermercado, Salário, Tesouro Direto…">
       </div>
 
       <!-- Date + User -->
@@ -245,41 +245,41 @@
           <input class="finput" type="date" id="f-data" required>
         </div>
         <div>
-          <label class="flabel">Quem lanÃ§ou</label>
+          <label class="flabel">Quem lançou</label>
           <select class="finput" id="f-usuario"></select>
         </div>
       </div>
 
       <!-- Notes -->
       <div style="margin-bottom:24px;">
-        <label class="flabel">ObservaÃ§Ãµes <span style="color:#94a3b8;font-weight:400;">(opcional)</span></label>
-        <textarea class="finput" id="f-notas" rows="2" placeholder="Detalhes adicionaisâ¦" style="resize:none;"></textarea>
+        <label class="flabel">Observações <span style="color:#94a3b8;font-weight:400;">(opcional)</span></label>
+        <textarea class="finput" id="f-notas" rows="2" placeholder="Detalhes adicionais…" style="resize:none;"></textarea>
       </div>
 
       <button type="submit" style="width:100%;padding:14px;background:#4f46e5;color:white;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;transition:background 0.15s;"
         onmouseover="this.style.background='#4338ca'" onmouseout="this.style.background='#4f46e5'">
-        Salvar TransaÃ§Ã£o
+        Salvar Transação
       </button>
     </form>
   </div>
 </section>
 
-<!-- ==================== HISTÃRICO ==================== -->
+<!-- ==================== HISTÓRICO ==================== -->
 <section id="page-historico" style="display:none;max-width:1100px;">
   <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:28px;">
     <div>
-      <h1 style="font-size:24px;font-weight:800;color:#0f172a;">HistÃ³rico</h1>
-      <p style="color:#94a3b8;font-size:14px;margin-top:2px;">Todas as suas transaÃ§Ãµes</p>
+      <h1 style="font-size:24px;font-weight:800;color:#0f172a;">Histórico</h1>
+      <p style="color:#94a3b8;font-size:14px;margin-top:2px;">Todas as suas transações</p>
     </div>
     <button onclick="goto('nova')" style="padding:10px 18px;background:#4f46e5;color:white;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;">
-      + Nova TransaÃ§Ã£o
+      + Nova Transação
     </button>
   </div>
 
   <!-- Filters -->
   <div class="card" style="margin-bottom:16px;">
     <div style="display:grid;grid-template-columns:1fr auto auto auto auto;gap:10px;align-items:center;">
-      <input class="finput" type="text" id="fil-search" placeholder="ð Buscar por descriÃ§Ã£oâ¦" oninput="renderHistorico()">
+      <input class="finput" type="text" id="fil-search" placeholder="🔍 Buscar por descrição…" oninput="renderHistorico()">
       <select class="finput" id="fil-tipo" onchange="renderHistorico()" style="min-width:130px;">
         <option value="">Todos os tipos</option>
         <option value="receita">Receitas</option>
@@ -300,56 +300,56 @@
       <thead>
         <tr style="border-bottom:1px solid #f1f5f9;">
           <th style="text-align:left;padding:14px 20px;font-size:12px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px;">Data</th>
-          <th style="text-align:left;padding:14px 20px;font-size:12px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px;">DescriÃ§Ã£o</th>
+          <th style="text-align:left;padding:14px 20px;font-size:12px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px;">Descrição</th>
           <th style="text-align:left;padding:14px 20px;font-size:12px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px;">Categoria</th>
           <th style="text-align:left;padding:14px 20px;font-size:12px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px;">Quem</th>
           <th style="text-align:right;padding:14px 20px;font-size:12px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px;">Valor</th>
-          <th style="text-align:center;padding:14px 20px;font-size:12px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px;">AÃ§Ãµes</th>
+          <th style="text-align:center;padding:14px 20px;font-size:12px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px;">Ações</th>
         </tr>
       </thead>
       <tbody id="hist-tbody"></tbody>
     </table>
     <div id="hist-empty" class="empty-state" style="display:none;">
-      <div class="icon">ð­</div>
-      <p style="font-weight:600;color:#64748b;">Nenhuma transaÃ§Ã£o encontrada</p>
-      <p style="font-size:13px;margin-top:4px;">Ajuste os filtros ou adicione uma nova transaÃ§Ã£o</p>
+      <div class="icon">📭</div>
+      <p style="font-weight:600;color:#64748b;">Nenhuma transação encontrada</p>
+      <p style="font-size:13px;margin-top:4px;">Ajuste os filtros ou adicione uma nova transação</p>
     </div>
   </div>
 </section>
 
-<!-- ==================== GRÃFICOS ==================== -->
+<!-- ==================== GRÁFICOS ==================== -->
 <section id="page-graficos" style="display:none;max-width:1100px;">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:28px;">
     <div>
-      <h1 style="font-size:24px;font-weight:800;color:#0f172a;">GrÃ¡ficos</h1>
-      <p style="color:#94a3b8;font-size:14px;margin-top:2px;">Visualize seus padrÃµes financeiros</p>
+      <h1 style="font-size:24px;font-weight:800;color:#0f172a;">Gráficos</h1>
+      <p style="color:#94a3b8;font-size:14px;margin-top:2px;">Visualize seus padrões financeiros</p>
     </div>
     <select class="finput" id="graf-periodo" onchange="renderGraficos()" style="width:170px;">
-      <option value="mes">Este mÃªs</option>
-      <option value="3m">Ãltimos 3 meses</option>
-      <option value="6m" selected>Ãltimos 6 meses</option>
+      <option value="mes">Este mês</option>
+      <option value="3m">Últimos 3 meses</option>
+      <option value="6m" selected>Últimos 6 meses</option>
       <option value="ano">Este ano</option>
-      <option value="tudo">Todo o perÃ­odo</option>
+      <option value="tudo">Todo o período</option>
     </select>
   </div>
 
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
     <div class="card">
-      <p style="font-weight:700;font-size:14px;color:#334155;margin-bottom:16px;">ð© Despesas por Categoria</p>
+      <p style="font-weight:700;font-size:14px;color:#334155;margin-bottom:16px;">🍩 Despesas por Categoria</p>
       <div style="height:260px;"><canvas id="ch-donut-g"></canvas></div>
     </div>
     <div class="card">
-      <p style="font-weight:700;font-size:14px;color:#334155;margin-bottom:16px;">ð Receitas vs Despesas por MÃªs</p>
+      <p style="font-weight:700;font-size:14px;color:#334155;margin-bottom:16px;">📊 Receitas vs Despesas por Mês</p>
       <div style="height:260px;"><canvas id="ch-bar-g"></canvas></div>
     </div>
   </div>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
     <div class="card">
-      <p style="font-weight:700;font-size:14px;color:#334155;margin-bottom:16px;">ð EvoluÃ§Ã£o do Saldo Acumulado</p>
+      <p style="font-weight:700;font-size:14px;color:#334155;margin-bottom:16px;">📉 Evolução do Saldo Acumulado</p>
       <div style="height:240px;"><canvas id="ch-line-g"></canvas></div>
     </div>
     <div class="card">
-      <p style="font-weight:700;font-size:14px;color:#334155;margin-bottom:16px;">ð Top Categorias de Gastos</p>
+      <p style="font-weight:700;font-size:14px;color:#334155;margin-bottom:16px;">🏆 Top Categorias de Gastos</p>
       <div style="height:240px;"><canvas id="ch-horiz-g"></canvas></div>
     </div>
   </div>
@@ -359,22 +359,22 @@
 <section id="page-chat" style="display:none;max-width:800px;display:flex;flex-direction:column;height:calc(100vh - 64px);">
   <div style="margin-bottom:20px;">
     <h1 style="font-size:24px;font-weight:800;color:#0f172a;">Chat com IA</h1>
-    <p style="color:#94a3b8;font-size:14px;margin-top:2px;">Pergunte qualquer coisa sobre suas finanÃ§as</p>
+    <p style="color:#94a3b8;font-size:14px;margin-top:2px;">Pergunte qualquer coisa sobre suas finanças</p>
   </div>
 
   <!-- No key warning -->
   <div id="chat-nokey" style="display:none;background:#fffbeb;border:1.5px solid #fcd34d;border-radius:12px;padding:14px 18px;margin-bottom:16px;">
-    <span style="font-weight:700;color:#92400e;">â ï¸ API nÃ£o configurada â </span>
-    <span style="font-size:14px;color:#78350f;">vÃ¡ em <a onclick="goto('config')" style="color:#d97706;cursor:pointer;text-decoration:underline;">ConfiguraÃ§Ãµes</a> para adicionar sua chave de API.</span>
+    <span style="font-weight:700;color:#92400e;">⚠️ API não configurada — </span>
+    <span style="font-size:14px;color:#78350f;">vá em <a onclick="goto('config')" style="color:#d97706;cursor:pointer;text-decoration:underline;">Configurações</a> para adicionar sua chave de API.</span>
   </div>
 
   <!-- Suggestions -->
   <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;">
-    <button class="suggestion" onclick="askSugg('O que mais gastei este mÃªs?')">ð¸ O que mais gastei este mÃªs?</button>
-    <button class="suggestion" onclick="askSugg('Qual categoria pesa mais no orÃ§amento?')">ð Qual categoria pesa mais?</button>
-    <button class="suggestion" onclick="askSugg('Como foi minha semana financeiramente?')">ð Como foi a semana?</button>
-    <button class="suggestion" onclick="askSugg('Onde posso economizar?')">ð¡ Onde posso economizar?</button>
-    <button class="suggestion" onclick="askSugg('Resumo dos meus investimentos')">ð Resumo de investimentos</button>
+    <button class="suggestion" onclick="askSugg('O que mais gastei este mês?')">💸 O que mais gastei este mês?</button>
+    <button class="suggestion" onclick="askSugg('Qual categoria pesa mais no orçamento?')">📊 Qual categoria pesa mais?</button>
+    <button class="suggestion" onclick="askSugg('Como foi minha semana financeiramente?')">📅 Como foi a semana?</button>
+    <button class="suggestion" onclick="askSugg('Onde posso economizar?')">💡 Onde posso economizar?</button>
+    <button class="suggestion" onclick="askSugg('Resumo dos meus investimentos')">📈 Resumo de investimentos</button>
   </div>
 
   <!-- Chat window -->
@@ -382,37 +382,37 @@
     <div id="chat-msgs" style="flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:14px;">
       <!-- Welcome message -->
       <div style="display:flex;gap:10px;align-items:flex-start;">
-        <div style="width:32px;height:32px;background:#eef2ff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">ð¤</div>
-        <div class="bubble-ai">OlÃ¡! Sou seu assistente financeiro pessoal. Tenho acesso a todos os seus lanÃ§amentos e posso te ajudar a entender padrÃµes de gastos, encontrar oportunidades de economia e responder qualquer dÃºvida sobre as finanÃ§as do casal. Como posso ajudar?</div>
+        <div style="width:32px;height:32px;background:#eef2ff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">🤖</div>
+        <div class="bubble-ai">Olá! Sou seu assistente financeiro pessoal. Tenho acesso a todos os seus lançamentos e posso te ajudar a entender padrões de gastos, encontrar oportunidades de economia e responder qualquer dúvida sobre as finanças do casal. Como posso ajudar?</div>
       </div>
     </div>
     <!-- Input -->
     <div style="padding:14px;border-top:1px solid #f1f5f9;">
       <div style="display:flex;gap:10px;">
-        <input class="finput" type="text" id="chat-input" placeholder="Pergunte algo sobre suas finanÃ§asâ¦" onkeydown="if(event.key==='Enter')sendChat()" style="flex:1;">
+        <input class="finput" type="text" id="chat-input" placeholder="Pergunte algo sobre suas finanças…" onkeydown="if(event.key==='Enter')sendChat()" style="flex:1;">
         <button onclick="sendChat()" id="chat-send" style="padding:12px 20px;background:#4f46e5;color:white;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;">Enviar</button>
       </div>
     </div>
   </div>
 </section>
 
-<!-- ==================== CONFIGURAÃÃES ==================== -->
+<!-- ==================== CONFIGURAÇÕES ==================== -->
 <section id="page-config" style="display:none;max-width:560px;">
   <div style="margin-bottom:28px;">
-    <h1 style="font-size:24px;font-weight:800;color:#0f172a;">ConfiguraÃ§Ãµes</h1>
+    <h1 style="font-size:24px;font-weight:800;color:#0f172a;">Configurações</h1>
     <p style="color:#94a3b8;font-size:14px;margin-top:2px;">Personalize seu aplicativo</p>
   </div>
 
   <!-- Users -->
   <div class="card" style="margin-bottom:16px;">
-    <p style="font-weight:700;font-size:15px;color:#334155;margin-bottom:16px;">ð¥ UsuÃ¡rios</p>
+    <p style="font-weight:700;font-size:15px;color:#334155;margin-bottom:16px;">👥 Usuários</p>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
       <div>
-        <label class="flabel">UsuÃ¡rio 1</label>
+        <label class="flabel">Usuário 1</label>
         <input class="finput" type="text" id="cfg-u1" placeholder="Paulo">
       </div>
       <div>
-        <label class="flabel">UsuÃ¡rio 2</label>
+        <label class="flabel">Usuário 2</label>
         <input class="finput" type="text" id="cfg-u2" placeholder="Esposa">
       </div>
     </div>
@@ -420,7 +420,7 @@
 
   <!-- AI -->
   <div class="card" style="margin-bottom:16px;">
-    <p style="font-weight:700;font-size:15px;color:#334155;margin-bottom:4px;">ð¤ Assistente de IA</p>
+    <p style="font-weight:700;font-size:15px;color:#334155;margin-bottom:4px;">🤖 Assistente de IA</p>
     <p style="font-size:13px;color:#94a3b8;margin-bottom:16px;">Configure sua chave de API para usar o Chat IA</p>
 
     <label class="flabel" style="margin-bottom:8px;">Provedor</label>
@@ -430,32 +430,32 @@
     </div>
 
     <label class="flabel">Chave de API</label>
-    <input class="finput" type="password" id="cfg-apikey" placeholder="sk-â¦" style="font-family:monospace;">
-    <p style="font-size:12px;color:#94a3b8;margin-top:6px;">ð Sua chave Ã© armazenada apenas localmente no seu navegador, nunca Ã© enviada para servidores.</p>
+    <input class="finput" type="password" id="cfg-apikey" placeholder="sk-…" style="font-family:monospace;">
+    <p style="font-size:12px;color:#94a3b8;margin-top:6px;">🔒 Sua chave é armazenada apenas localmente no seu navegador, nunca é enviada para servidores.</p>
     <p style="font-size:12px;color:#94a3b8;margin-top:4px;">Para OpenAI: acesse <strong>platform.openai.com</strong>. Para Anthropic: acesse <strong>console.anthropic.com</strong>.</p>
   </div>
 
   <!-- Data -->
   <div class="card" style="margin-bottom:16px;">
-    <p style="font-weight:700;font-size:15px;color:#334155;margin-bottom:16px;">ð¾ Dados</p>
+    <p style="font-weight:700;font-size:15px;color:#334155;margin-bottom:16px;">💾 Dados</p>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
-      <button onclick="exportarDados()" style="padding:12px;background:#ecfdf5;color:#065f46;border:1.5px solid #a7f3d0;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;">ð¤ Exportar JSON</button>
-      <button onclick="document.getElementById('import-input').click()" style="padding:12px;background:#eff6ff;color:#1e40af;border:1.5px solid #bfdbfe;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;">ð¥ Importar JSON</button>
+      <button onclick="exportarDados()" style="padding:12px;background:#ecfdf5;color:#065f46;border:1.5px solid #a7f3d0;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;">📤 Exportar JSON</button>
+      <button onclick="document.getElementById('import-input').click()" style="padding:12px;background:#eff6ff;color:#1e40af;border:1.5px solid #bfdbfe;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;">📥 Importar JSON</button>
     </div>
     <input type="file" id="import-input" accept=".json" style="display:none;" onchange="importarDados(event)">
-    <p style="font-size:12px;color:#94a3b8;">ð¡ <strong>Dica para o casal:</strong> exporte os dados, coloque o arquivo JSON em uma pasta compartilhada (Google Drive, Dropbox ou OneDrive). Cada um importa o arquivo quando quiser sincronizar.</p>
+    <p style="font-size:12px;color:#94a3b8;">💡 <strong>Dica para o casal:</strong> exporte os dados, coloque o arquivo JSON em uma pasta compartilhada (Google Drive, Dropbox ou OneDrive). Cada um importa o arquivo quando quiser sincronizar.</p>
   </div>
 
   <!-- Save button -->
   <button onclick="salvarConfig()" style="width:100%;padding:14px;background:#4f46e5;color:white;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;margin-bottom:16px;">
-    Salvar ConfiguraÃ§Ãµes
+    Salvar Configurações
   </button>
 
   <!-- Danger zone -->
   <div class="card" style="border-color:#fecdd3;">
-    <p style="font-weight:700;font-size:14px;color:#e11d48;margin-bottom:12px;">â ï¸ Zona de Risco</p>
+    <p style="font-weight:700;font-size:14px;color:#e11d48;margin-bottom:12px;">⚠️ Zona de Risco</p>
     <button onclick="apagarTudo()" style="padding:10px 16px;background:#fff1f2;color:#e11d48;border:1.5px solid #fecdd3;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;">
-      ðï¸ Apagar todos os dados
+      🗑️ Apagar todos os dados
     </button>
   </div>
 </section>
@@ -469,8 +469,8 @@
 <div id="del-modal" style="display:none;">
   <div id="modal-backdrop" onclick="closeModal()">
     <div onclick="event.stopPropagation()" style="background:white;border-radius:18px;padding:28px;max-width:380px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.15);">
-      <p style="font-weight:800;font-size:17px;color:#0f172a;margin-bottom:8px;">Confirmar exclusÃ£o</p>
-      <p style="font-size:14px;color:#64748b;margin-bottom:24px;">Tem certeza que quer excluir esta transaÃ§Ã£o? Esta aÃ§Ã£o nÃ£o pode ser desfeita.</p>
+      <p style="font-weight:800;font-size:17px;color:#0f172a;margin-bottom:8px;">Confirmar exclusão</p>
+      <p style="font-size:14px;color:#64748b;margin-bottom:24px;">Tem certeza que quer excluir esta transação? Esta ação não pode ser desfeita.</p>
       <div style="display:flex;gap:10px;">
         <button onclick="closeModal()" style="flex:1;padding:12px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:14px;font-weight:600;color:#64748b;background:white;cursor:pointer;">Cancelar</button>
         <button onclick="confirmarDelete()" style="flex:1;padding:12px;background:#e11d48;color:white;border:none;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;">Excluir</button>
@@ -481,7 +481,7 @@
 
 <!-- ============================================================ JAVASCRIPT -->
 <script>
-// âââ STATE ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ─── STATE ────────────────────────────────────────────────────────────────────
 let S = {
   transactions: [],
   chatHistory: [],
@@ -495,16 +495,16 @@ let charts = {};
 let deleteId = null;
 
 const CATS = {
-  receita:      ['SalÃ¡rio','Freelance','Aluguel Recebido','Dividendos','BÃ´nus','Outros'],
-  despesa:      ['AlimentaÃ§Ã£o','Moradia','Transporte','SaÃºde','Lazer','EducaÃ§Ã£o','VestuÃ¡rio','Assinaturas','Pets','Viagem','Outros'],
-  investimento: ['Renda Fixa','AÃ§Ãµes','FIIs','Tesouro Direto','Criptomoedas','PoupanÃ§a','PrevidÃªncia','Outros']
+  receita:      ['Salário','Freelance','Aluguel Recebido','Dividendos','Bônus','Outros'],
+  despesa:      ['Alimentação','Moradia','Transporte','Saúde','Lazer','Educação','Vestuário','Assinaturas','Pets','Viagem','Outros'],
+  investimento: ['Renda Fixa','Ações','FIIs','Tesouro Direto','Criptomoedas','Poupança','Previdência','Outros']
 };
 
 const COLORS = ['#6366f1','#f59e0b','#10b981','#f43f5e','#3b82f6','#8b5cf6','#ec4899','#14b8a6','#f97316','#84cc16','#06b6d4','#a855f7'];
 const MESES  = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
-const MESES_FULL = ['Janeiro','Fevereiro','MarÃ§o','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+const MESES_FULL = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 
-// âââ PERSISTENCE ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ─── PERSISTENCE ──────────────────────────────────────────────────────────────
 function load() {
   try {
     const d = JSON.parse(localStorage.getItem('fincasal_v2') || '{}');
@@ -518,7 +518,7 @@ function save() {
   localStorage.setItem('fincasal_v2', JSON.stringify(S));
 }
 
-// âââ NAVIGATION âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ─── NAVIGATION ───────────────────────────────────────────────────────────────
 function goto(page) {
   document.querySelectorAll('[id^="page-"]').forEach(el => el.style.display = 'none');
   const el = document.getElementById('page-' + page);
@@ -536,7 +536,7 @@ function goto(page) {
   if (page === 'nova')      { setTodayDate(); refreshUserSelects(); }
 }
 
-// âââ HELPERS ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ─── HELPERS ──────────────────────────────────────────────────────────────────
 function brl(v) {
   return new Intl.NumberFormat('pt-BR', { style:'currency', currency:'BRL' }).format(v||0);
 }
@@ -572,7 +572,7 @@ function destroyChart(id) {
   if (charts[id]) { charts[id].destroy(); delete charts[id]; }
 }
 
-// âââ TYPE SELECTOR ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ─── TYPE SELECTOR ────────────────────────────────────────────────────────────
 function setType(t) {
   currentType = t;
   ['receita','despesa','invest'].forEach(x => document.getElementById('btn-'+x).className = 'type-btn');
@@ -583,7 +583,7 @@ function setType(t) {
   sel.innerHTML = CATS[t].map(c => `<option value="${c}">${c}</option>`).join('');
 }
 
-// âââ SAVE TRANSACTION âââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ─── SAVE TRANSACTION ─────────────────────────────────────────────────────────
 function saveTransacao(e) {
   e.preventDefault();
   const tx = {
@@ -603,20 +603,20 @@ function saveTransacao(e) {
   document.getElementById('f-descricao').value = '';
   document.getElementById('f-notas').value = '';
   setTodayDate();
-  toast('â TransaÃ§Ã£o salva!');
+  toast('✅ Transação salva!');
   goto('dashboard');
 }
 
-// âââ DELETE âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ─── DELETE ───────────────────────────────────────────────────────────────────
 function del(id) { deleteId = id; document.getElementById('del-modal').style.display = 'block'; }
 function closeModal() { document.getElementById('del-modal').style.display = 'none'; deleteId = null; }
 function confirmarDelete() {
   S.transactions = S.transactions.filter(t => t.id !== deleteId);
   save(); closeModal(); renderHistorico();
-  toast('ðï¸ TransaÃ§Ã£o excluÃ­da');
+  toast('🗑️ Transação excluída');
 }
 
-// âââ DASHBOARD ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ─── DASHBOARD ────────────────────────────────────────────────────────────────
 function renderDashboard() {
   const now = new Date();
   const ym = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
@@ -635,7 +635,7 @@ function renderDashboard() {
   const pDesp = pTx.filter(t=>t.type==='despesa').reduce((s,t)=>s+t.amount,0);
   const pSaldo = pRec - pDesp;
 
-  document.getElementById('dash-subtitle').textContent = `VisÃ£o geral de ${MESES_FULL[now.getMonth()]} ${now.getFullYear()}`;
+  document.getElementById('dash-subtitle').textContent = `Visão geral de ${MESES_FULL[now.getMonth()]} ${now.getFullYear()}`;
 
   const cs = document.getElementById('c-saldo');
   cs.textContent = brl(saldo);
@@ -643,14 +643,14 @@ function renderDashboard() {
 
   if (pSaldo !== 0) {
     const diff = saldo - pSaldo;
-    document.getElementById('c-saldo-sub').textContent = `${diff>=0?'â':'â'} ${brl(Math.abs(diff))} vs mÃªs anterior`;
+    document.getElementById('c-saldo-sub').textContent = `${diff>=0?'↑':'↓'} ${brl(Math.abs(diff))} vs mês anterior`;
     document.getElementById('c-saldo-sub').style.color = diff >= 0 ? '#059669' : '#e11d48';
   }
 
   document.getElementById('c-receitas').textContent = brl(rec);
-  document.getElementById('c-receitas-n').textContent = `${mTx.filter(t=>t.type==='receita').length} lanÃ§amentos`;
+  document.getElementById('c-receitas-n').textContent = `${mTx.filter(t=>t.type==='receita').length} lançamentos`;
   document.getElementById('c-despesas').textContent = brl(desp);
-  document.getElementById('c-despesas-n').textContent = `${mTx.filter(t=>t.type==='despesa').length} lanÃ§amentos`;
+  document.getElementById('c-despesas-n').textContent = `${mTx.filter(t=>t.type==='despesa').length} lançamentos`;
   document.getElementById('c-invest').textContent = brl(inv);
   document.getElementById('c-invest-n').textContent = `${S.transactions.filter(t=>t.type==='investimento').length} aportes no total`;
 
@@ -667,7 +667,7 @@ function renderDonutDash(txs) {
 
   destroyChart('ch-donut-dash');
   const ctx = document.getElementById('ch-donut-dash');
-  if (!ctx || !labels.length) { document.getElementById('donut-legend').innerHTML = '<p style="font-size:13px;color:#94a3b8;">Nenhuma despesa este mÃªs</p>'; return; }
+  if (!ctx || !labels.length) { document.getElementById('donut-legend').innerHTML = '<p style="font-size:13px;color:#94a3b8;">Nenhuma despesa este mês</p>'; return; }
 
   charts['ch-donut-dash'] = new Chart(ctx, {
     type: 'doughnut',
@@ -723,23 +723,23 @@ function renderRecent() {
   const recent = [...S.transactions].sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,7);
   const el = document.getElementById('recent-list');
   if (!recent.length) {
-    el.innerHTML = `<div class="empty-state"><div class="icon">ð­</div><p style="font-weight:600;color:#64748b;">Nenhuma transaÃ§Ã£o ainda</p><button onclick="goto('nova')" style="margin-top:12px;padding:10px 20px;background:#4f46e5;color:white;border:none;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;">Adicionar primeira</button></div>`;
+    el.innerHTML = `<div class="empty-state"><div class="icon">📭</div><p style="font-weight:600;color:#64748b;">Nenhuma transação ainda</p><button onclick="goto('nova')" style="margin-top:12px;padding:10px 20px;background:#4f46e5;color:white;border:none;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;">Adicionar primeira</button></div>`;
     return;
   }
   el.innerHTML = recent.map(t => {
-    const cfg = { receita:{ic:'ð',clr:'#059669',sign:'+'}, despesa:{ic:'â¤ï¸',clr:'#e11d48',sign:'-'}, investimento:{ic:'ð',clr:'#2563eb',sign:'+'} }[t.type];
+    const cfg = { receita:{ic:'💚',clr:'#059669',sign:'+'}, despesa:{ic:'❤️',clr:'#e11d48',sign:'-'}, investimento:{ic:'📈',clr:'#2563eb',sign:'+'} }[t.type];
     return `<div class="trow" style="display:flex;align-items:center;padding:14px 24px;border-bottom:1px solid #f8fafc;">
       <div style="width:38px;height:38px;background:#f8fafc;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;margin-right:14px;">${cfg.ic}</div>
       <div style="flex:1;">
         <p style="font-size:14px;font-weight:600;color:#0f172a;">${t.desc}</p>
-        <p style="font-size:12px;color:#94a3b8;margin-top:2px;">${t.category} Â· ${fmtDate(t.date)} Â· ${t.user}</p>
+        <p style="font-size:12px;color:#94a3b8;margin-top:2px;">${t.category} · ${fmtDate(t.date)} · ${t.user}</p>
       </div>
       <p style="font-size:15px;font-weight:800;color:${cfg.clr};">${cfg.sign}${brl(t.amount)}</p>
     </div>`;
   }).join('');
 }
 
-// âââ HISTÃRICO ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ─── HISTÓRICO ────────────────────────────────────────────────────────────────
 function fillMesFilter() {
   const sel = document.getElementById('fil-mes');
   if (!sel) return;
@@ -801,7 +801,7 @@ function renderHistorico() {
       <td style="padding:14px 20px;font-size:13px;color:#64748b;">${t.user}</td>
       <td style="padding:14px 20px;text-align:right;font-size:15px;font-weight:800;color:${s.clr};white-space:nowrap;">${s.sign}${brl(t.amount)}</td>
       <td style="padding:14px 20px;text-align:center;">
-        <button onclick="del('${t.id}')" style="background:none;border:none;cursor:pointer;padding:6px;border-radius:8px;transition:background 0.1s;" onmouseover="this.style.background='#fff1f2'" onmouseout="this.style.background='none'" title="Excluir">ðï¸</button>
+        <button onclick="del('${t.id}')" style="background:none;border:none;cursor:pointer;padding:6px;border-radius:8px;transition:background 0.1s;" onmouseover="this.style.background='#fff1f2'" onmouseout="this.style.background='none'" title="Excluir">🗑️</button>
       </td>
     </tr>`;
   }).join('');
@@ -812,7 +812,7 @@ function clearFiltros() {
   renderHistorico();
 }
 
-// âââ GRÃFICOS âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ─── GRÁFICOS ─────────────────────────────────────────────────────────────────
 function getDateRange(periodo) {
   const now = new Date();
   const ranges = {
@@ -929,7 +929,7 @@ function renderHorizG(txs) {
   });
 }
 
-// âââ CHAT IA ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ─── CHAT IA ──────────────────────────────────────────────────────────────────
 function checkChatKey() {
   document.getElementById('chat-nokey').style.display = S.settings.apiKey ? 'none' : 'block';
 }
@@ -944,28 +944,28 @@ function buildContext() {
 
   const byCat={};
   mTx.filter(t=>t.type==='despesa').forEach(t=>byCat[t.category]=(byCat[t.category]||0)+t.amount);
-  const catStr=Object.entries(byCat).sort((a,b)=>b[1]-a[1]).map(([c,v])=>`  - ${c}: ${brl(v)}`).join('\n')||'  (nenhuma despesa lanÃ§ada)';
+  const catStr=Object.entries(byCat).sort((a,b)=>b[1]-a[1]).map(([c,v])=>`  - ${c}: ${brl(v)}`).join('\n')||'  (nenhuma despesa lançada)';
 
   const recent=[...S.transactions].sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,25)
-    .map(t=>`  [${t.date}] ${t.type.toUpperCase()} | ${t.desc} (${t.category}) | ${brl(t.amount)} | ${t.user}`).join('\n')||'  (nenhuma transaÃ§Ã£o ainda)';
+    .map(t=>`  [${t.date}] ${t.type.toUpperCase()} | ${t.desc} (${t.category}) | ${brl(t.amount)} | ${t.user}`).join('\n')||'  (nenhuma transação ainda)';
 
-  return `VocÃª Ã© um assistente financeiro pessoal para ${S.settings.u1} e ${S.settings.u2}.
+  return `Você é um assistente financeiro pessoal para ${S.settings.u1} e ${S.settings.u2}.
 
-SITUAÃÃO ATUAL (${MESES_FULL[now.getMonth()]} ${now.getFullYear()}):
-- Receitas do mÃªs: ${brl(rec)}
-- Despesas do mÃªs: ${brl(desp)}
-- Saldo do mÃªs: ${brl(rec-desp)}
-- Total investido (histÃ³rico): ${brl(inv)}
+SITUAÇÃO ATUAL (${MESES_FULL[now.getMonth()]} ${now.getFullYear()}):
+- Receitas do mês: ${brl(rec)}
+- Despesas do mês: ${brl(desp)}
+- Saldo do mês: ${brl(rec-desp)}
+- Total investido (histórico): ${brl(inv)}
 
-IMPORTANTE: investimentos sÃ£o registrados separadamente e NÃO contam como receita do orÃ§amento mensal. Eles representam capital alocado, nÃ£o renda disponÃ­vel.
+IMPORTANTE: investimentos são registrados separadamente e NÃO contam como receita do orçamento mensal. Eles representam capital alocado, não renda disponível.
 
-DESPESAS POR CATEGORIA ESTE MÃS:
+DESPESAS POR CATEGORIA ESTE MÊS:
 ${catStr}
 
-ÃLTIMAS TRANSAÃÃES (mÃ¡x 25):
+ÚLTIMAS TRANSAÇÕES (máx 25):
 ${recent}
 
-Responda sempre em portuguÃªs brasileiro, de forma clara, objetiva e amigÃ¡vel. Use R$ para valores. Seja analÃ­tico e ofereÃ§a insights prÃ¡ticos quando relevante.`;
+Responda sempre em português brasileiro, de forma clara, objetiva e amigável. Use R$ para valores. Seja analítico e ofereça insights práticos quando relevante.`;
 }
 
 async function sendChat() {
@@ -974,7 +974,7 @@ async function sendChat() {
   if(!msg)return;
 
   if(!S.settings.apiKey){
-    toast('â ï¸ Configure a API nas ConfiguraÃ§Ãµes primeiro');
+    toast('⚠️ Configure a API nas Configurações primeiro');
     goto('config');
     return;
   }
@@ -997,7 +997,7 @@ async function sendChat() {
     save();
   } catch(err) {
     removeTyping(typId);
-    addBubble('ai',`â Erro: ${err.message}. Verifique sua chave de API nas ConfiguraÃ§Ãµes.`);
+    addBubble('ai',`❌ Erro: ${err.message}. Verifique sua chave de API nas Configurações.`);
   }
 }
 
@@ -1005,7 +1005,7 @@ async function callOpenAI(system,history) {
   const r=await fetch('https://api.openai.com/v1/chat/completions',{
     method:'POST',
     headers:{'Content-Type':'application/json','Authorization':`Bearer ${S.settings.apiKey}`},
-    body:JSON.stringify({model:'gpt-4o-mini',messages:[{role:'system',content:system},...history],max_tokens;900,temperature:0.7})
+    body:JSON.stringify({model:'gpt-4o-mini',messages:[{role:'system',content:system},...history],max_tokens:900,temperature:0.7})
   });
   if(!r.ok){const e=await r.json();throw new Error(e.error?.message||'Erro OpenAI');}
   return (await r.json()).choices[0].message.content;
@@ -1015,7 +1015,7 @@ async function callAnthropic(system,history) {
   const r=await fetch('https://api.anthropic.com/v1/messages',{
     method:'POST',
     headers:{'Content-Type':'application/json','x-api-key':S.settings.apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-    body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens;900,system,messages:history})
+    body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:900,system,messages:history})
   });
   if(!r.ok){const e=await r.json();throw new Error(e.error?.message||'Erro Anthropic');}
   return (await r.json()).content[0].text;
@@ -1028,7 +1028,7 @@ function addBubble(role,text) {
   const txt=text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
   div.innerHTML = role==='user'
     ? `<div class="bubble-user">${txt}</div>`
-    : `<div style="width:32px;height:32px;background:#eef2ff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">ð¤</div><div class="bubble-ai">${txt}</div>`;
+    : `<div style="width:32px;height:32px;background:#eef2ff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">🤖</div><div class="bubble-ai">${txt}</div>`;
   c.appendChild(div);
   c.scrollTop=c.scrollHeight;
 }
@@ -1039,7 +1039,7 @@ function addTyping() {
   const div=document.createElement('div');
   div.id=id;
   div.style.cssText='display:flex;gap:10px;align-items:flex-start;';
-  div.innerHTML=`<div style="width:32px;height:32px;background:#eef2ff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">ð¤</div>
+  div.innerHTML=`<div style="width:32px;height:32px;background:#eef2ff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">🤖</div>
     <div class="bubble-ai"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>`;
   c.appendChild(div);
   c.scrollTop=c.scrollHeight;
@@ -1056,7 +1056,7 @@ function askSugg(q) {
   sendChat();
 }
 
-// âââ CONFIG âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ─── CONFIG ───────────────────────────────────────────────────────────────────
 function loadConfig() {
   document.getElementById('cfg-u1').value=S.settings.u1;
   document.getElementById('cfg-u2').value=S.settings.u2;
@@ -1077,7 +1077,7 @@ function salvarConfig() {
   save();
   document.getElementById('header-users').textContent=`${S.settings.u1} & ${S.settings.u2}`;
   refreshUserSelects();
-  toast('â ConfiguraÃ§Ãµes salvas!');
+  toast('✅ Configurações salvas!');
 }
 
 function exportarDados() {
@@ -1087,7 +1087,7 @@ function exportarDados() {
   a.download=`financas_casal_${new Date().toISOString().slice(0,10)}.json`;
   a.click();
   URL.revokeObjectURL(a.href);
-  toast('ð¤ Dados exportados com sucesso!');
+  toast('📤 Dados exportados com sucesso!');
 }
 
 function importarDados(e) {
@@ -1099,25 +1099,25 @@ function importarDados(e) {
       const d=JSON.parse(ev.target.result);
       if(d.transactions) S.transactions=d.transactions;
       save();
-      toast('ð¥ Dados importados com sucesso!');
+      toast('📥 Dados importados com sucesso!');
       goto('dashboard');
-    } catch { toast('â Arquivo invÃ¡lido'); }
+    } catch { toast('❌ Arquivo inválido'); }
   };
   r.readAsText(file);
   e.target.value='';
 }
 
 function apagarTudo() {
-  if(confirm('â ï¸ Tem certeza? Todos os dados serÃ£o apagados permanentemente. Esta aÃ§Ã£o nÃ£o pode ser desfeita.')) {
+  if(confirm('⚠️ Tem certeza? Todos os dados serão apagados permanentemente. Esta ação não pode ser desfeita.')) {
     S.transactions=[];
     S.chatHistory=[];
     save();
-    toast('ðï¸ Todos os dados foram apagados');
+    toast('🗑️ Todos os dados foram apagados');
     goto('dashboard');
   }
 }
 
-// âââ INIT âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ─── INIT ─────────────────────────────────────────────────────────────────────
 function init() {
   load();
   setType('receita');
