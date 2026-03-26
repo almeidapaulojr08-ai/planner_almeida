@@ -180,7 +180,7 @@
   </div>
 
   <!-- Summary cards -->
-  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px;">
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px;">
     <div class="card">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
         <span style="font-size:22px;">💳</span>
@@ -207,6 +207,15 @@
       <p style="font-size:12px;color:#94a3b8;margin-bottom:4px;">Despesas do Mês</p>
       <p id="c-despesas" style="font-size:22px;font-weight:800;" class="red">R$ 0,00</p>
       <p id="c-despesas-n" style="font-size:11px;color:#94a3b8;margin-top:4px;">0 lançamentos</p>
+    </div>
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+        <span style="font-size:22px;">📈</span>
+        <span class="badge" style="background:#eff6ff;color:#1e40af;">Investimentos</span>
+      </div>
+      <p style="font-size:12px;color:#94a3b8;margin-bottom:4px;">Total Investido</p>
+      <p id="c-invest" style="font-size:22px;font-weight:800;" class="blue">R$ 0,00</p>
+      <p id="c-invest-n" style="font-size:11px;color:#94a3b8;margin-top:4px;">0 aportes no total</p>
     </div>
   </div>
 
@@ -627,10 +636,42 @@ const MESES  = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov
 const MESES_FULL = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 
 const BANKS = {
-  bradesco: { name:'Bradesco', color:'#CC0000', bg:'#FFF0F0', abbr:'B',  currency:'BRL' },
-  nubank:   { name:'Nubank',   color:'#820AD1', bg:'#F5E6FF', abbr:'nu', currency:'BRL' },
-  sicredi:  { name:'Sicredi',  color:'#00A859', bg:'#E6FFF2', abbr:'SC', currency:'BRL' },
-  binance:  { name:'Binance',  color:'#F0B90B', bg:'#FFFBEA', abbr:'BN', currency:'USD' },
+  bradesco: {
+    name:'Bradesco', color:'#CC0000', bg:'#FFF0F0', currency:'BRL',
+    svg:`<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+      <ellipse cx="24" cy="20" rx="12" ry="11" fill="white"/>
+      <rect x="21" y="30" width="6" height="10" rx="3" fill="white"/>
+      <ellipse cx="24" cy="20" rx="7" ry="6.5" fill="#CC0000"/>
+      <ellipse cx="24" cy="19" rx="4" ry="3.5" fill="white" opacity="0.35"/>
+    </svg>`
+  },
+  nubank: {
+    name:'Nubank', color:'#820AD1', bg:'#F5E6FF', currency:'BRL',
+    svg:`<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+      <text x="24" y="31" text-anchor="middle" fill="white"
+        font-family="'Arial Black',Arial,sans-serif" font-weight="900" font-size="17" letter-spacing="-0.5">nu</text>
+    </svg>`
+  },
+  sicredi: {
+    name:'Sicredi', color:'#007A3D', bg:'#E6FFF2', currency:'BRL',
+    svg:`<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+      <path d="M24 38 C24 38 11 27 11 19 C11 12 17 7 24 7 C31 7 37 12 37 19 C37 27 24 38 24 38Z" fill="white" opacity="0.2"/>
+      <path d="M24 11 C24 11 14 17 14 24 C14 29 18.5 33 24 33" stroke="white" stroke-width="3.5" stroke-linecap="round" fill="none"/>
+      <path d="M24 11 C24 11 34 17 34 24 C34 29 29.5 33 24 33" stroke="white" stroke-width="3.5" stroke-linecap="round" fill="none"/>
+      <circle cx="24" cy="35" r="3" fill="white"/>
+    </svg>`
+  },
+  binance: {
+    name:'Binance', color:'#B7950B', bg:'#FFFBEA', currency:'USD',
+    svg:`<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+      <polygon points="24,7 28.5,11.5 24,16 19.5,11.5" fill="white"/>
+      <polygon points="13,18 17.5,13.5 22,18 17.5,22.5" fill="white"/>
+      <polygon points="35,18 30.5,13.5 26,18 30.5,22.5" fill="white"/>
+      <polygon points="24,19 28.5,23.5 24,28 19.5,23.5" fill="white"/>
+      <polygon points="24,31 28.5,26.5 33,31 28.5,35.5" fill="white"/>
+      <polygon points="24,31 19.5,26.5 15,31 19.5,35.5" fill="white"/>
+    </svg>`
+  },
 };
 
 // ─── PERSISTENCE ──────────────────────────────────────────────────────────────
@@ -670,8 +711,11 @@ function usdToBrl(amount) {
 
 // ─── CONTAS ────────────────────────────────────────────────────────────────────
 function bankIcon(bankKey, size=40) {
-  const b = BANKS[bankKey] || { color:'#64748b', bg:'#f1f5f9', abbr:'?' };
-  return `<div style="width:${size}px;height:${size}px;background:${b.color};border-radius:${size*0.28}px;display:flex;align-items:center;justify-content:center;color:white;font-weight:800;font-size:${size*0.35}px;flex-shrink:0;">${b.abbr}</div>`;
+  const b = BANKS[bankKey] || { color:'#64748b', svg:'<text x="50%" y="65%" text-anchor="middle" fill="white" font-size="16">?</text>' };
+  const r = Math.round(size * 0.28);
+  return `<div style="width:${size}px;height:${size}px;background:${b.color};border-radius:${r}px;display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;">
+    <svg width="${size}" height="${size}" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">${b.svg}</svg>
+  </div>`;
 }
 
 function renderContas() {
@@ -990,6 +1034,11 @@ function renderDashboard() {
   document.getElementById('c-receitas-n').textContent = `${mTx.filter(t=>t.type==='receita').length} lançamentos`;
   document.getElementById('c-despesas').textContent = brl(desp);
   document.getElementById('c-despesas-n').textContent = `${mTx.filter(t=>t.type==='despesa').length} lançamentos`;
+
+  const invAll = txByTitular(S.transactions).filter(t=>t.type==='investimento');
+  const inv = invAll.reduce((s,t)=>s+amountBrl(t),0);
+  document.getElementById('c-invest').textContent = brl(inv);
+  document.getElementById('c-invest-n').textContent = `${invAll.length} aportes no total`;
 
   // Per-bank breakdown
   renderBankBreakdown(mTx);
