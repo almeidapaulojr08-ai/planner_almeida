@@ -88,6 +88,30 @@
 
 <body class="flex h-screen overflow-hidden">
 
+<!-- ============================================================ LOGIN -->
+<div id="login-screen" style="position:fixed;inset:0;background:linear-gradient(135deg,#6366f1,#8b5cf6);display:flex;align-items:center;justify-content:center;z-index:9999;">
+  <div style="background:white;border-radius:24px;padding:40px;width:100%;max-width:380px;box-shadow:0 20px 60px rgba(0,0,0,0.2);">
+    <div style="text-align:center;margin-bottom:32px;">
+      <div style="width:60px;height:60px;background:linear-gradient(135deg,#6366f1,#8b5cf6);border-radius:18px;display:flex;align-items:center;justify-content:center;font-size:28px;margin:0 auto 16px;">💰</div>
+      <h1 style="font-size:22px;font-weight:800;color:#0f172a;">FinançasCasal</h1>
+      <p style="font-size:14px;color:#94a3b8;margin-top:4px;">Entre para continuar</p>
+    </div>
+    <div style="margin-bottom:16px;">
+      <label class="flabel">Usuário</label>
+      <input class="finput" type="text" id="login-user" placeholder="Seu nome" autocomplete="username">
+    </div>
+    <div style="margin-bottom:24px;">
+      <label class="flabel">Senha</label>
+      <input class="finput" type="password" id="login-pass" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+    <button onclick="doLogin()" style="width:100%;padding:14px;background:#4f46e5;color:white;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;transition:background 0.15s;"
+      onmouseover="this.style.background='#4338ca'" onmouseout="this.style.background='#4f46e5'">
+      Entrar
+    </button>
+    <div id="login-err" style="display:none;margin-top:12px;text-align:center;font-size:13px;color:#e11d48;font-weight:600;"></div>
+  </div>
+</div>
+
 <!-- ============================================================ SIDEBAR -->
 <aside style="width:240px;min-width:240px;background:white;border-right:1px solid #f1f5f9;display:flex;flex-direction:column;z-index:10;">
   <!-- Logo -->
@@ -120,9 +144,12 @@
     </a>
   </nav>
 
-  <div style="padding:10px 10px 16px;border-top:1px solid #f1f5f9;">
+  <div style="padding:10px 10px 16px;border-top:1px solid #f1f5f9;display:flex;flex-direction:column;gap:2px;">
     <a class="nav-item" data-page="config" onclick="goto('config')">
       <span style="font-size:18px;">⚙️</span> Configurações
+    </a>
+    <a class="nav-item" onclick="logout()" style="color:#e11d48;">
+      <span style="font-size:18px;">🚪</span> Sair
     </a>
   </div>
 </aside>
@@ -451,6 +478,20 @@
     Salvar Configurações
   </button>
 
+  <!-- Security -->
+  <div class="card" style="margin-bottom:16px;">
+    <p style="font-weight:700;font-size:15px;color:#334155;margin-bottom:16px;">🔒 Segurança</p>
+    <div style="margin-bottom:12px;">
+      <label class="flabel">Senha de acesso</label>
+      <input class="finput" type="password" id="cfg-password" placeholder="Nova senha">
+    </div>
+    <div>
+      <label class="flabel">Confirmar senha</label>
+      <input class="finput" type="password" id="cfg-password2" placeholder="Repita a senha">
+    </div>
+    <p style="font-size:12px;color:#94a3b8;margin-top:8px;">Deixe em branco para não alterar. Senha padrão inicial: <strong>1234</strong></p>
+  </div>
+
   <!-- Danger zone -->
   <div class="card" style="border-color:#fecdd3;">
     <p style="font-weight:700;font-size:14px;color:#e11d48;margin-bottom:12px;">⚠️ Zona de Risco</p>
@@ -487,7 +528,8 @@ let S = {
   chatHistory: [],
   settings: {
     u1: 'Paulo', u2: 'Esposa',
-    apiKey: '', apiProvider: 'openai'
+    apiKey: '', apiProvider: 'openai',
+    password: '1234'
   }
 };
 let currentType = 'receita';
@@ -516,6 +558,41 @@ function load() {
 
 function save() {
   localStorage.setItem('fincasal_v2', JSON.stringify(S));
+}
+
+// ─── LOGIN ────────────────────────────────────────────────────────────────────
+function checkAuth() {
+  if (!sessionStorage.getItem('fincasal_auth')) {
+    document.getElementById('login-screen').style.display = 'flex';
+  } else {
+    document.getElementById('login-screen').style.display = 'none';
+  }
+}
+
+function doLogin() {
+  const user = document.getElementById('login-user').value.trim().toLowerCase();
+  const pass = document.getElementById('login-pass').value;
+  const { u1, u2, password } = S.settings;
+  const validUser = user === u1.toLowerCase() || user === u2.toLowerCase() || user === 'casal';
+  if (validUser && pass === (password || '1234')) {
+    sessionStorage.setItem('fincasal_auth', '1');
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('login-err').style.display = 'none';
+    goto('dashboard');
+  } else {
+    const err = document.getElementById('login-err');
+    err.textContent = '❌ Usuário ou senha incorretos';
+    err.style.display = 'block';
+    document.getElementById('login-pass').value = '';
+  }
+}
+
+function logout() {
+  sessionStorage.removeItem('fincasal_auth');
+  document.getElementById('login-user').value = '';
+  document.getElementById('login-pass').value = '';
+  document.getElementById('login-err').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
 }
 
 // ─── NAVIGATION ───────────────────────────────────────────────────────────────
@@ -1061,6 +1138,8 @@ function loadConfig() {
   document.getElementById('cfg-u1').value=S.settings.u1;
   document.getElementById('cfg-u2').value=S.settings.u2;
   document.getElementById('cfg-apikey').value=S.settings.apiKey;
+  document.getElementById('cfg-password').value='';
+  document.getElementById('cfg-password2').value='';
   setProvider(S.settings.apiProvider);
 }
 
@@ -1074,6 +1153,13 @@ function salvarConfig() {
   S.settings.u1=document.getElementById('cfg-u1').value.trim()||'Paulo';
   S.settings.u2=document.getElementById('cfg-u2').value.trim()||'Esposa';
   S.settings.apiKey=document.getElementById('cfg-apikey').value.trim();
+  const p1=document.getElementById('cfg-password').value;
+  const p2=document.getElementById('cfg-password2').value;
+  if (p1 || p2) {
+    if (p1 !== p2) { toast('❌ As senhas não coincidem!'); return; }
+    if (p1.length < 4) { toast('❌ Senha deve ter pelo menos 4 caracteres'); return; }
+    S.settings.password=p1;
+  }
   save();
   document.getElementById('header-users').textContent=`${S.settings.u1} & ${S.settings.u2}`;
   refreshUserSelects();
@@ -1124,7 +1210,8 @@ function init() {
   setTodayDate();
   refreshUserSelects();
   document.getElementById('header-users').textContent = `${S.settings.u1} & ${S.settings.u2}`;
-  goto('dashboard');
+  checkAuth();
+  if (sessionStorage.getItem('fincasal_auth')) goto('dashboard');
 }
 
 window.onload = init;
