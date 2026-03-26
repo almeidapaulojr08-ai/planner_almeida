@@ -529,12 +529,21 @@
 <section id="page-contas" style="display:none;max-width:700px;">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:28px;">
     <div>
-      <h1 style="font-size:24px;font-weight:800;color:#0f172a;">Contas</h1>
-      <p style="color:#94a3b8;font-size:14px;margin-top:2px;">Gerencie suas contas bancárias</p>
+      <h1 style="font-size:24px;font-weight:800;color:#0f172a;">Contas & Cartões</h1>
+      <p style="color:#94a3b8;font-size:14px;margin-top:2px;">Gerencie suas contas bancárias e cartões</p>
     </div>
-    <button onclick="abrirModalConta()" style="padding:10px 18px;background:#4f46e5;color:white;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;">+ Adicionar Conta</button>
+    <button onclick="abrirModalConta()" style="padding:10px 18px;background:#4f46e5;color:white;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;">+ Adicionar</button>
   </div>
-  <div id="contas-list" style="display:flex;flex-direction:column;gap:12px;"></div>
+
+  <div style="margin-bottom:24px;">
+    <p style="font-weight:700;font-size:15px;color:#334155;margin-bottom:12px;">🏦 Contas Bancárias</p>
+    <div id="contas-list" style="display:flex;flex-direction:column;gap:10px;"></div>
+  </div>
+
+  <div>
+    <p style="font-weight:700;font-size:15px;color:#334155;margin-bottom:12px;">💳 Cartões de Crédito</p>
+    <div id="cartoes-list" style="display:flex;flex-direction:column;gap:10px;"></div>
+  </div>
 </section>
 
 </main><!-- end main -->
@@ -560,11 +569,17 @@
 <div id="conta-modal" style="display:none;">
   <div id="modal-backdrop" onclick="fecharModalConta()">
     <div onclick="event.stopPropagation()" style="background:white;border-radius:18px;padding:28px;max-width:440px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.15);">
-      <p id="conta-modal-title" style="font-weight:800;font-size:17px;color:#0f172a;margin-bottom:20px;">Nova Conta</p>
+      <p id="conta-modal-title" style="font-weight:800;font-size:17px;color:#0f172a;margin-bottom:16px;">Nova Conta</p>
+
+      <!-- Toggle Conta / Cartão -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:18px;">
+        <button id="cm-tab-conta"   onclick="setContaTab('conta')"   style="padding:10px;border-radius:10px;border:2px solid #4f46e5;background:#eef2ff;color:#4f46e5;font-weight:700;font-size:14px;cursor:pointer;">🏦 Conta</button>
+        <button id="cm-tab-cartao"  onclick="setContaTab('cartao')"  style="padding:10px;border-radius:10px;border:2px solid #e2e8f0;background:white;color:#64748b;font-weight:700;font-size:14px;cursor:pointer;">💳 Cartão</button>
+      </div>
 
       <div style="margin-bottom:14px;">
         <label class="flabel">Banco</label>
-        <select class="finput" id="cm-banco" onchange="onBancoChange()">
+        <select class="finput" id="cm-banco">
           <option value="bradesco">Bradesco</option>
           <option value="nubank">Nubank</option>
           <option value="sicredi">Sicredi</option>
@@ -573,7 +588,7 @@
       </div>
 
       <div style="margin-bottom:14px;">
-        <label class="flabel">Apelido da conta</label>
+        <label class="flabel">Apelido</label>
         <input class="finput" type="text" id="cm-label" placeholder="Ex: Nubank Paulo">
       </div>
 
@@ -582,18 +597,30 @@
         <select class="finput" id="cm-owner"></select>
       </div>
 
-      <div id="cm-limit-row" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:14px;">
-        <div>
-          <label class="flabel">Limite</label>
-          <input class="finput" type="number" id="cm-limite" placeholder="0,00" min="0">
+      <!-- Conta fields -->
+      <div id="cm-fields-conta" style="margin-bottom:14px;">
+        <label class="flabel">Tipo</label>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+          <button id="cm-tipo-corrente" onclick="setTipoConta('corrente')" style="padding:10px;border-radius:10px;border:2px solid #4f46e5;background:#eef2ff;color:#4f46e5;font-weight:600;font-size:13px;cursor:pointer;">Conta Corrente</button>
+          <button id="cm-tipo-poupanca" onclick="setTipoConta('poupanca')" style="padding:10px;border-radius:10px;border:2px solid #e2e8f0;background:white;color:#64748b;font-weight:600;font-size:13px;cursor:pointer;">Poupança</button>
         </div>
-        <div>
-          <label class="flabel">Fecha dia</label>
-          <input class="finput" type="number" id="cm-fecha" placeholder="1-31" min="1" max="31">
-        </div>
-        <div>
-          <label class="flabel">Vence dia</label>
-          <input class="finput" type="number" id="cm-vence" placeholder="1-31" min="1" max="31">
+      </div>
+
+      <!-- Cartão fields -->
+      <div id="cm-fields-cartao" style="display:none;">
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:14px;">
+          <div>
+            <label class="flabel">Limite</label>
+            <input class="finput" type="number" id="cm-limite" placeholder="0,00" min="0">
+          </div>
+          <div>
+            <label class="flabel">Fecha dia</label>
+            <input class="finput" type="number" id="cm-fecha" placeholder="1-31" min="1" max="31">
+          </div>
+          <div>
+            <label class="flabel">Vence dia</label>
+            <input class="finput" type="number" id="cm-vence" placeholder="1-31" min="1" max="31">
+          </div>
         </div>
       </div>
 
@@ -638,39 +665,31 @@ const MESES_FULL = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho
 const BANKS = {
   bradesco: {
     name:'Bradesco', color:'#CC0000', bg:'#FFF0F0', currency:'BRL',
-    svg:`<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
-      <ellipse cx="24" cy="20" rx="12" ry="11" fill="white"/>
+    svg:`<ellipse cx="24" cy="20" rx="12" ry="11" fill="white"/>
       <rect x="21" y="30" width="6" height="10" rx="3" fill="white"/>
       <ellipse cx="24" cy="20" rx="7" ry="6.5" fill="#CC0000"/>
-      <ellipse cx="24" cy="19" rx="4" ry="3.5" fill="white" opacity="0.35"/>
-    </svg>`
+      <ellipse cx="24" cy="19" rx="4" ry="3.5" fill="white" opacity="0.35"/>`
   },
   nubank: {
     name:'Nubank', color:'#820AD1', bg:'#F5E6FF', currency:'BRL',
-    svg:`<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
-      <text x="24" y="31" text-anchor="middle" fill="white"
-        font-family="'Arial Black',Arial,sans-serif" font-weight="900" font-size="17" letter-spacing="-0.5">nu</text>
-    </svg>`
+    svg:`<text x="24" y="31" text-anchor="middle" fill="white"
+        font-family="'Arial Black',Arial,sans-serif" font-weight="900" font-size="17" letter-spacing="-0.5">nu</text>`
   },
   sicredi: {
     name:'Sicredi', color:'#007A3D', bg:'#E6FFF2', currency:'BRL',
-    svg:`<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
-      <path d="M24 38 C24 38 11 27 11 19 C11 12 17 7 24 7 C31 7 37 12 37 19 C37 27 24 38 24 38Z" fill="white" opacity="0.2"/>
+    svg:`<path d="M24 38 C24 38 11 27 11 19 C11 12 17 7 24 7 C31 7 37 12 37 19 C37 27 24 38 24 38Z" fill="white" opacity="0.2"/>
       <path d="M24 11 C24 11 14 17 14 24 C14 29 18.5 33 24 33" stroke="white" stroke-width="3.5" stroke-linecap="round" fill="none"/>
       <path d="M24 11 C24 11 34 17 34 24 C34 29 29.5 33 24 33" stroke="white" stroke-width="3.5" stroke-linecap="round" fill="none"/>
-      <circle cx="24" cy="35" r="3" fill="white"/>
-    </svg>`
+      <circle cx="24" cy="35" r="3" fill="white"/>`
   },
   binance: {
     name:'Binance', color:'#B7950B', bg:'#FFFBEA', currency:'USD',
-    svg:`<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
-      <polygon points="24,7 28.5,11.5 24,16 19.5,11.5" fill="white"/>
+    svg:`<polygon points="24,7 28.5,11.5 24,16 19.5,11.5" fill="white"/>
       <polygon points="13,18 17.5,13.5 22,18 17.5,22.5" fill="white"/>
       <polygon points="35,18 30.5,13.5 26,18 30.5,22.5" fill="white"/>
       <polygon points="24,19 28.5,23.5 24,28 19.5,23.5" fill="white"/>
       <polygon points="24,31 28.5,26.5 33,31 28.5,35.5" fill="white"/>
-      <polygon points="24,31 19.5,26.5 15,31 19.5,35.5" fill="white"/>
-    </svg>`
+      <polygon points="24,31 19.5,26.5 15,31 19.5,35.5" fill="white"/>`
   },
 };
 
@@ -711,45 +730,83 @@ function usdToBrl(amount) {
 
 // ─── CONTAS ────────────────────────────────────────────────────────────────────
 function bankIcon(bankKey, size=40) {
-  const b = BANKS[bankKey] || { color:'#64748b', svg:'<text x="50%" y="65%" text-anchor="middle" fill="white" font-size="16">?</text>' };
+  const b = BANKS[bankKey] || { color:'#64748b', svg:'<text x="24" y="31" text-anchor="middle" fill="white" font-size="16">?</text>' };
   const r = Math.round(size * 0.28);
-  return `<div style="width:${size}px;height:${size}px;background:${b.color};border-radius:${r}px;display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;">
+  return `<div style="width:${size}px;height:${size}px;background:${b.color};border-radius:${r}px;flex-shrink:0;overflow:hidden;">
     <svg width="${size}" height="${size}" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">${b.svg}</svg>
   </div>`;
 }
 
-function renderContas() {
-  const el = document.getElementById('contas-list');
-  if (!S.accounts.length) {
-    el.innerHTML = `<div class="empty-state"><div class="icon">🏦</div><p style="font-weight:600;color:#64748b;">Nenhuma conta cadastrada</p><button onclick="abrirModalConta()" style="margin-top:12px;padding:10px 20px;background:#4f46e5;color:white;border:none;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;">Adicionar primeira conta</button></div>`;
-    return;
+let contaTabAtual = 'conta';
+let tipoContaAtual = 'corrente';
+
+function setContaTab(tab) {
+  contaTabAtual = tab;
+  const isConta = tab === 'conta';
+  document.getElementById('cm-tab-conta').style.cssText  = `padding:10px;border-radius:10px;border:2px solid ${isConta?'#4f46e5':'#e2e8f0'};background:${isConta?'#eef2ff':'white'};color:${isConta?'#4f46e5':'#64748b'};font-weight:700;font-size:14px;cursor:pointer;`;
+  document.getElementById('cm-tab-cartao').style.cssText = `padding:10px;border-radius:10px;border:2px solid ${!isConta?'#4f46e5':'#e2e8f0'};background:${!isConta?'#eef2ff':'white'};color:${!isConta?'#4f46e5':'#64748b'};font-weight:700;font-size:14px;cursor:pointer;`;
+  document.getElementById('cm-fields-conta').style.display  = isConta  ? 'block' : 'none';
+  document.getElementById('cm-fields-cartao').style.display = !isConta ? 'block' : 'none';
+}
+
+function setTipoConta(tipo) {
+  tipoContaAtual = tipo;
+  const isC = tipo === 'corrente';
+  document.getElementById('cm-tipo-corrente').style.cssText = `padding:10px;border-radius:10px;border:2px solid ${isC?'#4f46e5':'#e2e8f0'};background:${isC?'#eef2ff':'white'};color:${isC?'#4f46e5':'#64748b'};font-weight:600;font-size:13px;cursor:pointer;`;
+  document.getElementById('cm-tipo-poupanca').style.cssText = `padding:10px;border-radius:10px;border:2px solid ${!isC?'#4f46e5':'#e2e8f0'};background:${!isC?'#eef2ff':'white'};color:${!isC?'#4f46e5':'#64748b'};font-weight:600;font-size:13px;cursor:pointer;`;
+}
+
+function renderContaCard(a) {
+  const b = BANKS[a.bank];
+  const isUSD = b.currency === 'USD';
+  const isCartao = a.accountType === 'cartao';
+  let sub = `Titular: <strong style="color:#475569;">${a.owner}</strong>`;
+  if (!isCartao) {
+    const tipoLabel = a.tipoConta === 'poupanca' ? 'Poupança' : 'Conta Corrente';
+    sub += ` &nbsp;·&nbsp; ${tipoLabel}`;
+    if (isUSD && S.settings.usdRate) sub += ` &nbsp;·&nbsp; Cotação: R$ ${S.settings.usdRate.toFixed(2)}`;
+  } else {
+    if (a.limite) sub += ` &nbsp;·&nbsp; Limite: R$ ${Number(a.limite).toLocaleString('pt-BR')}`;
+    if (a.fecha)  sub += ` &nbsp;·&nbsp; Fecha dia ${a.fecha} &nbsp;·&nbsp; Vence dia ${a.vence}`;
   }
-  el.innerHTML = S.accounts.map(a => {
-    const b = BANKS[a.bank];
-    const isUSD = b.currency === 'USD';
-    const rate = S.settings.usdRate ? `<span style="font-size:11px;color:#94a3b8;margin-left:6px;">USD → R$ ${S.settings.usdRate?.toFixed(2)}</span>` : '';
-    return `<div class="card" style="display:flex;align-items:center;gap:16px;">
-      ${bankIcon(a.bank, 48)}
-      <div style="flex:1;">
-        <div style="display:flex;align-items:center;gap:8px;">
-          <p style="font-weight:700;font-size:15px;color:#0f172a;">${b.name}</p>
-          <span style="font-size:12px;color:#94a3b8;">•</span>
-          <p style="font-size:13px;color:#64748b;">${a.label}</p>
-          ${isUSD ? `<span class="badge" style="background:#FFFBEA;color:#92400e;">USD${rate}</span>` : ''}
-        </div>
-        <p style="font-size:13px;color:#94a3b8;margin-top:2px;">Titular: <strong style="color:#475569;">${a.owner}</strong>${a.limite ? ` &nbsp;·&nbsp; Limite: ${isUSD ? '$' : 'R$'} ${Number(a.limite).toLocaleString('pt-BR')}` : ''}${a.fecha ? ` &nbsp;·&nbsp; Fecha dia ${a.fecha} &nbsp;·&nbsp; Vence dia ${a.vence}` : ''}</p>
+  return `<div class="card" style="display:flex;align-items:center;gap:16px;">
+    ${bankIcon(a.bank, 48)}
+    <div style="flex:1;">
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+        <p style="font-weight:700;font-size:15px;color:#0f172a;">${b.name}</p>
+        <span style="font-size:12px;color:#94a3b8;">•</span>
+        <p style="font-size:13px;color:#64748b;">${a.label}</p>
+        ${isUSD ? `<span class="badge" style="background:#FFFBEA;color:#92400e;">USD</span>` : ''}
       </div>
-      <div style="display:flex;gap:8px;">
-        <button onclick="editarConta('${a.id}')" style="background:none;border:none;cursor:pointer;padding:8px;border-radius:8px;color:#6366f1;font-size:18px;" title="Editar">✏️</button>
-        <button onclick="deletarConta('${a.id}')" style="background:none;border:none;cursor:pointer;padding:8px;border-radius:8px;color:#e11d48;font-size:18px;" title="Excluir">🗑️</button>
-      </div>
-    </div>`;
-  }).join('');
+      <p style="font-size:12px;color:#94a3b8;margin-top:3px;">${sub}</p>
+    </div>
+    <div style="display:flex;gap:4px;">
+      <button onclick="editarConta('${a.id}')" style="background:none;border:none;cursor:pointer;padding:8px;border-radius:8px;font-size:16px;" title="Editar">✏️</button>
+      <button onclick="deletarConta('${a.id}')" style="background:none;border:none;cursor:pointer;padding:8px;border-radius:8px;font-size:16px;" title="Excluir">🗑️</button>
+    </div>
+  </div>`;
+}
+
+function renderContas() {
+  const contas  = S.accounts.filter(a => a.accountType !== 'cartao');
+  const cartoes = S.accounts.filter(a => a.accountType === 'cartao');
+
+  const elC = document.getElementById('contas-list');
+  elC.innerHTML = contas.length
+    ? contas.map(renderContaCard).join('')
+    : `<p style="color:#94a3b8;font-size:13px;padding:12px 0;">Nenhuma conta cadastrada ainda.</p>`;
+
+  const elK = document.getElementById('cartoes-list');
+  elK.innerHTML = cartoes.length
+    ? cartoes.map(renderContaCard).join('')
+    : `<p style="color:#94a3b8;font-size:13px;padding:12px 0;">Nenhum cartão cadastrado ainda.</p>`;
 }
 
 function abrirModalConta() {
   editContaId = null;
-  document.getElementById('conta-modal-title').textContent = 'Nova Conta';
+  contaTabAtual = 'conta';
+  tipoContaAtual = 'corrente';
+  document.getElementById('conta-modal-title').textContent = 'Adicionar';
   document.getElementById('cm-banco').value  = 'bradesco';
   document.getElementById('cm-label').value  = '';
   document.getElementById('cm-limite').value = '';
@@ -757,6 +814,8 @@ function abrirModalConta() {
   document.getElementById('cm-vence').value  = '';
   const { u1, u2 } = S.settings;
   document.getElementById('cm-owner').innerHTML = `<option value="${u1}">${u1}</option><option value="${u2}">${u2}</option>`;
+  setContaTab('conta');
+  setTipoConta('corrente');
   document.getElementById('conta-modal').style.display = 'block';
 }
 
@@ -764,7 +823,9 @@ function editarConta(id) {
   const a = S.accounts.find(x => x.id === id);
   if (!a) return;
   editContaId = id;
-  document.getElementById('conta-modal-title').textContent = 'Editar Conta';
+  contaTabAtual = a.accountType === 'cartao' ? 'cartao' : 'conta';
+  tipoContaAtual = a.tipoConta || 'corrente';
+  document.getElementById('conta-modal-title').textContent = 'Editar';
   document.getElementById('cm-banco').value  = a.bank;
   document.getElementById('cm-label').value  = a.label;
   document.getElementById('cm-limite').value = a.limite || '';
@@ -772,6 +833,8 @@ function editarConta(id) {
   document.getElementById('cm-vence').value  = a.vence  || '';
   const { u1, u2 } = S.settings;
   document.getElementById('cm-owner').innerHTML = `<option value="${u1}"${a.owner===u1?' selected':''}>${u1}</option><option value="${u2}"${a.owner===u2?' selected':''}>${u2}</option>`;
+  setContaTab(contaTabAtual);
+  setTipoConta(tipoContaAtual);
   document.getElementById('conta-modal').style.display = 'block';
 }
 
@@ -780,34 +843,41 @@ function fecharModalConta() {
   editContaId = null;
 }
 
-function onBancoChange() { /* future: auto-fill label */ }
-
 function salvarConta() {
-  const bank   = document.getElementById('cm-banco').value;
-  const label  = document.getElementById('cm-label').value.trim();
-  const owner  = document.getElementById('cm-owner').value;
-  const limite = document.getElementById('cm-limite').value;
-  const fecha  = document.getElementById('cm-fecha').value;
-  const vence  = document.getElementById('cm-vence').value;
-  if (!label) { toast('❌ Informe um apelido para a conta'); return; }
+  const bank  = document.getElementById('cm-banco').value;
+  const label = document.getElementById('cm-label').value.trim();
+  const owner = document.getElementById('cm-owner').value;
+  if (!label) { toast('❌ Informe um apelido'); return; }
+
+  const isCartao = contaTabAtual === 'cartao';
+  const obj = {
+    id: editContaId || Date.now().toString(),
+    bank, label, owner,
+    accountType: isCartao ? 'cartao' : 'conta',
+    tipoConta:   isCartao ? null : tipoContaAtual,
+    limite: isCartao ? document.getElementById('cm-limite').value : null,
+    fecha:  isCartao ? document.getElementById('cm-fecha').value  : null,
+    vence:  isCartao ? document.getElementById('cm-vence').value  : null,
+  };
+
   if (editContaId) {
-    const a = S.accounts.find(x => x.id === editContaId);
-    if (a) { a.bank=bank; a.label=label; a.owner=owner; a.limite=limite; a.fecha=fecha; a.vence=vence; }
+    const idx = S.accounts.findIndex(x => x.id === editContaId);
+    if (idx >= 0) S.accounts[idx] = obj;
   } else {
-    S.accounts.push({ id: Date.now().toString(), bank, label, owner, limite, fecha, vence });
+    S.accounts.push(obj);
   }
   save();
   fecharModalConta();
   renderContas();
-  toast('✅ Conta salva!');
+  toast('✅ Salvo!');
 }
 
 function deletarConta(id) {
-  if (!confirm('Excluir esta conta? As transações vinculadas não serão apagadas.')) return;
+  if (!confirm('Excluir? As transações vinculadas não serão apagadas.')) return;
   S.accounts = S.accounts.filter(a => a.id !== id);
   save();
   renderContas();
-  toast('🗑️ Conta removida');
+  toast('🗑️ Removido');
 }
 
 // ─── TITULAR FILTER ────────────────────────────────────────────────────────────
