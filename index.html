@@ -99,6 +99,8 @@
       display:flex;align-items:center;gap:14px;transition:box-shadow 0.15s; }
     .tx-card:hover { box-shadow:0 2px 8px rgba(0,0,0,0.06); }
   </style>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 </head>
 
 <body class="flex h-screen overflow-hidden">
@@ -140,6 +142,7 @@
       <div>
         <div style="font-weight:800;font-size:16px;color:#0f172a;">Almeida & Wosniak DRE</div>
         <div id="header-users" style="font-size:12px;color:#94a3b8;margin-top:1px;">Paulo & Esposa</div>
+        <span id="sync-status" style="font-size:11px;color:#94a3b8;" title="Firebase sync">☁️</span>
       </div>
     </div>
   </div>
@@ -1383,6 +1386,84 @@
 <!-- ============================================================ JAVASCRIPT -->
 <script src="import_data.js"></script>
 <script>
+// ─── FIREBASE INIT ────────────────────────────────────────────────────────────
+const firebaseConfig = {
+  apiKey: "AIzaSyCeiHq3z7DWUDz7HC1kptkMsHR9Kizv34E",
+  authDomain: "almeida-wosniak-dre.firebaseapp.com",
+  databaseURL: "https://almeida-wosniak-dre-default-rtdb.firebaseio.com",
+  projectId: "almeida-wosniak-dre",
+  storageBucket: "almeida-wosniak-dre.firebasestorage.app",
+  messagingSenderId: "486795966461",
+  appId: "1:486795966461:web:c7b8363c998b772f738b94"
+};
+let db = null;
+try {
+  firebase.initializeApp(firebaseConfig);
+  db = firebase.database();
+} catch(e) {
+  console.warn('Firebase init failed (offline mode):', e);
+}
+
+function fbToArray(obj) {
+  if (!obj) return [];
+  if (Array.isArray(obj)) return obj;
+  return Object.values(obj);
+}
+
+let firebaseReady = false;
+
+function updateSyncStatus(status) {
+  const el = document.getElementById('sync-status');
+  if (!el) return;
+  if (status === 'ok') { el.textContent = '☁️'; el.title = 'Firebase synced'; }
+  else if (status === 'error') { el.textContent = '⚠️'; el.title = 'Firebase sync error'; }
+  else if (status === 'syncing') { el.textContent = '🔄'; el.title = 'Syncing...'; }
+}
+
+function initFirebaseSync() {
+  if (!db) return;
+
+  db.ref('data').on('value', (snapshot) => {
+    const fbData = snapshot.val();
+    if (!fbData) {
+      // Firebase is empty, push our local data up
+      save();
+      return;
+    }
+
+    // If Firebase has data, use it (shared source of truth)
+    if (fbData.transactions) S.transactions = fbToArray(fbData.transactions);
+    if (fbData.accounts) S.accounts = fbToArray(fbData.accounts);
+    if (fbData.settings) {
+      const localPass = S.settings.password;
+      S.settings = { ...S.settings, ...fbData.settings };
+      if (localPass) S.settings.password = localPass;
+    }
+    if (fbData.debts) S.debts = fbToArray(fbData.debts);
+    if (fbData.customCats) S.customCats = fbData.customCats;
+
+    // Save to localStorage as cache
+    localStorage.setItem('fincasal_v2', JSON.stringify(S));
+
+    // Re-render current view if already logged in
+    if (sessionStorage.getItem('fincasal_auth')) {
+      const current = document.querySelector('section[id^="page-"]:not([style*="display:none"])');
+      if (current) {
+        const page = current.id.replace('page-', '');
+        if (page === 'dashboard') renderDashboard();
+        else if (page === 'historico') renderHistorico();
+        else if (page === 'dividas') renderDividas();
+      }
+    }
+
+    firebaseReady = true;
+    updateSyncStatus('ok');
+  }, (error) => {
+    console.warn('Firebase listen error:', error);
+    updateSyncStatus('error');
+  });
+}
+
 // ─── STATE ────────────────────────────────────────────────────────────────────
 let S = {
   transactions: [],
@@ -1469,6 +1550,22 @@ function load() {
 
 function save() {
   localStorage.setItem('fincasal_v2', JSON.stringify(S));
+  // Sync to Firebase
+  if (db) {
+    updateSyncStatus('syncing');
+    db.ref('data').set({
+      transactions: S.transactions,
+      accounts: S.accounts,
+      settings: S.settings,
+      debts: S.debts || [],
+      customCats: S.customCats || null
+    }).then(() => {
+      updateSyncStatus('ok');
+    }).catch(e => {
+      console.warn('Firebase save error:', e);
+      updateSyncStatus('error');
+    });
+  }
 }
 
 // ─── USD RATE ─────────────────────────────────────────────────────────────────
@@ -4521,6 +4618,7 @@ function init() {
   load();
   seedAccounts();
   importExcelData();
+  initFirebaseSync();
   setType('receita');
   setTodayDate();
   refreshUserSelects();
