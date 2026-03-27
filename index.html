@@ -1440,9 +1440,7 @@ function initFirebaseSync() {
     if (fbData.transactions) S.transactions = fbToArray(fbData.transactions);
     if (fbData.accounts) S.accounts = fbToArray(fbData.accounts);
     if (fbData.settings) {
-      const localPass = S.settings.password;
       S.settings = { ...S.settings, ...fbData.settings };
-      if (localPass) S.settings.password = localPass;
     }
     if (fbData.debts) S.debts = fbToArray(fbData.debts);
     if (fbData.customCats) S.customCats = fbData.customCats;
@@ -1771,17 +1769,29 @@ function checkAuth() {
 function doLogin() {
   const user = document.getElementById('login-user').value.trim().toLowerCase();
   const pass = document.getElementById('login-pass').value;
+  const err = document.getElementById('login-err');
+
+  // If Firebase hasn't loaded yet and localStorage is empty, wait for it
+  if (!firebaseReady && !localStorage.getItem('fincasal_v2')) {
+    err.textContent = '⏳ Carregando dados, tente novamente em instantes...';
+    err.style.display = 'block';
+    err.style.color = '#f59e0b';
+    // Retry after 2 seconds
+    setTimeout(() => { err.style.display = 'none'; }, 2000);
+    return;
+  }
+
   const { u1, u2, password } = S.settings;
   const validUser = user === u1.toLowerCase() || user === u2.toLowerCase() || user === 'casal';
   if (validUser && pass === (password || '1234')) {
     sessionStorage.setItem('fincasal_auth', '1');
     document.getElementById('login-screen').style.display = 'none';
-    document.getElementById('login-err').style.display = 'none';
+    err.style.display = 'none';
     goto('dashboard');
   } else {
-    const err = document.getElementById('login-err');
     err.textContent = '❌ Usuário ou senha incorretos';
     err.style.display = 'block';
+    err.style.color = '#e11d48';
     document.getElementById('login-pass').value = '';
   }
 }
