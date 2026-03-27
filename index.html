@@ -4252,23 +4252,10 @@ function seedAccounts() {
     { id: 'sicredi_conta', bank:'sicredi', label:'Conta Sicredi',  owner: S.settings.u1, accountType:'conta', tipoConta:'corrente' },
     { id: 'card_nubank',   bank:'nubank',  label:'Cartão Nubank',  owner: S.settings.u1, accountType:'cartao', tipoConta:null, limite:'17500', fecha:'2', vence:'10' },
     { id: 'card_sicredi',  bank:'sicredi', label:'Cartão Sicredi', owner: S.settings.u1, accountType:'cartao', tipoConta:null, limite:'13000', fecha:'2', vence:'15' },
+    { id: 'binance_conta', bank:'binance', label:'Conta Binance',  owner: S.settings.u1, accountType:'conta', tipoConta:'corrente' },
   ];
   let changed = false;
-
-  // Deduplicate: if there are manual accounts with the same bank+accountType as a default,
-  // migrate their transactions to the default id and remove the duplicate
-  for (const def of defaults) {
-    const dupes = S.accounts.filter(x => x.id !== def.id && x.bank === def.bank && x.accountType === def.accountType);
-    for (const dupe of dupes) {
-      // Migrate transactions from dupe to default
-      S.transactions.forEach(t => { if (t.accountId === dupe.id) t.accountId = def.id; });
-      S.accounts = S.accounts.filter(x => x.id !== dupe.id);
-      changed = true;
-      console.log(`Conta duplicada removida: ${dupe.label} (${dupe.id}) → ${def.id}`);
-    }
-  }
-
-  // Add default accounts if missing
+  // Only add missing accounts, NEVER remove or deduplicate existing ones
   for (const a of defaults) {
     if (!S.accounts.find(x => x.id === a.id)) { S.accounts.push(a); changed = true; }
   }
