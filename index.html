@@ -4276,21 +4276,10 @@ function seedAccounts() {
 }
 
 function importExcelData() {
-  if (typeof IMPORT_DATA === 'undefined') return;
-  const version = 'v8_abril_pendente';
-  if (localStorage.getItem('fincasal_imported_excel') === version) return;
-  // Remove previous imports and re-import with updated data
-  S.transactions = S.transactions.filter(t => !t.id.startsWith('imp_'));
-  let added = 0;
-  for (const t of IMPORT_DATA) {
-    S.transactions.push(t);
-    added++;
-  }
-  if (added > 0) {
-    save();
-    console.log(`Importadas ${added} transações do Excel (${version})`);
-  }
-  localStorage.setItem('fincasal_imported_excel', version);
+  // Importação automática DESATIVADA permanentemente.
+  // Os dados já foram importados. Qualquer nova importação deve ser feita
+  // manualmente pelo Assistente IA ou pelo modal de Import.
+  return;
 }
 
 // ─── DÍVIDAS ──────────────────────────────────────────────────────────────────
