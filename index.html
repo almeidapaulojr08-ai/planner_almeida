@@ -4188,7 +4188,8 @@ Cole tudo de uma vez. Digite <b>cancelar</b> para abortar.`;
     let rows = parsed.map(t => {
       const catInfo = autoCategorizeTx(t.desc);
       const catLabel = catInfo.category + (catInfo.subcategory ? ' › ' + catInfo.subcategory : '');
-      return `<tr><td style="padding:3px 0;font-size:12px;color:#94a3b8;">${fmtDate(t.date)}</td><td style="padding:3px 8px;">${t.desc}</td><td style="font-size:11px;color:#6366f1;">${catLabel}</td><td style="text-align:right;color:#e11d48;font-weight:600;">${brl(t.amount)}</td></tr>`;
+      const parcelaTag = t.parcela ? ` <span style="color:#f59e0b;font-size:11px;">(${t.parcela})</span>` : '';
+      return `<tr><td style="padding:3px 0;font-size:12px;color:#94a3b8;">${fmtDate(t.date)}</td><td style="padding:3px 8px;">${t.desc}${parcelaTag}</td><td style="font-size:11px;color:#6366f1;">${catLabel}</td><td style="text-align:right;color:#e11d48;font-weight:600;">${brl(t.amount)}</td></tr>`;
     }).join('');
     return `Encontrei <b>${parsed.length} transações</b> (categorias auto-detectadas):<br><br>
 <table style="width:100%;border-collapse:collapse;font-size:13px;">${rows}
@@ -4208,7 +4209,7 @@ Digite <b>confirmar</b> para importar ou <b>cancelar</b> para desistir.`;
         S.transactions.push({
           id: Date.now().toString(36) + Math.random().toString(36).substr(2, 5),
           type: 'despesa',
-          desc: t.desc,
+          desc: t.desc + (t.parcela ? ` (${t.parcela})` : ''),
           amount: t.amount,
           date: t.date,
           category: catInfo.category,
@@ -4219,6 +4220,7 @@ Digite <b>confirmar</b> para importar ou <b>cancelar</b> para desistir.`;
           faturaRef: isCredito ? fatRef : undefined,
           pago: !isCredito,
           custoTipo: catInfo.custoTipo,
+          parcela: t.parcela || null,
           currency: 'BRL',
           isNegative: false,
           at: new Date().toISOString()
@@ -4238,14 +4240,24 @@ Digite <b>confirmar</b> para importar ou <b>cancelar</b> para desistir.`;
 }
 
 function parseFaturaText(text, refMonth, refYear) {
-  const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 3);
-  const results = [];
   const mesesAbr = ['JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ'];
+  const mesesPat = mesesAbr.join('|');
+
+  // Pre-process: split glued lines. When text has no newlines but contains
+  // patterns like "30,68 05 FEV" (amount followed by date), split there.
+  let processed = text;
+  // Split before "DD MES" pattern (e.g. "30,68 05 FEV" → "30,68\n05 FEV")
+  processed = processed.replace(/(\d[\d.,]+)\s+(\d{1,2}\s+(?:JAN|FEV|MAR|ABR|MAI|JUN|JUL|AGO|SET|OUT|NOV|DEZ)\s)/gi, '$1\n$2');
+  // Split before "DD/MM" pattern (e.g. "30,68 05/03" → "30,68\n05/03")
+  processed = processed.replace(/(\d[\d.,]+)\s+(\d{1,2}\/\d{1,2}\s)/gi, '$1\n$2');
+
+  const lines = processed.split('\n').map(l => l.trim()).filter(l => l.length > 3);
+  const results = [];
 
   for (const line of lines) {
     let date = null, desc = '', amount = null;
 
-    // CSV format: "05/03;SPOTIFY;31,90" or "05/03\tSPOTIFY\t31,90"
+    // CSV format: "05/03;SPOTIFY;31,90"
     const csvParts = line.split(/[;\t]/).map(p => p.trim());
     if (csvParts.length >= 3) {
       const dateP = csvParts[0].match(/^(\d{1,2})[\/\-](\d{1,2})(?:[\/\-](\d{2,4}))?$/);
@@ -4260,9 +4272,10 @@ function parseFaturaText(text, refMonth, refYear) {
       }
     }
 
-    // Format: "05 MAR SPOTIFY 31.90"
+    // Format: "15 JAN EBN*SONYPLAYSTATN CU Parcela 04/04 30,68"
+    // Bradesco format with "Parcela XX/XX" before amount
     if (!date) {
-      let m = line.match(/^(\d{1,2})\s+(JAN|FEV|MAR|ABR|MAI|JUN|JUL|AGO|SET|OUT|NOV|DEZ)\s+(.+?)\s+(?:R\$\s*)?(-?[\d.,]+)\s*$/i);
+      let m = line.match(/^(\d{1,2})\s+(JAN|FEV|MAR|ABR|MAI|JUN|JUL|AGO|SET|OUT|NOV|DEZ)\s+(.+?)\s+(?:R\$\s*)?(\d[\d.,]*)\s*$/i);
       if (m) {
         const day = parseInt(m[1]);
         const mi = mesesAbr.indexOf(m[2].toUpperCase());
@@ -4274,7 +4287,7 @@ function parseFaturaText(text, refMonth, refYear) {
 
     // Format: "05/03 SPOTIFY R$ 31,90"
     if (!date) {
-      let m = line.match(/^(\d{1,2})[\/\-](\d{1,2})(?:[\/\-](\d{2,4}))?\s+(.+?)\s+(?:R\$\s*)?(-?[\d.,]+)\s*$/i);
+      let m = line.match(/^(\d{1,2})[\/\-](\d{1,2})(?:[\/\-](\d{2,4}))?\s+(.+?)\s+(?:R\$\s*)?(\d[\d.,]*)\s*$/i);
       if (m) {
         const day = parseInt(m[1]);
         const mon = parseInt(m[2]) - 1;
@@ -4287,7 +4300,7 @@ function parseFaturaText(text, refMonth, refYear) {
 
     // Format: "SPOTIFY 31,90" (no date)
     if (!date) {
-      let m = line.match(/^(.+?)\s+(?:R\$\s*)?(-?[\d]+[.,][\d]{2})\s*$/);
+      let m = line.match(/^(.+?)\s+(?:R\$\s*)?(\d[\d.,]*[.,]\d{2})\s*$/);
       if (m) {
         date = `${refYear}-${String(refMonth + 1).padStart(2, '0')}-01`;
         desc = m[1].trim();
@@ -4295,8 +4308,20 @@ function parseFaturaText(text, refMonth, refYear) {
       }
     }
 
+    // Clean up desc: remove trailing "Parcela" info but keep it for reference
+    let parcela = null;
+    if (desc) {
+      const pMatch = desc.match(/\s+(?:Parcela|Parc\.?)\s*(\d{1,2}\/\d{1,2})\s*$/i);
+      if (pMatch) {
+        parcela = pMatch[1];
+        desc = desc.replace(pMatch[0], '').trim();
+      }
+    }
+
     if (date && desc && amount && amount > 0) {
-      results.push({ date, desc, amount });
+      const entry = { date, desc, amount };
+      if (parcela) entry.parcela = parcela;
+      results.push(entry);
     }
   }
   return results;
