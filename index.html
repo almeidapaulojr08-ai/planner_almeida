@@ -210,6 +210,11 @@
         <button id="tf-paulo"  onclick="setTitularFilter('paulo')"  class="tf-btn" id="tf-paulo"></button>
         <button id="tf-esposa" onclick="setTitularFilter('esposa')" class="tf-btn" id="tf-esposa"></button>
       </div>
+      <!-- Period mode toggle -->
+      <div style="display:flex;gap:6px;background:#f1f5f9;border-radius:12px;padding:4px;">
+        <button id="dp-mes" onclick="setDashPeriodMode('mes')" class="tf-btn tf-active" style="font-size:12px;">Mês</button>
+        <button id="dp-ano" onclick="setDashPeriodMode('ano')" class="tf-btn" style="font-size:12px;">Ano</button>
+      </div>
       <!-- Period selector -->
       <div style="display:flex;align-items:center;gap:6px;background:#f1f5f9;border-radius:12px;padding:4px 8px;">
         <button onclick="dashNavMonth(-1)" style="background:none;border:none;cursor:pointer;padding:4px 6px;font-size:16px;color:#64748b;">◀</button>
@@ -2288,6 +2293,15 @@ function setBarType(type) {
 
 let dashMonth = new Date().getMonth();   // 0-based
 let dashYear  = new Date().getFullYear();
+let dashPeriodMode = 'mes'; // 'mes' or 'ano'
+
+function setDashPeriodMode(mode) {
+  dashPeriodMode = mode;
+  document.getElementById('dp-mes').className = 'tf-btn' + (mode === 'mes' ? ' tf-active' : '');
+  document.getElementById('dp-ano').className = 'tf-btn' + (mode === 'ano' ? ' tf-active' : '');
+  document.getElementById('dash-month').style.display = mode === 'mes' ? '' : 'none';
+  renderDashboard();
+}
 
 function initDashPeriod() {
   const mSel = document.getElementById('dash-month');
@@ -2307,9 +2321,13 @@ function onDashPeriodChange() {
 }
 
 function dashNavMonth(dir) {
-  dashMonth += dir;
-  if (dashMonth > 11) { dashMonth = 0; dashYear++; }
-  if (dashMonth < 0)  { dashMonth = 11; dashYear--; }
+  if (dashPeriodMode === 'ano') {
+    dashYear += dir;
+  } else {
+    dashMonth += dir;
+    if (dashMonth > 11) { dashMonth = 0; dashYear++; }
+    if (dashMonth < 0)  { dashMonth = 11; dashYear--; }
+  }
   document.getElementById('dash-month').value = dashMonth;
   document.getElementById('dash-year').value = dashYear;
   // Add year if not in select
@@ -2330,12 +2348,15 @@ function renderDashboard() {
   const mSel = document.getElementById('dash-month');
   if (!mSel.options.length) initDashPeriod();
 
-  const ym = `${dashYear}-${String(dashMonth + 1).padStart(2, '0')}`;
-  const prev = new Date(dashYear, dashMonth - 1, 1);
-  const ymPrev = `${prev.getFullYear()}-${String(prev.getMonth() + 1).padStart(2, '0')}`;
+  const isAno = dashPeriodMode === 'ano';
+  const ym = isAno ? String(dashYear) : `${dashYear}-${String(dashMonth + 1).padStart(2, '0')}`;
+  const prevYear = isAno ? dashYear - 1 : null;
+  const prev = isAno ? null : new Date(dashYear, dashMonth - 1, 1);
+  const ymPrev = isAno ? String(dashYear - 1) : `${prev.getFullYear()}-${String(prev.getMonth() + 1).padStart(2, '0')}`;
 
   const filterLabel = titularFilter === 'ambos' ? 'Geral' : (titularFilter === 'paulo' ? S.settings.u1 : S.settings.u2);
-  document.getElementById('dash-subtitle').textContent = `${filterLabel} — ${MESES_FULL[dashMonth]} ${dashYear}`;
+  const periodLabel = isAno ? `Ano ${dashYear}` : `${MESES_FULL[dashMonth]} ${dashYear}`;
+  document.getElementById('dash-subtitle').textContent = `${filterLabel} — ${periodLabel}`;
 
   if (dashView === 'conta') {
     renderDashConta(ym, ymPrev);
@@ -3733,9 +3754,13 @@ function parseYearFromMsg(txt) {
   return m ? parseInt(m[1]) : new Date().getFullYear();
 }
 
+function getAccName(a) {
+  return BANKS[a.bank] ? BANKS[a.bank].name : a.label;
+}
+
 function findAccountByName(txt) {
   const n = normalize(txt);
-  return S.accounts.find(a => n.includes(normalize(a.name)));
+  return S.accounts.find(a => n.includes(normalize(getAccName(a))));
 }
 
 function txMonth(tx, month, year) {
@@ -3822,7 +3847,7 @@ ${mTx.length === 0 ? '<br><span style="color:#94a3b8;">Nenhuma transação neste
     return `<b>Maior gasto de ${MESES_FULL[month]}:</b><br><br>
 <span style="font-size:18px;font-weight:800;color:#e11d48;">${brl(amountBrl(top))}</span><br>
 <b>${top.desc}</b> — ${top.category}<br>
-${fmtDate(top.date)}${acc ? ' | ' + acc.name : ''}${top.formaPgto === 'credito' ? ' (crédito)' : ''}`;
+${fmtDate(top.date)}${acc ? ' | ' + getAccName(acc) : ''}${top.formaPgto === 'credito' ? ' (crédito)' : ''}`;
   }
 
   // ── QUANTO GASTEI EM [MES] ──
@@ -3852,7 +3877,7 @@ ${fmtDate(top.date)}${acc ? ' | ' + acc.name : ''}${top.formaPgto === 'credito' 
     if (month === null) month = curMonth;
     const txs = S.transactions.filter(t => t.type === 'despesa' && t.accountId === acc.id && txMonth(t, month, year));
     const total = txs.reduce((s, t) => s + amountBrl(t), 0);
-    return `Gastos no <b>${acc.name}</b> em ${MESES_FULL[month]} ${year}:<br><br>
+    return `Gastos no <b>${getAccName(acc)}</b> em ${MESES_FULL[month]} ${year}:<br><br>
 <span style="font-size:18px;font-weight:800;color:#e11d48;">${brl(total)}</span><br>
 <span style="color:#94a3b8;">${txs.length} transações.</span>`;
   }
@@ -3886,7 +3911,7 @@ ${txs.length > 10 ? '<br><span style="color:#94a3b8;">Mostrando 10 de ' + txs.le
       const rec = accTx.filter(t => t.type === 'receita').reduce((s, t) => s + amountBrl(t), 0);
       const desp = accTx.filter(t => t.type === 'despesa').reduce((s, t) => s + amountBrl(t), 0);
       const saldo = rec - desp + (specAcc.initialBalance || 0);
-      return `Saldo do <b>${specAcc.name}</b>:<br><br>
+      return `Saldo do <b>${getAccName(specAcc)}</b>:<br><br>
 <span style="font-size:20px;font-weight:800;color:${saldo >= 0 ? '#059669' : '#e11d48'};">${brl(saldo)}</span>`;
     }
     // Saldo geral de todos os bancos
@@ -3900,7 +3925,7 @@ ${txs.length > 10 ? '<br><span style="color:#94a3b8;">Mostrando 10 de ' + txs.le
       const desp = accTx.filter(t => t.type === 'despesa').reduce((s, t) => s + amountBrl(t), 0);
       const saldo = rec - desp + (acc.initialBalance || 0);
       totalSaldo += saldo;
-      rows += `<tr><td style="padding:5px 0;">${acc.name}</td><td style="text-align:right;font-weight:700;color:${saldo >= 0 ? '#059669' : '#e11d48'};">${brl(saldo)}</td></tr>`;
+      rows += `<tr><td style="padding:5px 0;">${getAccName(acc)}</td><td style="text-align:right;font-weight:700;color:${saldo >= 0 ? '#059669' : '#e11d48'};">${brl(saldo)}</td></tr>`;
     });
     return `<b>Saldo dos bancos:</b><br><br>
 <table style="width:100%;border-collapse:collapse;font-size:13px;">${rows}
@@ -3930,7 +3955,7 @@ ${txs.length > 0 ? '<table style="width:100%;border-collapse:collapse;font-size:
     if (specAcc) txs = txs.filter(t => t.accountId === specAcc.id);
     txs = txs.filter(t => getTxFaturaRef(t) === fatRef);
     const total = txs.reduce((s, t) => s + amountBrl(t), 0);
-    const cardLabel = specAcc ? specAcc.name : 'todos os cartões';
+    const cardLabel = specAcc ? getAccName(specAcc) : 'todos os cartões';
     let rows = txs.slice(0, 15).map(t => {
       const ca = S.accounts.find(a => a.id === t.accountId);
       return `<tr><td style="padding:3px 8px 3px 0;font-size:12px;color:#94a3b8;">${fmtDate(t.date)}</td><td style="padding:3px 0;">${t.desc}</td>${!specAcc && ca ? '<td style="padding:3px 4px;font-size:11px;color:#6366f1;">' + ca.name + '</td>' : ''}<td style="text-align:right;color:#e11d48;font-weight:600;">${brl(amountBrl(t))}</td></tr>`;
@@ -4257,8 +4282,10 @@ function seedAccounts() {
   ];
   let changed = false;
   // Only add missing accounts, NEVER remove or deduplicate existing ones
+  // Check by bank+accountType to avoid duplicates when user already created one manually
   for (const a of defaults) {
-    if (!S.accounts.find(x => x.id === a.id)) { S.accounts.push(a); changed = true; }
+    const exists = S.accounts.find(x => x.id === a.id || (x.bank === a.bank && x.accountType === a.accountType));
+    if (!exists) { S.accounts.push(a); changed = true; }
   }
   if (changed) save();
 }
