@@ -3824,17 +3824,11 @@ function processChat(message) {
 <b>Importar:</b> "importar fatura" para importar extrato de cartão`;
   }
 
-  // ── IMPORTAR FATURA ──
-  if (n.includes('importar fatura') || n === 'importar') {
+  // ── IMPORTAR ──
+  if (n.includes('importar fatura') || n.includes('importar lancamento') || n === 'importar') {
     chatImportMode = true;
-    chatImportState = { step: 'awaiting_card', card: null, month: null, year: null, transactions: [] };
-    let cardOptions = S.accounts.filter(a => a.accountType === 'cartao');
-    if (cardOptions.length === 0) {
-      chatImportMode = false;
-      return 'Você não tem nenhum cartão cadastrado. Vá em <b>Contas</b> e cadastre um cartão primeiro.';
-    }
-    let cardList = cardOptions.map((c, i) => `<b>${i + 1}.</b> ${c.name}`).join('<br>');
-    return `Vamos importar uma fatura! Primeiro, qual cartão?<br><br>${cardList}<br><br>Digite o <b>número</b> ou <b>nome</b> do cartão.`;
+    chatImportState = { step: 'awaiting_tipo', card: null, month: null, year: null, user: null, tipo: null, transactions: [] };
+    return `Vamos importar! O que deseja importar?<br><br><b>1.</b> Fatura de <b>Crédito</b> (cartão)<br><b>2.</b> Lançamentos de <b>Débito</b> (banco)<br><br>Digite <b>1</b> ou <b>2</b>.`;
   }
 
   // ── RESUMO DO MÊS ──
@@ -4058,98 +4052,189 @@ ${rows ? '<table style="width:100%;border-collapse:collapse;font-size:13px;">' +
   return 'Desculpe, não entendi sua pergunta. Digite <b>ajuda</b> para ver o que posso fazer!';
 }
 
+// ── AUTO CATEGORIZE ──
+const AUTO_CAT_RULES = [
+  // Alimentação
+  {p: /ifood|rappi|uber\s*eat/i, cat:'Alimentação', sub:'Delivery'},
+  {p: /lanchonete|sorvete|chiquinho|tapioca|bapka|eskimo/i, cat:'Alimentação', sub:'Lanchonete/Bar'},
+  {p: /mercado|mercearia|atacado|condor|festval|portao|gigante|circuito|sam.s.club/i, cat:'Mercado', sub:''},
+  {p: /restaurante|outback|spoleto|pizza|burger|acapulco|campodoro|empada|taisho|gelasko|saborelly|frango/i, cat:'Alimentação', sub:'Restaurante'},
+  // Assinaturas
+  {p: /netflix|spotify|youtube|disney|hbo|prime|crunchyroll/i, cat:'Assinaturas', sub:'Streaming'},
+  {p: /microsoft|canva|icloud|anthropic|cursor|chatgpt|gemini|discord|duolingo|ai\s*mirror/i, cat:'Assinaturas', sub:'Software/App'},
+  {p: /xbox|playstation|steam|game/i, cat:'Games', sub:''},
+  {p: /nubank\+|serasa|claro|livelo|twitch/i, cat:'Assinaturas', sub:'Outros'},
+  // Saúde
+  {p: /farmacia|drogaria|nissei|droga|morifarma/i, cat:'Saúde', sub:'Farmácia'},
+  {p: /academia|growth|fitness/i, cat:'Saúde', sub:'Academia/Fitness'},
+  {p: /medico|cardio|clinica|hospital|unimed|inc\s/i, cat:'Saúde', sub:'Médico'},
+  {p: /hormonio|manipulado/i, cat:'Saúde', sub:'Geral'},
+  // Carro
+  {p: /posto|combusti|alphaville|gasolina|etanol/i, cat:'Carro', sub:'Combustível'},
+  {p: /nutag|estaciona|park|kummer/i, cat:'Carro', sub:'Estacionamento'},
+  {p: /ipva|licencia|detran/i, cat:'Carro', sub:'IPVA/Licenciamento'},
+  {p: /lavacar|auto\s*eletrica|bello\s*auto/i, cat:'Carro', sub:'Manutenção'},
+  // Casa
+  {p: /copel|energia|luz/i, cat:'Casa', sub:'Luz'},
+  {p: /nio|internet/i, cat:'Casa', sub:'Internet'},
+  {p: /sanepar|agua/i, cat:'Casa', sub:'Água'},
+  {p: /aluguel/i, cat:'Casa', sub:'Aluguel'},
+  // Outros
+  {p: /shopee|shoppee|shoppe|mercado\s*livre|temu/i, cat:'Outros', sub:''},
+  {p: /presente|loccitane/i, cat:'Presente', sub:''},
+  {p: /vestuario|roupa|brutal|centauro|parana\s*clube/i, cat:'Vestuário', sub:''},
+  {p: /barbeiro/i, cat:'Lazer', sub:'Hobbies'},
+  {p: /hotel|pousada|decolar/i, cat:'Viagem', sub:'Hospedagem'},
+  {p: /pedagio/i, cat:'Viagem', sub:'Transporte'},
+  {p: /consorcio/i, cat:'Outros', sub:''},
+  {p: /educacao|curso/i, cat:'Educação', sub:'Cursos'},
+];
+
+function autoCategorizeTx(desc) {
+  const d = desc.toLowerCase();
+  for (const rule of AUTO_CAT_RULES) {
+    if (rule.p.test(d)) {
+      const custoTipo = ['Assinaturas','Casa','Mercado','Saúde'].includes(rule.cat) ? 'fixo' : 'variavel';
+      return { category: rule.cat, subcategory: rule.sub, custoTipo };
+    }
+  }
+  return { category: 'Outros', subcategory: '', custoTipo: 'variavel' };
+}
+
 // ── IMPORT FLOW ──
 function handleImportFlow(msg) {
   const n = normalize(msg);
   const st = chatImportState;
 
-  // Cancel at any point
   if (n === 'cancelar' || n === 'cancel') {
     chatImportMode = false;
-    chatImportState = { step: null, card: null, month: null, year: null, transactions: [] };
+    chatImportState = { step: null, card: null, month: null, year: null, user: null, tipo: null, transactions: [] };
     return 'Importação cancelada.';
   }
 
-  if (st.step === 'awaiting_card') {
-    const cards = S.accounts.filter(a => a.accountType === 'cartao');
-    let found = null;
-    // Try by number
-    const num = parseInt(msg);
-    if (!isNaN(num) && num >= 1 && num <= cards.length) {
-      found = cards[num - 1];
-    } else {
-      found = cards.find(c => normalize(c.name).includes(n));
+  // Step 1: tipo (crédito ou débito)
+  if (st.step === 'awaiting_tipo') {
+    if (n.includes('credit') || n.includes('cartao') || n.includes('cartão') || n === '1') {
+      st.tipo = 'credito';
+      st.step = 'awaiting_card';
+      const cards = S.accounts.filter(a => a.accountType === 'cartao');
+      const list = cards.map((c, i) => `${i + 1}. ${getAccName(c)} — ${c.label}`).join('<br>');
+      return `Qual <b>cartão</b>?<br><br>${list}<br><br>Digite o número ou nome.`;
+    } else if (n.includes('debit') || n.includes('banco') || n.includes('conta') || n === '2') {
+      st.tipo = 'debito';
+      st.step = 'awaiting_card';
+      const contas = S.accounts.filter(a => a.accountType !== 'cartao');
+      const list = contas.map((c, i) => `${i + 1}. ${getAccName(c)} — ${c.label}`).join('<br>');
+      return `Qual <b>conta bancária</b>?<br><br>${list}<br><br>Digite o número ou nome.`;
     }
-    if (!found) return 'Não encontrei esse cartão. Tente novamente com o número ou nome.';
-    st.card = found;
-    st.step = 'awaiting_month';
-    return `Cartão: <b>${found.name}</b>. Agora, qual o <b>mês/ano</b> da fatura? (ex: "março 2026", "03/2026")`;
+    return 'Digite <b>1</b> para Crédito (cartão) ou <b>2</b> para Débito (banco).';
   }
 
+  // Step 2: card/conta
+  if (st.step === 'awaiting_card') {
+    const accs = st.tipo === 'credito'
+      ? S.accounts.filter(a => a.accountType === 'cartao')
+      : S.accounts.filter(a => a.accountType !== 'cartao');
+    let found = null;
+    const num = parseInt(msg);
+    if (!isNaN(num) && num >= 1 && num <= accs.length) {
+      found = accs[num - 1];
+    } else {
+      found = accs.find(c => normalize(getAccName(c)).includes(n) || normalize(c.label).includes(n));
+    }
+    if (!found) return 'Não encontrei. Tente novamente com o número ou nome.';
+    st.card = found;
+    st.step = 'awaiting_month';
+    const label = st.tipo === 'credito' ? 'fatura' : 'mês de referência';
+    return `${getAccName(found)} — ${found.label}. Qual o <b>${label}</b>? (ex: "março 2026", "03/2026")`;
+  }
+
+  // Step 3: mês/ano
   if (st.step === 'awaiting_month') {
     let month = parseMonthFromMsg(msg);
     let year = parseYearFromMsg(msg);
-    if (month === null) return 'Não entendi o mês. Tente digitar algo como "março 2026" ou "03/2026".';
+    if (month === null) return 'Não entendi o mês. Tente algo como "março 2026" ou "03/2026".';
     st.month = month;
     st.year = year;
-    st.step = 'awaiting_text';
-    return `Fatura de <b>${MESES_FULL[month]} ${year}</b> no <b>${st.card.name}</b>.<br><br>Agora <b>cole o texto</b> do extrato/fatura. Formatos aceitos:<br>
-<code>05 MAR SPOTIFY 31.90</code><br>
-<code>05/03 SPOTIFY R$ 31,90</code><br>
-<code>SPOTIFY 31,90</code><br><br>
-Cole todas as linhas de uma vez. Digite <b>cancelar</b> para abortar.`;
+    st.step = 'awaiting_user';
+    return `<b>${MESES_FULL[month]} ${year}</b>. Qual o <b>titular</b>?<br><br>1. ${S.settings.u1}<br>2. ${S.settings.u2}<br><br>Digite o número ou nome.`;
   }
 
+  // Step 4: titular
+  if (st.step === 'awaiting_user') {
+    if (n.includes(normalize(S.settings.u1)) || n === '1') {
+      st.user = S.settings.u1;
+    } else if (n.includes(normalize(S.settings.u2)) || n === '2') {
+      st.user = S.settings.u2;
+    } else {
+      return `Não entendi. Digite <b>1</b> para ${S.settings.u1} ou <b>2</b> para ${S.settings.u2}.`;
+    }
+    st.step = 'awaiting_text';
+    return `Titular: <b>${st.user}</b>.<br><br>Agora <b>cole os lançamentos</b>. Formatos aceitos:<br>
+<code>05 MAR SPOTIFY 31.90</code><br>
+<code>05/03 SPOTIFY R$ 31,90</code><br>
+<code>SPOTIFY 31,90</code><br>
+<code>05/03;SPOTIFY;31,90</code> (CSV)<br><br>
+Cole tudo de uma vez. Digite <b>cancelar</b> para abortar.`;
+  }
+
+  // Step 5: parse text
   if (st.step === 'awaiting_text') {
     const parsed = parseFaturaText(msg, st.month, st.year);
-    if (parsed.length === 0) return 'Não consegui extrair nenhuma transação desse texto. Verifique o formato e tente novamente.<br>Formatos aceitos: "05 MAR SPOTIFY 31.90", "05/03 SPOTIFY R$ 31,90" ou "SPOTIFY 31,90"';
+    if (parsed.length === 0) return 'Não consegui extrair nenhuma transação. Verifique o formato e tente novamente.';
     st.transactions = parsed;
     st.step = 'awaiting_confirm';
     const total = parsed.reduce((s, t) => s + t.amount, 0);
-    let rows = parsed.map((t, i) => `<tr><td style="padding:3px 0;font-size:12px;color:#94a3b8;">${fmtDate(t.date)}</td><td style="padding:3px 8px;">${t.desc}</td><td style="text-align:right;color:#e11d48;font-weight:600;">${brl(t.amount)}</td></tr>`).join('');
-    return `Encontrei <b>${parsed.length} transações</b>:<br><br>
+    let rows = parsed.map(t => {
+      const catInfo = autoCategorizeTx(t.desc);
+      const catLabel = catInfo.category + (catInfo.subcategory ? ' › ' + catInfo.subcategory : '');
+      return `<tr><td style="padding:3px 0;font-size:12px;color:#94a3b8;">${fmtDate(t.date)}</td><td style="padding:3px 8px;">${t.desc}</td><td style="font-size:11px;color:#6366f1;">${catLabel}</td><td style="text-align:right;color:#e11d48;font-weight:600;">${brl(t.amount)}</td></tr>`;
+    }).join('');
+    return `Encontrei <b>${parsed.length} transações</b> (categorias auto-detectadas):<br><br>
 <table style="width:100%;border-collapse:collapse;font-size:13px;">${rows}
-<tr style="border-top:2px solid #e2e8f0;"><td colspan="2" style="padding:6px 0;font-weight:700;">Total</td><td style="text-align:right;font-weight:800;color:#e11d48;">${brl(total)}</td></tr></table>
-<br>Cartão: <b>${st.card.name}</b> | Fatura: <b>${MESES_FULL[st.month]} ${st.year}</b><br><br>
+<tr style="border-top:2px solid #e2e8f0;"><td colspan="3" style="padding:6px 0;font-weight:700;">Total</td><td style="text-align:right;font-weight:800;color:#e11d48;">${brl(total)}</td></tr></table>
+<br>${getAccName(st.card)} | ${MESES_FULL[st.month]} ${st.year} | Titular: ${st.user}<br><br>
 Digite <b>confirmar</b> para importar ou <b>cancelar</b> para desistir.`;
   }
 
+  // Step 6: confirm
   if (st.step === 'awaiting_confirm') {
     if (n.includes('confirmar') || n.includes('sim') || n === 'ok') {
       const fatRef = `${st.year}-${String(st.month + 1).padStart(2, '0')}`;
+      const isCredito = st.tipo === 'credito';
       const count = st.transactions.length;
       st.transactions.forEach(t => {
+        const catInfo = autoCategorizeTx(t.desc);
         S.transactions.push({
           id: Date.now().toString(36) + Math.random().toString(36).substr(2, 5),
           type: 'despesa',
           desc: t.desc,
           amount: t.amount,
           date: t.date,
-          category: 'Outros',
-          subcategory: '',
+          category: catInfo.category,
+          subcategory: catInfo.subcategory,
           accountId: st.card.id,
-          user: S.settings.u1,
-          formaPgto: 'credito',
-          faturaRef: fatRef,
-          pago: false,
-          custoTipo: 'variavel',
-          parcela: null,
-          totalParcelas: null,
+          user: st.user,
+          formaPgto: isCredito ? 'credito' : 'debito',
+          faturaRef: isCredito ? fatRef : undefined,
+          pago: !isCredito,
+          custoTipo: catInfo.custoTipo,
           currency: 'BRL',
           isNegative: false,
-          createdAt: new Date().toISOString()
+          at: new Date().toISOString()
         });
       });
       save();
       chatImportMode = false;
-      chatImportState = { step: null, card: null, month: null, year: null, transactions: [] };
-      return `Importação concluída! <b>${count} transações</b> adicionadas à fatura de <b>${MESES_FULL[st.month]} ${st.year}</b> do <b>${st.card.name}</b>.<br><br>As transações foram cadastradas na categoria "Outros". Você pode editar as categorias no <b>Histórico</b>.`;
+      chatImportState = { step: null, card: null, month: null, year: null, user: null, tipo: null, transactions: [] };
+      const catCount = new Set(st.transactions.map(t => autoCategorizeTx(t.desc).category)).size;
+      return `Importação concluída! <b>${count} transações</b> adicionadas em <b>${catCount} categorias</b>.<br><br>Você pode ajustar as categorias no <b>Histórico</b> se necessário.`;
     }
     return 'Digite <b>confirmar</b> para importar ou <b>cancelar</b> para desistir.';
   }
 
   chatImportMode = false;
-  return 'Algo deu errado no fluxo de importação. Tente novamente digitando <b>importar fatura</b>.';
+  return 'Algo deu errado. Tente novamente digitando <b>importar fatura</b>.';
 }
 
 function parseFaturaText(text, refMonth, refYear) {
@@ -4160,37 +4245,53 @@ function parseFaturaText(text, refMonth, refYear) {
   for (const line of lines) {
     let date = null, desc = '', amount = null;
 
-    // Format: "05 MAR SPOTIFY 31.90" or "05 MAR SPOTIFY R$ 31,90"
-    let m = line.match(/^(\d{1,2})\s+(JAN|FEV|MAR|ABR|MAI|JUN|JUL|AGO|SET|OUT|NOV|DEZ)\s+(.+?)\s+(?:R\$\s*)?(-?[\d.,]+)\s*$/i);
-    if (m) {
-      const day = parseInt(m[1]);
-      const mi = mesesAbr.indexOf(m[2].toUpperCase());
-      const yr = mi >= 0 ? refYear : refYear;
-      const mon = mi >= 0 ? mi : refMonth;
-      date = `${yr}-${String(mon + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-      desc = m[3].trim();
-      amount = parseFloat(m[4].replace('.', '').replace(',', '.'));
-    }
-
-    // Format: "05/03 SPOTIFY R$ 31,90" or "05/03 SPOTIFY 31,90"
-    if (!date) {
-      m = line.match(/^(\d{1,2})[\/\-](\d{1,2})\s+(.+?)\s+(?:R\$\s*)?(-?[\d.,]+)\s*$/i);
-      if (m) {
-        const day = parseInt(m[1]);
-        const mon = parseInt(m[2]) - 1;
-        date = `${refYear}-${String(mon + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-        desc = m[3].trim();
-        amount = parseFloat(m[4].replace('.', '').replace(',', '.'));
+    // CSV format: "05/03;SPOTIFY;31,90" or "05/03\tSPOTIFY\t31,90"
+    const csvParts = line.split(/[;\t]/).map(p => p.trim());
+    if (csvParts.length >= 3) {
+      const dateP = csvParts[0].match(/^(\d{1,2})[\/\-](\d{1,2})(?:[\/\-](\d{2,4}))?$/);
+      if (dateP) {
+        const day = parseInt(dateP[1]);
+        const mon = parseInt(dateP[2]) - 1;
+        const yr = dateP[3] ? (dateP[3].length === 2 ? 2000 + parseInt(dateP[3]) : parseInt(dateP[3])) : refYear;
+        date = `${yr}-${String(mon + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        desc = csvParts.slice(1, -1).join(' ').trim();
+        const valStr = csvParts[csvParts.length - 1].replace(/R\$\s*/i, '').replace(/\./g, '').replace(',', '.');
+        amount = parseFloat(valStr);
       }
     }
 
-    // Format: "SPOTIFY 31,90" or "SPOTIFY R$ 31.90" (no date - use 1st of ref month)
+    // Format: "05 MAR SPOTIFY 31.90"
     if (!date) {
-      m = line.match(/^(.+?)\s+(?:R\$\s*)?(-?[\d]+[.,][\d]{2})\s*$/);
+      let m = line.match(/^(\d{1,2})\s+(JAN|FEV|MAR|ABR|MAI|JUN|JUL|AGO|SET|OUT|NOV|DEZ)\s+(.+?)\s+(?:R\$\s*)?(-?[\d.,]+)\s*$/i);
+      if (m) {
+        const day = parseInt(m[1]);
+        const mi = mesesAbr.indexOf(m[2].toUpperCase());
+        date = `${refYear}-${String(mi + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        desc = m[3].trim();
+        amount = parseFloat(m[4].replace(/\./g, '').replace(',', '.'));
+      }
+    }
+
+    // Format: "05/03 SPOTIFY R$ 31,90"
+    if (!date) {
+      let m = line.match(/^(\d{1,2})[\/\-](\d{1,2})(?:[\/\-](\d{2,4}))?\s+(.+?)\s+(?:R\$\s*)?(-?[\d.,]+)\s*$/i);
+      if (m) {
+        const day = parseInt(m[1]);
+        const mon = parseInt(m[2]) - 1;
+        const yr = m[3] ? (m[3].length === 2 ? 2000 + parseInt(m[3]) : parseInt(m[3])) : refYear;
+        date = `${yr}-${String(mon + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        desc = m[4].trim();
+        amount = parseFloat(m[5].replace(/\./g, '').replace(',', '.'));
+      }
+    }
+
+    // Format: "SPOTIFY 31,90" (no date)
+    if (!date) {
+      let m = line.match(/^(.+?)\s+(?:R\$\s*)?(-?[\d]+[.,][\d]{2})\s*$/);
       if (m) {
         date = `${refYear}-${String(refMonth + 1).padStart(2, '0')}-01`;
         desc = m[1].trim();
-        amount = parseFloat(m[2].replace('.', '').replace(',', '.'));
+        amount = parseFloat(m[2].replace(/\./g, '').replace(',', '.'));
       }
     }
 
