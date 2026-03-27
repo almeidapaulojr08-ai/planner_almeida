@@ -2600,6 +2600,7 @@ function renderRecent() {
 
 // ─── CREDIT VIEW ──────────────────────────────────────────────────────────────
 function renderCreditView() {
+  const isAno = dashPeriodMode === 'ano';
   const faturaYM = `${dashYear}-${String(dashMonth + 1).padStart(2, '0')}`;
 
   // Get all credit cards
@@ -2608,8 +2609,16 @@ function renderCreditView() {
     ? cartoes
     : cartoes.filter(a => a.owner === (titularFilter === 'paulo' ? S.settings.u1 : S.settings.u2));
 
-  // Credit transactions for current fatura (based on closing date, not calendar month)
-  const creditTx = txByTitular(getCreditTxByFatura(faturaYM));
+  // Credit transactions: all faturas of the year or specific month
+  let creditTx;
+  if (isAno) {
+    creditTx = txByTitular(S.transactions.filter(t =>
+      t.type === 'despesa' && t.formaPgto === 'credito' &&
+      (t.faturaRef ? t.faturaRef.startsWith(String(dashYear)) : t.date.startsWith(String(dashYear)))
+    ));
+  } else {
+    creditTx = txByTitular(getCreditTxByFatura(faturaYM));
+  }
 
   // Calculate totals
   const limiteTotal = cartoesFiltered.reduce((s, a) => s + Number(a.limite || 0), 0);
@@ -2763,10 +2772,19 @@ function renderFaturasChart(cartoes) {
 }
 
 function renderCreditCatBreakdown() {
+  const isAno = dashPeriodMode === 'ano';
   const faturaYM = `${dashYear}-${String(dashMonth + 1).padStart(2, '0')}`;
   const cardFilter = document.getElementById('cc-cat-card-filter')?.value || '';
 
-  let txs = txByTitular(getCreditTxByFatura(faturaYM));
+  let txs;
+  if (isAno) {
+    txs = txByTitular(S.transactions.filter(t =>
+      t.type === 'despesa' && t.formaPgto === 'credito' &&
+      (t.faturaRef ? t.faturaRef.startsWith(String(dashYear)) : t.date.startsWith(String(dashYear)))
+    ));
+  } else {
+    txs = txByTitular(getCreditTxByFatura(faturaYM));
+  }
   if (cardFilter) txs = txs.filter(t => t.accountId === cardFilter);
 
   const by = {};
@@ -2800,9 +2818,18 @@ function renderCreditCatBreakdown() {
 }
 
 function renderCreditRecent() {
+  const isAno = dashPeriodMode === 'ano';
   const faturaYM = `${dashYear}-${String(dashMonth + 1).padStart(2, '0')}`;
-  const recent = getCreditTxByFatura(faturaYM)
-    .sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 7);
+  let recent;
+  if (isAno) {
+    recent = S.transactions.filter(t =>
+      t.type === 'despesa' && t.formaPgto === 'credito' &&
+      (t.faturaRef ? t.faturaRef.startsWith(String(dashYear)) : t.date.startsWith(String(dashYear)))
+    ).sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 7);
+  } else {
+    recent = getCreditTxByFatura(faturaYM)
+      .sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 7);
+  }
   const el = document.getElementById('cc-recent-list');
   if (!recent.length) {
     el.innerHTML = `<div class="empty-state"><div class="icon">💳</div><p style="font-weight:600;color:#64748b;">Nenhuma compra no crédito</p></div>`;
