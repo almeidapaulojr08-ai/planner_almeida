@@ -2614,7 +2614,7 @@ function renderCreditView() {
   if (isAno) {
     creditTx = txByTitular(S.transactions.filter(t =>
       t.type === 'despesa' && t.formaPgto === 'credito' &&
-      (t.faturaRef ? t.faturaRef.startsWith(String(dashYear)) : t.date.startsWith(String(dashYear)))
+      getTxFaturaRef(t).startsWith(String(dashYear))
     ));
   } else {
     creditTx = txByTitular(getCreditTxByFatura(faturaYM));
@@ -2780,7 +2780,7 @@ function renderCreditCatBreakdown() {
   if (isAno) {
     txs = txByTitular(S.transactions.filter(t =>
       t.type === 'despesa' && t.formaPgto === 'credito' &&
-      (t.faturaRef ? t.faturaRef.startsWith(String(dashYear)) : t.date.startsWith(String(dashYear)))
+      getTxFaturaRef(t).startsWith(String(dashYear))
     ));
   } else {
     txs = txByTitular(getCreditTxByFatura(faturaYM));
@@ -2824,7 +2824,7 @@ function renderCreditRecent() {
   if (isAno) {
     recent = S.transactions.filter(t =>
       t.type === 'despesa' && t.formaPgto === 'credito' &&
-      (t.faturaRef ? t.faturaRef.startsWith(String(dashYear)) : t.date.startsWith(String(dashYear)))
+      getTxFaturaRef(t).startsWith(String(dashYear))
     ).sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 7);
   } else {
     recent = getCreditTxByFatura(faturaYM)
