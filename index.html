@@ -1647,15 +1647,36 @@
         </div>
       </div>
       <!-- Campos Negócio/Retorno -->
-      <div id="inv-negocio-fields">
+      <div id="inv-negocio-fields" style="display:none;">
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
           <div>
-            <label class="flabel">Retorno Mensal (R$)</label>
-            <input class="finput" type="number" id="inv-retorno-mensal" step="0.01" min="0" placeholder="3500.00">
+            <label class="flabel">Retorno Mensal Esperado</label>
+            <input class="finput" type="number" id="inv-retorno-mensal" step="0.01" min="0" placeholder="4180.00">
           </div>
           <div>
-            <label class="flabel">Rendimento (% ao mês)</label>
-            <input class="finput" type="number" id="inv-rendimento-pct" step="0.01" min="0" placeholder="1.2">
+            <label class="flabel">Moeda do Retorno</label>
+            <select class="finput" id="inv-moeda-retorno">
+              <option value="BRL">R$ (BRL)</option>
+              <option value="USD">US$ (USD)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <!-- Campos Renda Fixa -->
+      <div id="inv-renda-fixa-fields" style="display:none;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
+          <div>
+            <label class="flabel">Rendimento último mês (%)</label>
+            <input class="finput" type="number" id="inv-rendimento-pct" step="0.01" min="0" placeholder="0.96">
+          </div>
+          <div>
+            <label class="flabel">Índice</label>
+            <select class="finput" id="inv-indice">
+              <option value="cdi">CDI</option>
+              <option value="ipca">IPCA+</option>
+              <option value="prefixado">Pré-fixado</option>
+              <option value="outro">Outro</option>
+            </select>
           </div>
         </div>
       </div>
@@ -1696,13 +1717,28 @@
         <button onclick="fecharRendimentoModal()" style="background:none;border:none;font-size:20px;cursor:pointer;color:#94a3b8;">✕</button>
       </div>
       <div id="rend-invest-info" style="border:2px solid #eff6ff;border-radius:12px;padding:14px 18px;margin-bottom:18px;"></div>
-      <div style="margin-bottom:14px;">
-        <label class="flabel">Valor do rendimento *</label>
-        <input class="finput" type="number" id="rend-valor" step="0.01" min="0.01">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
+        <div>
+          <label class="flabel">Valor do rendimento *</label>
+          <input class="finput" type="number" id="rend-valor" step="0.01" min="0.01">
+        </div>
+        <div>
+          <label class="flabel">Moeda</label>
+          <select class="finput" id="rend-moeda">
+            <option value="BRL">R$ (BRL)</option>
+            <option value="USD">US$ (USD)</option>
+          </select>
+        </div>
       </div>
-      <div style="margin-bottom:14px;">
-        <label class="flabel">Data *</label>
-        <input class="finput" type="date" id="rend-data">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
+        <div>
+          <label class="flabel">Data *</label>
+          <input class="finput" type="date" id="rend-data">
+        </div>
+        <div>
+          <label class="flabel">Rendimento % (opcional)</label>
+          <input class="finput" type="number" id="rend-pct" step="0.01" min="0" placeholder="0.96">
+        </div>
       </div>
       <div style="margin-bottom:14px;">
         <label class="flabel">Observação</label>
@@ -5758,11 +5794,15 @@ function renderInvestimentos() {
     // Break-even para negócio
     let breakEvenHtml = '';
     if (inv.tipo === 'negocio' && inv.retornoMensal > 0) {
-      const mesesParaPagar = Math.ceil(inv.valorInvestido / inv.retornoMensal);
+      const isUSD = inv.moedaRetorno === 'USD';
+      const taxa = S.settings.usdRate || 5.0;
+      const retornoMensalBRL = isUSD ? inv.retornoMensal * taxa : inv.retornoMensal;
+      const mesesParaPagar = Math.ceil(inv.valorInvestido / retornoMensalBRL);
       const mesesPassados = calcMesesPassados(inv.dataInicio);
       const rendAcum = totalRend;
+      const rendOriginal = (inv.rendimentos||[]).reduce((s,r) => s + (r.valor||0), 0);
       const faltam = Math.max(0, inv.valorInvestido - rendAcum);
-      const mesesFaltam = inv.retornoMensal > 0 ? Math.ceil(faltam / inv.retornoMensal) : '?';
+      const mesesFaltam = retornoMensalBRL > 0 ? Math.ceil(faltam / retornoMensalBRL) : '?';
       const pctPago = inv.valorInvestido > 0 ? Math.min(100, Math.round((rendAcum / inv.valorInvestido) * 100)) : 0;
       const jaLucro = rendAcum >= inv.valorInvestido;
 
@@ -5770,20 +5810,54 @@ function renderInvestimentos() {
         <div style="margin-top:14px;padding:14px;background:#f8fafc;border-radius:10px;">
           <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
             <span style="font-size:12px;font-weight:700;color:#475569;">Retorno do investimento</span>
-            <span style="font-size:12px;font-weight:800;color:${jaLucro ? '#059669' : '#4f46e5'};">${jaLucro ? 'DANDO LUCRO!' : mesesFaltam + ' meses restantes'}</span>
+            <span style="font-size:12px;font-weight:800;color:${jaLucro ? '#059669' : '#4f46e5'};">${jaLucro ? '✅ DANDO LUCRO!' : mesesFaltam + ' meses restantes'}</span>
           </div>
           <div style="height:10px;background:#e2e8f0;border-radius:5px;overflow:hidden;margin-bottom:6px;">
             <div style="height:100%;background:${jaLucro ? '#059669' : '#2563eb'};border-radius:5px;width:${pctPago}%;transition:width 0.3s;"></div>
           </div>
           <div style="display:flex;justify-content:space-between;">
-            <span style="font-size:11px;color:#94a3b8;">Recuperado: ${brl(rendAcum)} de ${brl(inv.valorInvestido)}</span>
+            <span style="font-size:11px;color:#94a3b8;">Recuperado: ${brl(rendAcum)}${isUSD ? ' (US$ '+rendOriginal.toFixed(2)+')' : ''} de ${brl(inv.valorInvestido)}</span>
             <span style="font-size:11px;font-weight:700;color:${jaLucro ? '#059669' : '#4f46e5'};">${pctPago}%</span>
           </div>
-          <div style="display:flex;gap:12px;margin-top:8px;">
-            <span style="font-size:11px;color:#64748b;">Retorno/mês: <strong>${brl(inv.retornoMensal)}</strong></span>
+          <div style="display:flex;gap:12px;margin-top:8px;flex-wrap:wrap;">
+            <span style="font-size:11px;color:#64748b;">Retorno/mês: <strong>${isUSD ? 'US$ '+inv.retornoMensal.toFixed(2)+' (≈'+brl(retornoMensalBRL)+')' : brl(inv.retornoMensal)}</strong></span>
             <span style="font-size:11px;color:#64748b;">Break-even: <strong>${mesesParaPagar} meses</strong></span>
             <span style="font-size:11px;color:#64748b;">Passados: <strong>${mesesPassados} meses</strong></span>
+            ${isUSD ? '<span style="font-size:11px;color:#94a3b8;">Câmbio: US$ 1 = '+brl(taxa)+'</span>' : ''}
           </div>
+        </div>`;
+    }
+
+    // Renda Fixa - IR info
+    if (inv.tipo === 'renda_fixa') {
+      const aliq = calcIRAliquota(inv.dataInicio);
+      const dias = inv.dataInicio ? Math.floor((new Date() - new Date(inv.dataInicio+'T12:00:00'))/(1000*60*60*24)) : 0;
+      const rendBruto = totalRend;
+      const irValor = rendBruto * aliq;
+      const rendLiq = rendBruto - irValor;
+      const faixaLabel = aliq === 0.225 ? 'até 180d' : aliq === 0.20 ? '181-360d' : aliq === 0.175 ? '361-720d' : 'acima 720d';
+
+      breakEvenHtml = `
+        <div style="margin-top:14px;padding:14px;background:#f8fafc;border-radius:10px;">
+          <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+            <span style="font-size:12px;font-weight:700;color:#475569;">Rendimento ${inv.indice ? inv.indice.toUpperCase() : 'CDI'}</span>
+            <span style="font-size:12px;font-weight:700;color:#4f46e5;">${inv.rendimentoPct ? inv.rendimentoPct+'% último mês' : ''}</span>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
+            <div>
+              <p style="font-size:11px;color:#94a3b8;">Rend. Bruto</p>
+              <p style="font-size:13px;font-weight:700;color:#059669;">${brl(rendBruto)}</p>
+            </div>
+            <div>
+              <p style="font-size:11px;color:#94a3b8;">IR (${Math.round(aliq*100)}% · ${faixaLabel})</p>
+              <p style="font-size:13px;font-weight:700;color:#e11d48;">-${brl(irValor)}</p>
+            </div>
+            <div>
+              <p style="font-size:11px;color:#94a3b8;">Rend. Líquido</p>
+              <p style="font-size:13px;font-weight:700;color:#2563eb;">${brl(rendLiq)}</p>
+            </div>
+          </div>
+          <p style="font-size:11px;color:#94a3b8;margin-top:6px;">${dias} dias investidos · Próxima faixa: ${aliq > 0.15 ? 'menos IR em breve' : 'alíquota mínima atingida!'}</p>
         </div>`;
     }
 
@@ -5844,7 +5918,7 @@ function calcValorAtual(inv) {
 }
 
 function calcTotalRendimentos(inv) {
-  return (inv.rendimentos || []).reduce((s, r) => s + (r.valor || 0), 0);
+  return (inv.rendimentos || []).reduce((s, r) => s + calcRendBRL(r, inv), 0);
 }
 
 function calcMesesPassados(dataInicio) {
@@ -5857,6 +5931,25 @@ function calcMesesPassados(dataInicio) {
 function toggleInvestFields() {
   const tipo = document.getElementById('inv-tipo').value;
   document.getElementById('inv-negocio-fields').style.display = (tipo === 'negocio') ? 'block' : 'none';
+  document.getElementById('inv-renda-fixa-fields').style.display = (tipo === 'renda_fixa') ? 'block' : 'none';
+}
+
+function calcIRAliquota(dataInicio) {
+  if (!dataInicio) return 0.225;
+  const dias = Math.floor((new Date() - new Date(dataInicio + 'T12:00:00')) / (1000*60*60*24));
+  if (dias <= 180) return 0.225;
+  if (dias <= 360) return 0.20;
+  if (dias <= 720) return 0.175;
+  return 0.15;
+}
+
+function calcRendBRL(r, inv) {
+  const valor = r.valor || 0;
+  if (r.moeda === 'USD') {
+    const taxa = S.settings.usdRate || 5.0;
+    return valor * taxa;
+  }
+  return valor;
 }
 
 function abrirNovoInvestModal(editId) {
@@ -5880,7 +5973,9 @@ function abrirNovoInvestModal(editId) {
       document.getElementById('inv-valor').value = inv.valorInvestido;
       document.getElementById('inv-valor-atual').value = inv.valorAtual || '';
       document.getElementById('inv-retorno-mensal').value = inv.retornoMensal || '';
+      document.getElementById('inv-moeda-retorno').value = inv.moedaRetorno || 'BRL';
       document.getElementById('inv-rendimento-pct').value = inv.rendimentoPct || '';
+      document.getElementById('inv-indice').value = inv.indice || 'cdi';
       document.getElementById('inv-objetivo').value = inv.objetivo || '';
       document.getElementById('inv-data-inicio').value = inv.dataInicio || '';
       document.getElementById('inv-titular').value = inv.titular || S.settings.u1;
@@ -5892,7 +5987,9 @@ function abrirNovoInvestModal(editId) {
     document.getElementById('inv-valor').value = '';
     document.getElementById('inv-valor-atual').value = '';
     document.getElementById('inv-retorno-mensal').value = '';
+    document.getElementById('inv-moeda-retorno').value = 'BRL';
     document.getElementById('inv-rendimento-pct').value = '';
+    document.getElementById('inv-indice').value = 'cdi';
     document.getElementById('inv-objetivo').value = '';
     document.getElementById('inv-data-inicio').value = new Date().toISOString().slice(0,10);
     document.getElementById('inv-notas').value = '';
@@ -5925,10 +6022,14 @@ function salvarInvest() {
 
   S.investments = S.investments || [];
 
+  const moedaRetorno = document.getElementById('inv-moeda-retorno')?.value || 'BRL';
+  const indice = document.getElementById('inv-indice')?.value || 'cdi';
+
   const data = {
     tipo, bank: banco, desc, valorInvestido,
     valorAtual: valorAtual || valorInvestido,
-    retornoMensal, rendimentoPct, objetivo, dataInicio, titular, notas
+    retornoMensal, rendimentoPct, moedaRetorno, indice,
+    objetivo, dataInicio, titular, notas
   };
 
   if (editId) {
@@ -5968,13 +6069,18 @@ function abrirRendimentoModal(id) {
   document.getElementById('rendimento-modal').style.display = 'block';
   document.getElementById('rend-invest-id').value = id;
   document.getElementById('rend-valor').value = inv.retornoMensal || '';
+  document.getElementById('rend-moeda').value = inv.moedaRetorno || 'BRL';
   document.getElementById('rend-data').value = new Date().toISOString().slice(0,10);
+  document.getElementById('rend-pct').value = '';
   document.getElementById('rend-obs').value = '';
 
   const totalRend = calcTotalRendimentos(inv);
+  const moedaLabel = inv.moedaRetorno === 'USD' ? 'USD' : 'BRL';
+  const totalOriginal = (inv.rendimentos||[]).reduce((s,r) => s + (r.valor||0), 0);
   document.getElementById('rend-invest-info').innerHTML = `
     <p style="font-size:14px;font-weight:700;color:#0f172a;">${inv.desc}</p>
-    <p style="font-size:12px;color:#64748b;margin-top:4px;">Investido: ${brl(inv.valorInvestido)} · Rendimentos acumulados: ${brl(totalRend)}</p>
+    <p style="font-size:12px;color:#64748b;margin-top:4px;">Investido: ${brl(inv.valorInvestido)} · Rendimentos: ${brl(totalRend)}${inv.moedaRetorno === 'USD' ? ' ('+totalOriginal.toFixed(2)+' USD)' : ''}</p>
+    ${inv.tipo === 'renda_fixa' ? '<p style="font-size:11px;color:#94a3b8;margin-top:2px;">IR: '+Math.round(calcIRAliquota(inv.dataInicio)*100)+'% ('+Math.floor((new Date()-new Date(inv.dataInicio+"T12:00:00"))/(1000*60*60*24))+' dias)</p>' : ''}
   `;
 }
 
@@ -5985,7 +6091,9 @@ function fecharRendimentoModal() {
 function confirmarRendimento() {
   const id = document.getElementById('rend-invest-id').value;
   const valor = parseFloat(document.getElementById('rend-valor').value) || 0;
+  const moeda = document.getElementById('rend-moeda').value;
   const data = document.getElementById('rend-data').value;
+  const pct = parseFloat(document.getElementById('rend-pct').value) || 0;
   const obs = document.getElementById('rend-obs').value.trim();
 
   if (valor <= 0 || !data) { toast('Preencha valor e data'); return; }
@@ -5994,12 +6102,21 @@ function confirmarRendimento() {
   if (!inv) return;
 
   inv.rendimentos = inv.rendimentos || [];
-  inv.rendimentos.push({ valor, data, obs, at: new Date().toISOString() });
+  inv.rendimentos.push({ valor, moeda, data, pct, obs, at: new Date().toISOString() });
+
+  // Atualizar valor atual para renda fixa
+  if (inv.tipo === 'renda_fixa' && pct > 0) {
+    inv.valorAtual = (inv.valorAtual || inv.valorInvestido) * (1 + pct / 100);
+    inv.rendimentoPct = pct;
+  }
+
+  const valorBRL = moeda === 'USD' ? valor * (S.settings.usdRate || 5.0) : valor;
+  const moedaStr = moeda === 'USD' ? ` (US$ ${valor.toFixed(2)})` : '';
 
   save();
   fecharRendimentoModal();
   renderInvestimentos();
-  toast(`Rendimento de ${brl(valor)} registrado!`);
+  toast(`Rendimento de ${brl(valorBRL)}${moedaStr} registrado!`);
 }
 
 function verRendimentos(id) {
@@ -6010,13 +6127,14 @@ function verRendimentos(id) {
   }
 
   const rends = [...inv.rendimentos].sort((a,b) => new Date(b.data) - new Date(a.data));
-  let acum = 0;
   const rows = rends.map(r => {
-    acum += r.valor;
+    const valorBRL = calcRendBRL(r, inv);
+    const moedaInfo = r.moeda === 'USD' ? ` <span style="color:#94a3b8;">(US$ ${r.valor.toFixed(2)})</span>` : '';
+    const pctInfo = r.pct ? ` <span style="color:#4f46e5;">${r.pct}%</span>` : '';
     return `<tr style="border-bottom:1px solid #f1f5f9;">
       <td style="padding:8px 12px;">${fmtDate(r.data)}</td>
-      <td style="padding:8px 12px;text-align:right;font-weight:600;color:#059669;">${brl(r.valor)}</td>
-      <td style="padding:8px 12px;color:#64748b;font-size:12px;">${r.obs || '-'}</td>
+      <td style="padding:8px 12px;text-align:right;font-weight:600;color:#059669;">${brl(valorBRL)}${moedaInfo}</td>
+      <td style="padding:8px 12px;color:#64748b;font-size:12px;">${pctInfo} ${r.obs || '-'}</td>
     </tr>`;
   }).join('');
 
