@@ -171,6 +171,9 @@
     <a class="nav-item" data-page="dividas" onclick="goto('dividas')">
       <span style="font-size:18px;">💳</span> Dívidas
     </a>
+    <a class="nav-item" data-page="investimentos" onclick="goto('investimentos')">
+      <span style="font-size:18px;">📊</span> Investimentos
+    </a>
     <a class="nav-item" data-page="graficos" onclick="goto('graficos')">
       <span style="font-size:18px;">📈</span> Gráficos
     </a>
@@ -1128,6 +1131,48 @@
   </div>
 </section>
 
+<!-- ==================== INVESTIMENTOS ==================== -->
+<section id="page-investimentos" style="display:none;max-width:1100px;">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:28px;flex-wrap:wrap;gap:12px;">
+    <div>
+      <h1 style="font-size:24px;font-weight:800;color:#0f172a;">Investimentos</h1>
+      <p style="color:#94a3b8;font-size:14px;margin-top:2px;">Acompanhe seus investimentos e o retorno de cada um</p>
+    </div>
+    <button onclick="abrirNovoInvestModal()" style="padding:10px 20px;background:#2563eb;color:white;border:none;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer;">+ Novo Investimento</button>
+  </div>
+
+  <!-- Summary cards -->
+  <div id="invest-summary" style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px;"></div>
+
+  <!-- Search + Filter -->
+  <div class="card" style="padding:12px 18px;margin-bottom:20px;">
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+      <input class="finput" type="text" id="inv-search" placeholder="Buscar investimento..." oninput="renderInvestimentos()" style="flex:1;min-width:200px;padding:8px 12px;font-size:13px;">
+      <select class="finput" id="inv-tipo-filter" onchange="renderInvestimentos()" style="width:160px;padding:8px 10px;font-size:13px;">
+        <option value="">Todos os tipos</option>
+        <option value="reserva">Reserva</option>
+        <option value="fgts">FGTS</option>
+        <option value="negocio">Negócio / Retorno</option>
+        <option value="renda_fixa">Renda Fixa</option>
+        <option value="acoes">Ações / FIIs</option>
+        <option value="cripto">Cripto</option>
+        <option value="outro">Outro</option>
+      </select>
+      <select class="finput" id="inv-titular-filter" onchange="renderInvestimentos()" style="width:140px;padding:8px 10px;font-size:13px;">
+        <option value="">Todos Titulares</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Investment cards -->
+  <div id="invest-list" style="display:flex;flex-direction:column;gap:12px;"></div>
+  <div id="invest-empty" class="empty-state" style="display:none;">
+    <div class="icon">📊</div>
+    <p style="font-weight:600;color:#64748b;">Nenhum investimento cadastrado</p>
+    <p style="font-size:13px;margin-top:4px;">Clique em "Novo Investimento" para adicionar</p>
+  </div>
+</section>
+
 </main><!-- end main -->
 
 <!-- ============================================================ TOAST -->
@@ -1563,6 +1608,117 @@
   </div>
 </div>
 
+<!-- ============================================================ INVESTIMENTO MODAL -->
+<div id="invest-modal" style="display:none;">
+  <div id="modal-backdrop" onclick="fecharInvestModal()">
+    <div onclick="event.stopPropagation()" style="background:white;border-radius:18px;padding:28px;max-width:520px;width:95%;box-shadow:0 20px 60px rgba(0,0,0,0.15);max-height:90vh;overflow-y:auto;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+        <p id="invest-modal-title" style="font-weight:800;font-size:17px;color:#0f172a;">Novo Investimento</p>
+        <button onclick="fecharInvestModal()" style="background:none;border:none;font-size:20px;cursor:pointer;color:#94a3b8;">✕</button>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
+        <div>
+          <label class="flabel">Tipo *</label>
+          <select class="finput" id="inv-tipo" onchange="toggleInvestFields()">
+            <option value="reserva">Reserva</option>
+            <option value="fgts">FGTS</option>
+            <option value="negocio">Negócio / Retorno</option>
+            <option value="renda_fixa">Renda Fixa</option>
+            <option value="acoes">Ações / FIIs</option>
+            <option value="cripto">Cripto</option>
+            <option value="outro">Outro</option>
+          </select>
+        </div>
+        <div>
+          <label class="flabel">Banco / Instituição</label>
+          <select class="finput" id="inv-banco"></select>
+        </div>
+      </div>
+      <div style="margin-bottom:14px;">
+        <label class="flabel">Descrição *</label>
+        <input class="finput" type="text" id="inv-desc" placeholder="Ex: Plano de retorno mensal">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
+        <div>
+          <label class="flabel">Valor Investido *</label>
+          <input class="finput" type="number" id="inv-valor" step="0.01" min="0.01" placeholder="74000.00">
+        </div>
+        <div>
+          <label class="flabel">Valor Atual</label>
+          <input class="finput" type="number" id="inv-valor-atual" step="0.01" min="0" placeholder="Auto ou manual">
+        </div>
+      </div>
+      <!-- Campos Negócio/Retorno -->
+      <div id="inv-negocio-fields">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
+          <div>
+            <label class="flabel">Retorno Mensal (R$)</label>
+            <input class="finput" type="number" id="inv-retorno-mensal" step="0.01" min="0" placeholder="3500.00">
+          </div>
+          <div>
+            <label class="flabel">Rendimento (% ao mês)</label>
+            <input class="finput" type="number" id="inv-rendimento-pct" step="0.01" min="0" placeholder="1.2">
+          </div>
+        </div>
+      </div>
+      <!-- Objetivo -->
+      <div style="margin-bottom:14px;">
+        <label class="flabel">Objetivo / Finalidade</label>
+        <input class="finput" type="text" id="inv-objetivo" placeholder="Ex: Entrada da casa, Aposentadoria...">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
+        <div>
+          <label class="flabel">Data Início *</label>
+          <input class="finput" type="date" id="inv-data-inicio">
+        </div>
+        <div>
+          <label class="flabel">Titular *</label>
+          <select class="finput" id="inv-titular"></select>
+        </div>
+      </div>
+      <div style="margin-bottom:14px;">
+        <label class="flabel">Notas</label>
+        <textarea class="finput" id="inv-notas" rows="2" placeholder="Observações..."></textarea>
+      </div>
+      <input type="hidden" id="inv-edit-id" value="">
+      <div style="display:flex;gap:10px;margin-top:4px;">
+        <button onclick="fecharInvestModal()" style="flex:1;padding:12px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:14px;font-weight:600;color:#64748b;background:white;cursor:pointer;">Cancelar</button>
+        <button onclick="salvarInvest()" style="flex:1;padding:12px;background:#2563eb;color:white;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;">Salvar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ REGISTRAR RENDIMENTO MODAL -->
+<div id="rendimento-modal" style="display:none;">
+  <div id="modal-backdrop" onclick="fecharRendimentoModal()">
+    <div onclick="event.stopPropagation()" style="background:white;border-radius:18px;padding:28px;max-width:420px;width:95%;box-shadow:0 20px 60px rgba(0,0,0,0.15);">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+        <p style="font-weight:800;font-size:17px;color:#0f172a;">Registrar Rendimento</p>
+        <button onclick="fecharRendimentoModal()" style="background:none;border:none;font-size:20px;cursor:pointer;color:#94a3b8;">✕</button>
+      </div>
+      <div id="rend-invest-info" style="border:2px solid #eff6ff;border-radius:12px;padding:14px 18px;margin-bottom:18px;"></div>
+      <div style="margin-bottom:14px;">
+        <label class="flabel">Valor do rendimento *</label>
+        <input class="finput" type="number" id="rend-valor" step="0.01" min="0.01">
+      </div>
+      <div style="margin-bottom:14px;">
+        <label class="flabel">Data *</label>
+        <input class="finput" type="date" id="rend-data">
+      </div>
+      <div style="margin-bottom:14px;">
+        <label class="flabel">Observação</label>
+        <input class="finput" type="text" id="rend-obs" placeholder="Ex: Rendimento março/2026">
+      </div>
+      <input type="hidden" id="rend-invest-id" value="">
+      <div style="display:flex;gap:10px;margin-top:4px;">
+        <button onclick="fecharRendimentoModal()" style="flex:1;padding:12px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:14px;font-weight:600;color:#64748b;background:white;cursor:pointer;">Cancelar</button>
+        <button onclick="confirmarRendimento()" style="flex:1;padding:12px;background:#2563eb;color:white;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;">Registrar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- ============================================================ JAVASCRIPT -->
 <script src="import_data.js"></script>
 <script>
@@ -1649,6 +1805,7 @@ let S = {
   chatHistory: [],
   budget: {},
   debts: [],
+  investments: [],
   customCats: null,
   settings: {
     u1: 'Paulo', u2: 'Esposa',
@@ -1721,6 +1878,7 @@ function load() {
     if (d.chatHistory)  S.chatHistory  = d.chatHistory;
     if (d.budget)       S.budget       = d.budget;
     if (d.debts)        S.debts        = d.debts;
+    if (d.investments)  S.investments  = d.investments;
     if (d.customCats)   S.customCats   = d.customCats;
     if (d.settings)     S.settings     = { ...S.settings, ...d.settings };
   } catch(e) {}
@@ -1736,6 +1894,7 @@ function save() {
       accounts: S.accounts,
       settings: S.settings,
       debts: S.debts || [],
+      investments: S.investments || [],
       customCats: S.customCats || null
     }).then(() => {
       updateSyncStatus('ok');
@@ -1999,6 +2158,7 @@ function goto(page) {
   if (page === 'orcamento')  renderOrcamento();
   if (page === 'categorias') renderCategorias();
   if (page === 'dividas')    renderDividas();
+  if (page === 'investimentos') renderInvestimentos();
 }
 
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
@@ -5486,6 +5646,400 @@ function calcSimulacao() {
 
 function fecharSimulModal() {
   document.getElementById('simul-amort-modal').style.display = 'none';
+}
+
+// ─── INVESTIMENTOS ────────────────────────────────────────────────────────────
+const TIPO_INVEST = {
+  reserva:    { label:'Reserva',           icon:'🏦', bg:'#ecfdf5', color:'#065f46' },
+  fgts:       { label:'FGTS',             icon:'🏛️', bg:'#eff6ff', color:'#1e40af' },
+  negocio:    { label:'Negócio / Retorno', icon:'🏢', bg:'#fef3c7', color:'#92400e' },
+  renda_fixa: { label:'Renda Fixa',       icon:'📄', bg:'#f0fdf4', color:'#166534' },
+  acoes:      { label:'Ações / FIIs',     icon:'📈', bg:'#eef2ff', color:'#4f46e5' },
+  cripto:     { label:'Cripto',           icon:'₿',  bg:'#fefce8', color:'#a16207' },
+  outro:      { label:'Outro',            icon:'💼', bg:'#f1f5f9', color:'#475569' }
+};
+
+function renderInvestimentos() {
+  S.investments = S.investments || [];
+  const search = (document.getElementById('inv-search')?.value || '').toLowerCase();
+  const tipoFilter = document.getElementById('inv-tipo-filter')?.value || '';
+  const titFilter = document.getElementById('inv-titular-filter')?.value || '';
+
+  // Populate titular filter
+  const titSel = document.getElementById('inv-titular-filter');
+  if (titSel && titSel.options.length <= 1) {
+    titSel.innerHTML = `<option value="">Todos Titulares</option>
+      <option value="${S.settings.u1}">${S.settings.u1}</option>
+      <option value="${S.settings.u2}">${S.settings.u2}</option>`;
+  }
+
+  let invs = S.investments.filter(inv => {
+    if (search && !inv.desc.toLowerCase().includes(search) && !(BANKS[inv.bank]?.name||'').toLowerCase().includes(search)) return false;
+    if (tipoFilter && inv.tipo !== tipoFilter) return false;
+    if (titFilter && inv.titular !== titFilter) return false;
+    return true;
+  });
+
+  // Summary
+  const all = S.investments;
+  const totalInvestido = all.reduce((s,i) => s + (i.valorInvestido||0), 0);
+  const totalAtual = all.reduce((s,i) => s + calcValorAtual(i), 0);
+  const totalRendimentos = all.reduce((s,i) => s + calcTotalRendimentos(i), 0);
+  const lucro = totalAtual - totalInvestido + totalRendimentos;
+
+  document.getElementById('invest-summary').innerHTML = `
+    <div class="card" style="padding:20px;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+        <div style="width:38px;height:38px;border-radius:10px;background:#eff6ff;display:flex;align-items:center;justify-content:center;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+        </div>
+      </div>
+      <p style="font-size:12px;color:#94a3b8;margin-bottom:4px;">Total Investido</p>
+      <p style="font-size:22px;font-weight:800;color:#0f172a;">${brl(totalInvestido)}</p>
+    </div>
+    <div class="card" style="padding:20px;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+        <div style="width:38px;height:38px;border-radius:10px;background:#ecfdf5;display:flex;align-items:center;justify-content:center;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+        </div>
+      </div>
+      <p style="font-size:12px;color:#94a3b8;margin-bottom:4px;">Valor Atual</p>
+      <p style="font-size:22px;font-weight:800;color:#059669;">${brl(totalAtual)}</p>
+    </div>
+    <div class="card" style="padding:20px;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+        <div style="width:38px;height:38px;border-radius:10px;background:#fef3c7;display:flex;align-items:center;justify-content:center;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ca8a04" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+        </div>
+      </div>
+      <p style="font-size:12px;color:#94a3b8;margin-bottom:4px;">Total Rendimentos</p>
+      <p style="font-size:22px;font-weight:800;color:#ca8a04;">${brl(totalRendimentos)}</p>
+    </div>
+    <div class="card" style="padding:20px;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+        <div style="width:38px;height:38px;border-radius:10px;background:${lucro >= 0 ? '#ecfdf5' : '#fff1f2'};display:flex;align-items:center;justify-content:center;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="${lucro >= 0 ? '#059669' : '#e11d48'}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        </div>
+      </div>
+      <p style="font-size:12px;color:#94a3b8;margin-bottom:4px;">Lucro / Prejuízo</p>
+      <p style="font-size:22px;font-weight:800;color:${lucro >= 0 ? '#059669' : '#e11d48'};">${brl(lucro)}</p>
+    </div>
+  `;
+
+  const list = document.getElementById('invest-list');
+  const empty = document.getElementById('invest-empty');
+
+  if (!invs.length) {
+    list.innerHTML = '';
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+
+  list.innerHTML = invs.map(inv => {
+    const tp = TIPO_INVEST[inv.tipo] || TIPO_INVEST.outro;
+    const bank = BANKS[inv.bank] || { name: inv.bank || '-', color:'#64748b', svg:'' };
+    const valorAtual = calcValorAtual(inv);
+    const totalRend = calcTotalRendimentos(inv);
+    const lucroInv = totalRend + valorAtual - inv.valorInvestido;
+    const pctRetorno = inv.valorInvestido > 0 ? ((lucroInv / inv.valorInvestido) * 100) : 0;
+
+    // Break-even para negócio
+    let breakEvenHtml = '';
+    if (inv.tipo === 'negocio' && inv.retornoMensal > 0) {
+      const mesesParaPagar = Math.ceil(inv.valorInvestido / inv.retornoMensal);
+      const mesesPassados = calcMesesPassados(inv.dataInicio);
+      const rendAcum = totalRend;
+      const faltam = Math.max(0, inv.valorInvestido - rendAcum);
+      const mesesFaltam = inv.retornoMensal > 0 ? Math.ceil(faltam / inv.retornoMensal) : '?';
+      const pctPago = inv.valorInvestido > 0 ? Math.min(100, Math.round((rendAcum / inv.valorInvestido) * 100)) : 0;
+      const jaLucro = rendAcum >= inv.valorInvestido;
+
+      breakEvenHtml = `
+        <div style="margin-top:14px;padding:14px;background:#f8fafc;border-radius:10px;">
+          <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+            <span style="font-size:12px;font-weight:700;color:#475569;">Retorno do investimento</span>
+            <span style="font-size:12px;font-weight:800;color:${jaLucro ? '#059669' : '#4f46e5'};">${jaLucro ? 'DANDO LUCRO!' : mesesFaltam + ' meses restantes'}</span>
+          </div>
+          <div style="height:10px;background:#e2e8f0;border-radius:5px;overflow:hidden;margin-bottom:6px;">
+            <div style="height:100%;background:${jaLucro ? '#059669' : '#2563eb'};border-radius:5px;width:${pctPago}%;transition:width 0.3s;"></div>
+          </div>
+          <div style="display:flex;justify-content:space-between;">
+            <span style="font-size:11px;color:#94a3b8;">Recuperado: ${brl(rendAcum)} de ${brl(inv.valorInvestido)}</span>
+            <span style="font-size:11px;font-weight:700;color:${jaLucro ? '#059669' : '#4f46e5'};">${pctPago}%</span>
+          </div>
+          <div style="display:flex;gap:12px;margin-top:8px;">
+            <span style="font-size:11px;color:#64748b;">Retorno/mês: <strong>${brl(inv.retornoMensal)}</strong></span>
+            <span style="font-size:11px;color:#64748b;">Break-even: <strong>${mesesParaPagar} meses</strong></span>
+            <span style="font-size:11px;color:#64748b;">Passados: <strong>${mesesPassados} meses</strong></span>
+          </div>
+        </div>`;
+    }
+
+    // Objetivo
+    let objHtml = inv.objetivo ? `<span style="font-size:11px;font-weight:600;padding:2px 10px;border-radius:20px;background:#fef3c7;color:#92400e;">🎯 ${inv.objetivo}</span>` : '';
+
+    // Histórico de rendimentos
+    const nRend = (inv.rendimentos || []).length;
+
+    return `<div class="card" style="padding:20px;">
+      <div style="display:flex;align-items:center;gap:14px;margin-bottom:14px;">
+        <div style="width:44px;height:44px;border-radius:12px;background:${tp.bg};display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;">
+          ${tp.icon}
+        </div>
+        <div style="flex:1;min-width:0;">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+            <span style="font-size:15px;font-weight:700;color:#0f172a;">${inv.desc}</span>
+            <span style="font-size:11px;font-weight:600;padding:2px 10px;border-radius:20px;background:${tp.bg};color:${tp.color};">${tp.label}</span>
+            ${objHtml}
+          </div>
+          <p style="font-size:13px;color:#64748b;margin-top:2px;">${bank.name}${inv.titular ? ' · ' + inv.titular : ''}</p>
+        </div>
+        <div style="text-align:right;">
+          <span style="font-size:12px;color:#94a3b8;">${nRend} rendimento${nRend !== 1 ? 's' : ''}</span>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:14px;">
+        <div>
+          <p style="font-size:11px;color:#94a3b8;">Investido</p>
+          <p style="font-size:14px;font-weight:700;color:#0f172a;">${brl(inv.valorInvestido)}</p>
+        </div>
+        <div>
+          <p style="font-size:11px;color:#94a3b8;">Valor Atual</p>
+          <p style="font-size:14px;font-weight:700;color:#2563eb;">${brl(valorAtual)}</p>
+        </div>
+        <div>
+          <p style="font-size:11px;color:#94a3b8;">Rendimentos</p>
+          <p style="font-size:14px;font-weight:700;color:#059669;">${brl(totalRend)}</p>
+        </div>
+        <div>
+          <p style="font-size:11px;color:#94a3b8;">Retorno</p>
+          <p style="font-size:14px;font-weight:700;color:${pctRetorno >= 0 ? '#059669' : '#e11d48'};">${pctRetorno >= 0 ? '+' : ''}${pctRetorno.toFixed(1)}%</p>
+        </div>
+      </div>
+      ${breakEvenHtml}
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;">
+        <button onclick="abrirRendimentoModal('${inv.id}')" style="padding:8px 16px;background:#059669;color:white;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;">+ Rendimento</button>
+        <button onclick="verRendimentos('${inv.id}')" style="padding:8px 16px;background:#eff6ff;color:#2563eb;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;">Histórico</button>
+        <button onclick="editarInvest('${inv.id}')" style="padding:8px 16px;background:#eef2ff;color:#4f46e5;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;">Editar</button>
+        <button onclick="deletarInvest('${inv.id}')" style="padding:8px 16px;background:#fff1f2;color:#e11d48;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;">Excluir</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function calcValorAtual(inv) {
+  return inv.valorAtual || inv.valorInvestido || 0;
+}
+
+function calcTotalRendimentos(inv) {
+  return (inv.rendimentos || []).reduce((s, r) => s + (r.valor || 0), 0);
+}
+
+function calcMesesPassados(dataInicio) {
+  if (!dataInicio) return 0;
+  const inicio = new Date(dataInicio + 'T12:00:00');
+  const agora = new Date();
+  return Math.max(0, (agora.getFullYear() - inicio.getFullYear()) * 12 + (agora.getMonth() - inicio.getMonth()));
+}
+
+function toggleInvestFields() {
+  const tipo = document.getElementById('inv-tipo').value;
+  document.getElementById('inv-negocio-fields').style.display = (tipo === 'negocio') ? 'block' : 'none';
+}
+
+function abrirNovoInvestModal(editId) {
+  const modal = document.getElementById('invest-modal');
+  modal.style.display = 'block';
+  document.getElementById('inv-edit-id').value = editId || '';
+  document.getElementById('invest-modal-title').textContent = editId ? 'Editar Investimento' : 'Novo Investimento';
+
+  const bankSel = document.getElementById('inv-banco');
+  bankSel.innerHTML = '<option value="">Nenhum</option>' + Object.entries(BANKS).map(([k,v]) => `<option value="${k}">${v.name}</option>`).join('');
+
+  const titSel = document.getElementById('inv-titular');
+  titSel.innerHTML = `<option value="${S.settings.u1}">${S.settings.u1}</option><option value="${S.settings.u2}">${S.settings.u2}</option>`;
+
+  if (editId) {
+    const inv = S.investments.find(x => x.id === editId);
+    if (inv) {
+      document.getElementById('inv-tipo').value = inv.tipo || 'outro';
+      bankSel.value = inv.bank || '';
+      document.getElementById('inv-desc').value = inv.desc;
+      document.getElementById('inv-valor').value = inv.valorInvestido;
+      document.getElementById('inv-valor-atual').value = inv.valorAtual || '';
+      document.getElementById('inv-retorno-mensal').value = inv.retornoMensal || '';
+      document.getElementById('inv-rendimento-pct').value = inv.rendimentoPct || '';
+      document.getElementById('inv-objetivo').value = inv.objetivo || '';
+      document.getElementById('inv-data-inicio').value = inv.dataInicio || '';
+      document.getElementById('inv-titular').value = inv.titular || S.settings.u1;
+      document.getElementById('inv-notas').value = inv.notas || '';
+    }
+  } else {
+    document.getElementById('inv-tipo').value = 'reserva';
+    document.getElementById('inv-desc').value = '';
+    document.getElementById('inv-valor').value = '';
+    document.getElementById('inv-valor-atual').value = '';
+    document.getElementById('inv-retorno-mensal').value = '';
+    document.getElementById('inv-rendimento-pct').value = '';
+    document.getElementById('inv-objetivo').value = '';
+    document.getElementById('inv-data-inicio').value = new Date().toISOString().slice(0,10);
+    document.getElementById('inv-notas').value = '';
+  }
+  toggleInvestFields();
+}
+
+function fecharInvestModal() {
+  document.getElementById('invest-modal').style.display = 'none';
+}
+
+function salvarInvest() {
+  const tipo = document.getElementById('inv-tipo').value;
+  const banco = document.getElementById('inv-banco').value;
+  const desc = document.getElementById('inv-desc').value.trim();
+  const valorInvestido = parseFloat(document.getElementById('inv-valor').value) || 0;
+  const valorAtual = parseFloat(document.getElementById('inv-valor-atual').value) || 0;
+  const retornoMensal = parseFloat(document.getElementById('inv-retorno-mensal').value) || 0;
+  const rendimentoPct = parseFloat(document.getElementById('inv-rendimento-pct').value) || 0;
+  const objetivo = document.getElementById('inv-objetivo').value.trim();
+  const dataInicio = document.getElementById('inv-data-inicio').value;
+  const titular = document.getElementById('inv-titular').value;
+  const notas = document.getElementById('inv-notas').value.trim();
+  const editId = document.getElementById('inv-edit-id').value;
+
+  if (!desc || valorInvestido <= 0) {
+    toast('Preencha descrição e valor investido');
+    return;
+  }
+
+  S.investments = S.investments || [];
+
+  const data = {
+    tipo, bank: banco, desc, valorInvestido,
+    valorAtual: valorAtual || valorInvestido,
+    retornoMensal, rendimentoPct, objetivo, dataInicio, titular, notas
+  };
+
+  if (editId) {
+    const inv = S.investments.find(x => x.id === editId);
+    if (inv) Object.assign(inv, data);
+  } else {
+    S.investments.push({
+      id: 'inv_' + Date.now(),
+      ...data,
+      rendimentos: [],
+      at: new Date().toISOString()
+    });
+  }
+
+  save();
+  fecharInvestModal();
+  renderInvestimentos();
+  toast(editId ? 'Investimento atualizado!' : 'Investimento adicionado!');
+}
+
+function editarInvest(id) {
+  abrirNovoInvestModal(id);
+}
+
+function deletarInvest(id) {
+  if (!confirm('Tem certeza que deseja excluir este investimento?')) return;
+  S.investments = S.investments.filter(i => i.id !== id);
+  save();
+  renderInvestimentos();
+  toast('Investimento excluído!');
+}
+
+// Rendimentos
+function abrirRendimentoModal(id) {
+  const inv = S.investments.find(x => x.id === id);
+  if (!inv) return;
+  document.getElementById('rendimento-modal').style.display = 'block';
+  document.getElementById('rend-invest-id').value = id;
+  document.getElementById('rend-valor').value = inv.retornoMensal || '';
+  document.getElementById('rend-data').value = new Date().toISOString().slice(0,10);
+  document.getElementById('rend-obs').value = '';
+
+  const totalRend = calcTotalRendimentos(inv);
+  document.getElementById('rend-invest-info').innerHTML = `
+    <p style="font-size:14px;font-weight:700;color:#0f172a;">${inv.desc}</p>
+    <p style="font-size:12px;color:#64748b;margin-top:4px;">Investido: ${brl(inv.valorInvestido)} · Rendimentos acumulados: ${brl(totalRend)}</p>
+  `;
+}
+
+function fecharRendimentoModal() {
+  document.getElementById('rendimento-modal').style.display = 'none';
+}
+
+function confirmarRendimento() {
+  const id = document.getElementById('rend-invest-id').value;
+  const valor = parseFloat(document.getElementById('rend-valor').value) || 0;
+  const data = document.getElementById('rend-data').value;
+  const obs = document.getElementById('rend-obs').value.trim();
+
+  if (valor <= 0 || !data) { toast('Preencha valor e data'); return; }
+
+  const inv = S.investments.find(x => x.id === id);
+  if (!inv) return;
+
+  inv.rendimentos = inv.rendimentos || [];
+  inv.rendimentos.push({ valor, data, obs, at: new Date().toISOString() });
+
+  save();
+  fecharRendimentoModal();
+  renderInvestimentos();
+  toast(`Rendimento de ${brl(valor)} registrado!`);
+}
+
+function verRendimentos(id) {
+  const inv = S.investments.find(x => x.id === id);
+  if (!inv || !(inv.rendimentos || []).length) {
+    toast('Nenhum rendimento registrado ainda');
+    return;
+  }
+
+  const rends = [...inv.rendimentos].sort((a,b) => new Date(b.data) - new Date(a.data));
+  let acum = 0;
+  const rows = rends.map(r => {
+    acum += r.valor;
+    return `<tr style="border-bottom:1px solid #f1f5f9;">
+      <td style="padding:8px 12px;">${fmtDate(r.data)}</td>
+      <td style="padding:8px 12px;text-align:right;font-weight:600;color:#059669;">${brl(r.valor)}</td>
+      <td style="padding:8px 12px;color:#64748b;font-size:12px;">${r.obs || '-'}</td>
+    </tr>`;
+  }).join('');
+
+  // Reuse amort modal to show rendimentos
+  const modal = document.getElementById('amort-table-modal');
+  modal.style.display = 'block';
+  document.getElementById('amort-modal-title').textContent = `Histórico de Rendimentos — ${inv.desc}`;
+
+  const totalRend = calcTotalRendimentos(inv);
+  const pctRecup = inv.valorInvestido > 0 ? ((totalRend / inv.valorInvestido) * 100).toFixed(1) : '0';
+
+  document.getElementById('amort-resumo').innerHTML = `
+    <div style="background:#f8fafc;border-radius:10px;padding:12px 16px;">
+      <p style="font-size:11px;color:#94a3b8;">Total Rendimentos</p>
+      <p style="font-size:16px;font-weight:800;color:#059669;">${brl(totalRend)}</p>
+    </div>
+    <div style="background:#f8fafc;border-radius:10px;padding:12px 16px;">
+      <p style="font-size:11px;color:#94a3b8;">Registros</p>
+      <p style="font-size:16px;font-weight:800;color:#475569;">${rends.length}</p>
+    </div>
+    <div style="background:#f8fafc;border-radius:10px;padding:12px 16px;">
+      <p style="font-size:11px;color:#94a3b8;">% Recuperado</p>
+      <p style="font-size:16px;font-weight:800;color:#4f46e5;">${pctRecup}%</p>
+    </div>
+  `;
+
+  document.getElementById('amort-tbody').innerHTML = rows;
+  document.getElementById('amort-tfoot').innerHTML = `
+    <tr style="border-top:2px solid #e2e8f0;background:#f8fafc;font-weight:800;">
+      <td style="padding:10px 12px;">TOTAL</td>
+      <td style="padding:10px 12px;text-align:right;color:#059669;">${brl(totalRend)}</td>
+      <td style="padding:10px 12px;"></td>
+    </tr>
+  `;
 }
 
 function initSalemBot() {
