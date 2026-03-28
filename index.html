@@ -2855,10 +2855,15 @@ function renderDashConta(ym, ymPrev) {
     document.getElementById('c-despesas-pct').textContent = '';
   }
 
-  const invAll = txByTitular(S.transactions).filter(t=>t.type==='investimento');
-  const inv = invAll.reduce((s,t)=>s+amountBrl(t),0);
-  document.getElementById('c-invest').textContent = brl(inv);
-  document.getElementById('c-invest-n').textContent = `${invAll.length} aportes no total`;
+  const allInvests = (S.investments || []).filter(i => {
+    if (titularFilter === 'ambos') return true;
+    const name = titularFilter === 'paulo' ? S.settings.u1 : S.settings.u2;
+    return i.titular === name;
+  });
+  const invTotal = allInvests.reduce((s,i) => s + (i.valorInvestido||0), 0);
+  const invRend = allInvests.reduce((s,i) => s + (i.rendimentos||[]).reduce((r,x) => r + (x.valor||0), 0), 0);
+  document.getElementById('c-invest').textContent = brl(invTotal);
+  document.getElementById('c-invest-n').textContent = `${allInvests.length} investimento${allInvests.length !== 1 ? 's' : ''} · Rend: ${brl(invRend)}`;
 
   // Populate expandable breakdowns per bank
   renderCardBreakdowns(mTx);
@@ -2925,12 +2930,21 @@ function renderCardBreakdowns(mTx) {
   });
   document.getElementById('breakdown-despesas').innerHTML = despHtml;
 
-  // Investimentos breakdown (total, not filtered by month)
-  const allTxTitular = txByTitular(S.transactions);
+  // Investimentos breakdown (from S.investments)
+  const allInvestsTit = (S.investments || []).filter(i => {
+    if (titularFilter === 'ambos') return true;
+    const name = titularFilter === 'paulo' ? S.settings.u1 : S.settings.u2;
+    return i.titular === name;
+  });
   let invHtml = '';
-  accToShow.forEach(a => {
-    const val = allTxTitular.filter(t => t.accountId === a.id && t.type === 'investimento').reduce((s,t)=>s+amountBrl(t),0);
-    if (val !== 0) invHtml += bankRow(a.bank, val, '#2563eb');
+  allInvestsTit.forEach(i => {
+    const tp = typeof TIPO_INVEST !== 'undefined' ? (TIPO_INVEST[i.tipo] || {}) : {};
+    const rend = (i.rendimentos||[]).reduce((s,r) => s + (r.valor||0), 0);
+    invHtml += `<div style="display:flex;align-items:center;gap:10px;padding:6px 0;">
+      <span style="font-size:18px;">${tp.icon || '💼'}</span>
+      <span style="font-size:13px;font-weight:600;color:#334155;flex:1;">${i.desc}</span>
+      <span style="font-size:13px;font-weight:700;color:#2563eb;">${brl(i.valorInvestido)}</span>
+    </div>`;
   });
   document.getElementById('breakdown-invest').innerHTML = invHtml || '<p style="font-size:12px;color:#94a3b8;text-align:center;">Nenhum investimento</p>';
 }
