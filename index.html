@@ -465,10 +465,11 @@
   </div>
 
   <!-- Type selector -->
-  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:20px;">
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px;margin-bottom:20px;">
     <button class="type-btn active-receita" id="btn-receita" onclick="setType('receita')"><span style="color:#059669;font-weight:800;">&#8593;</span> Receita</button>
     <button class="type-btn" id="btn-despesa" onclick="setType('despesa')"><span style="color:#e11d48;font-weight:800;">&#8595;</span> Despesa</button>
     <button class="type-btn" id="btn-invest" onclick="setType('investimento')">🐷 Investimento</button>
+    <button class="type-btn" id="btn-transferencia" onclick="setType('transferencia')">🔄 Transferência</button>
   </div>
 
   <div class="card">
@@ -516,6 +517,12 @@
       <div style="margin-bottom:18px;">
         <label class="flabel" id="f-label-conta">Conta</label>
         <select class="finput" id="f-conta" onchange="onContaChange()"></select>
+      </div>
+
+      <!-- Conta Destino (só transferência) -->
+      <div id="f-row-conta-destino" style="display:none;margin-bottom:18px;">
+        <label class="flabel">Conta Destino</label>
+        <select class="finput" id="f-conta-destino"></select>
       </div>
 
       <!-- Titular -->
@@ -614,11 +621,12 @@
   <!-- Filter row -->
   <div class="card" style="padding:12px 18px;margin-bottom:12px;">
     <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-      <select class="finput" id="fil-tipo" onchange="renderHistorico()" style="width:120px;padding:8px 10px;font-size:13px;">
+      <select class="finput" id="fil-tipo" onchange="renderHistorico()" style="width:140px;padding:8px 10px;font-size:13px;">
         <option value="">🔄 Todas</option>
         <option value="receita">&#8593; Receitas</option>
         <option value="despesa">&#8595; Despesas</option>
         <option value="investimento">🐷 Investimentos</option>
+        <option value="transferencia">🔄 Transferências</option>
       </select>
       <select class="finput" id="fil-pagamento" onchange="renderHistorico()" style="width:140px;padding:8px 10px;font-size:13px;">
         <option value="">Forma Pagamento</option>
@@ -633,7 +641,17 @@
         <option value="fixo">📌 Fixo</option>
         <option value="variavel">📊 Variável</option>
       </select>
+      <select class="finput" id="fil-titular" onchange="renderHistorico()" style="width:140px;padding:8px 10px;font-size:13px;">
+        <option value="">Todos Titulares</option>
+      </select>
       <input class="finput" type="text" id="fil-search" placeholder="🔍 Buscar…" oninput="renderHistorico()" style="flex:1;min-width:150px;padding:8px 12px;font-size:13px;">
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;margin-top:8px;flex-wrap:wrap;">
+      <span style="font-size:12px;color:#94a3b8;font-weight:600;">Período:</span>
+      <input class="finput" type="date" id="fil-data-de" onchange="renderHistorico()" style="width:150px;padding:6px 10px;font-size:12px;">
+      <span style="font-size:12px;color:#94a3b8;">até</span>
+      <input class="finput" type="date" id="fil-data-ate" onchange="renderHistorico()" style="width:150px;padding:6px 10px;font-size:12px;">
+      <button onclick="limparFiltroData()" style="padding:6px 12px;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:8px;font-size:11px;font-weight:600;color:#64748b;cursor:pointer;">Limpar datas</button>
       <div style="display:flex;gap:6px;margin-left:auto;">
         <button onclick="abrirFaturaModal()" style="padding:8px 14px;background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:10px;font-size:12px;font-weight:600;color:#475569;cursor:pointer;display:flex;align-items:center;gap:5px;" title="Gerenciar Faturas">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
@@ -2057,29 +2075,44 @@ let formaPgto = 'debito';
 // ─── TYPE SELECTOR ────────────────────────────────────────────────────────────
 function setType(t) {
   currentType = t;
-  ['receita','despesa','invest'].forEach(x => document.getElementById('btn-'+x).className = 'type-btn');
+  ['receita','despesa','invest','transferencia'].forEach(x => document.getElementById('btn-'+x).className = 'type-btn');
   const key = t === 'investimento' ? 'invest' : t;
-  document.getElementById('btn-'+key).classList.add('active-' + (t==='investimento'?'invest':t));
+  document.getElementById('btn-'+key).classList.add('active-' + (t==='investimento'?'invest': t==='transferencia'?'invest':t));
 
   const isDespesa = t === 'despesa';
+  const isTransf  = t === 'transferencia';
   document.getElementById('f-row-pago').style.display       = isDespesa ? 'block' : 'none';
   document.getElementById('f-row-pagamento').style.display  = isDespesa ? 'block' : 'none';
   document.getElementById('f-row-recorrente').style.display = isDespesa ? 'block' : 'none';
   document.getElementById('f-row-custo-tipo').style.display = isDespesa ? 'block' : 'none';
   document.getElementById('f-row-parcela').style.display    = 'none';
-  document.getElementById('f-label-conta').textContent      = isDespesa ? 'Conta' : 'Conta / Carteira';
+  document.getElementById('f-row-conta-destino').style.display = isTransf ? 'block' : 'none';
+  document.getElementById('f-label-conta').textContent      = isTransf ? 'Conta Origem' : (isDespesa ? 'Conta' : 'Conta / Carteira');
+
+  // Hide categoria for transfers
+  const catRow = document.getElementById('f-categoria').closest('div[style*="margin-bottom"]') || document.getElementById('f-categoria').parentElement.parentElement;
+  if (catRow) catRow.style.display = isTransf ? 'none' : '';
 
   const sel = document.getElementById('f-categoria');
   if (t === 'despesa') {
     sel.innerHTML = Object.keys(getDespesaCats()).map(c => `<option value="${c}">${c}</option>`).join('');
-  } else {
+  } else if (!isTransf) {
     const catList = t === 'investimento' ? getInvestCats() : (getReceitaCats() || []);
     sel.innerHTML = catList.map(c => `<option value="${c}">${c}</option>`).join('');
   }
-  onCatChange();
+  if (!isTransf) onCatChange();
 
   if (isDespesa) setFormaPgto('debito');
   else refreshContaSelect('conta');
+
+  if (isTransf) {
+    // Populate destination account select (only bank accounts)
+    const destSel = document.getElementById('f-conta-destino');
+    destSel.innerHTML = S.accounts
+      .filter(a => a.accountType === 'conta')
+      .map(a => `<option value="${a.id}">${BANKS[a.bank]?.name || a.bank} — ${a.label}</option>`)
+      .join('');
+  }
 }
 
 let custoTipo = 'variavel';
@@ -2135,11 +2168,74 @@ function saveTransacao(e) {
   const isUSD = acc && BANKS[acc.bank].currency === 'USD';
   const amountRaw = parseFloat(document.getElementById('f-valor').value);
   const isDespesa = currentType === 'despesa';
+  const isTransf  = currentType === 'transferencia';
   const isCredito = isDespesa && formaPgto === 'credito';
   const isParcelado = isCredito && document.getElementById('f-parcelado').checked;
   const numParcelas = isParcelado ? parseInt(document.getElementById('f-num-parcelas').value) || 1 : 1;
-  const desc = document.getElementById('f-descricao').value.trim() || document.getElementById('f-categoria').value;
+  const desc = document.getElementById('f-descricao').value.trim() || (isTransf ? 'Transferência' : document.getElementById('f-categoria').value);
   const date = document.getElementById('f-data').value;
+
+  // Handle transfer
+  if (isTransf) {
+    const destContaId = document.getElementById('f-conta-destino').value;
+    if (!contaId || !destContaId) { toast('Selecione conta origem e destino'); return; }
+    if (contaId === destContaId) { toast('Conta origem e destino devem ser diferentes'); return; }
+    if (!amountRaw || amountRaw <= 0) { toast('Informe o valor da transferência'); return; }
+
+    const origemAcc = S.accounts.find(a => a.id === contaId);
+    const destAcc = S.accounts.find(a => a.id === destContaId);
+    const origemNome = BANKS[origemAcc?.bank]?.name || 'Origem';
+    const destNome = BANKS[destAcc?.bank]?.name || 'Destino';
+    const transferId = 'tf_' + Date.now();
+    const user = document.getElementById('f-usuario').value;
+    const notas = document.getElementById('f-notas').value.trim();
+    const descLabel = desc === 'Transferência' ? '' : ` - ${desc}`;
+
+    // Saída da conta origem (despesa)
+    S.transactions.push({
+      id: transferId + '_out',
+      type: 'despesa',
+      desc: `Transferência → ${destNome}${descLabel}`,
+      amount: amountRaw,
+      currency: isUSD ? 'USD' : 'BRL',
+      accountId: contaId,
+      category: 'Transferência',
+      subcategory: '',
+      date, user, notes: notas,
+      pago: true,
+      formaPgto: 'debito',
+      custoTipo: null,
+      isTransfer: true,
+      transferId,
+      transferDir: 'saida',
+      at: new Date().toISOString()
+    });
+
+    // Entrada na conta destino (receita)
+    S.transactions.push({
+      id: transferId + '_in',
+      type: 'receita',
+      desc: `Transferência ← ${origemNome}${descLabel}`,
+      amount: amountRaw,
+      currency: BANKS[destAcc?.bank]?.currency === 'USD' ? 'USD' : 'BRL',
+      accountId: destContaId,
+      category: 'Transferência',
+      subcategory: '',
+      date, user, notes: notas,
+      pago: true,
+      isTransfer: true,
+      transferId,
+      transferDir: 'entrada',
+      at: new Date().toISOString()
+    });
+
+    save();
+    document.getElementById('f-valor').value = '';
+    document.getElementById('f-descricao').value = '';
+    document.getElementById('f-notas').value = '';
+    toast(`✅ Transferência de ${brl(amountRaw)} registrada! ${origemNome} → ${destNome}`);
+    return;
+  }
 
   const baseTx = {
     type:         currentType,
@@ -2219,7 +2315,13 @@ function saveTransacao(e) {
 function del(id) { deleteId = id; document.getElementById('del-modal').style.display = 'block'; }
 function closeModal() { document.getElementById('del-modal').style.display = 'none'; deleteId = null; }
 function confirmarDelete() {
-  S.transactions = S.transactions.filter(t => t.id !== deleteId);
+  // If deleting a transfer, also delete the linked transaction
+  const tx = S.transactions.find(t => t.id === deleteId);
+  if (tx && tx.isTransfer && tx.transferId) {
+    S.transactions = S.transactions.filter(t => t.transferId !== tx.transferId);
+  } else {
+    S.transactions = S.transactions.filter(t => t.id !== deleteId);
+  }
   save(); closeModal(); renderHistorico();
   toast('🗑️ Transação excluída');
 }
@@ -2534,13 +2636,13 @@ function renderDashConta(ym, ymPrev) {
   const mTx = txByTitular(allMTx);
   const pTx = txByTitular(S.transactions.filter(t => t.date.startsWith(ymPrev)));
 
-  // Only count debit expenses in bank view
-  const rec   = mTx.filter(t=>t.type==='receita').reduce((s,t)=>s+amountBrl(t),0);
-  const desp  = mTx.filter(t=>t.type==='despesa' && t.formaPgto !== 'credito').reduce((s,t)=>s+amountBrl(t),0);
+  // Only count debit expenses in bank view (transfers excluded from rec/desp cards but included in saldo)
+  const rec   = mTx.filter(t=>t.type==='receita' && !t.isTransfer).reduce((s,t)=>s+amountBrl(t),0);
+  const desp  = mTx.filter(t=>t.type==='despesa' && t.formaPgto !== 'credito' && !t.isTransfer).reduce((s,t)=>s+amountBrl(t),0);
   const saldo = rec - desp;
 
-  const pRec   = pTx.filter(t=>t.type==='receita').reduce((s,t)=>s+amountBrl(t),0);
-  const pDesp  = pTx.filter(t=>t.type==='despesa' && t.formaPgto !== 'credito').reduce((s,t)=>s+amountBrl(t),0);
+  const pRec   = pTx.filter(t=>t.type==='receita' && !t.isTransfer).reduce((s,t)=>s+amountBrl(t),0);
+  const pDesp  = pTx.filter(t=>t.type==='despesa' && t.formaPgto !== 'credito' && !t.isTransfer).reduce((s,t)=>s+amountBrl(t),0);
   const pSaldo = pRec - pDesp;
 
   const cs = document.getElementById('c-saldo');
@@ -2557,7 +2659,7 @@ function renderDashConta(ym, ymPrev) {
     document.getElementById('c-saldo-pct').textContent = '';
   }
 
-  // Saldo total across all accounts
+  // Saldo total across all accounts (transfers cancel out, so include them — net zero)
   const allTx = txByTitular(S.transactions);
   const totalRec  = allTx.filter(t=>t.type==='receita').reduce((s,t)=>s+amountBrl(t),0);
   const totalDesp = allTx.filter(t=>t.type==='despesa' && t.formaPgto !== 'credito').reduce((s,t)=>s+amountBrl(t),0);
@@ -3052,6 +3154,14 @@ function initHistFiltros() {
       return `<option value="${a.id}">${icon} ${b ? b.name : a.bank} — ${a.label}</option>`;
     }).join('');
   if (prevConta) contaSel.value = prevConta;
+
+  // Titular filter (preserve current selection)
+  const titSel = document.getElementById('fil-titular');
+  const prevTit = titSel.value;
+  titSel.innerHTML = `<option value="">Todos Titulares</option>
+    <option value="${S.settings.u1}">${S.settings.u1}</option>
+    <option value="${S.settings.u2}">${S.settings.u2}</option>`;
+  if (prevTit) titSel.value = prevTit;
 }
 
 function onHistAnoChange() {
@@ -3074,28 +3184,47 @@ function getFilteredTxs() {
   const tipo     = document.getElementById('fil-tipo')?.value || '';
   const pagamento = document.getElementById('fil-pagamento')?.value || '';
   const conta    = document.getElementById('fil-conta')?.value || '';
+  const titular  = document.getElementById('fil-titular')?.value || '';
+  const dataDe   = document.getElementById('fil-data-de')?.value || '';
+  const dataAte  = document.getElementById('fil-data-ate')?.value || '';
 
   let txs = [...S.transactions];
 
-  // Year filter
-  txs = txs.filter(t => t.date.startsWith(String(histAno)));
-
-  // Month filter
-  if (histMesSel !== null) {
-    const ym = `${histAno}-${String(histMesSel+1).padStart(2,'0')}`;
-    txs = txs.filter(t => t.date.startsWith(ym));
+  // Date range filter (takes priority over year/month pills)
+  if (dataDe || dataAte) {
+    if (dataDe)  txs = txs.filter(t => t.date >= dataDe);
+    if (dataAte) txs = txs.filter(t => t.date <= dataAte);
+  } else {
+    // Year filter
+    txs = txs.filter(t => t.date.startsWith(String(histAno)));
+    // Month filter
+    if (histMesSel !== null) {
+      const ym = `${histAno}-${String(histMesSel+1).padStart(2,'0')}`;
+      txs = txs.filter(t => t.date.startsWith(ym));
+    }
   }
 
   const custo    = document.getElementById('fil-custo')?.value || '';
 
   if (search)    txs = txs.filter(t => t.desc.toLowerCase().includes(search) || t.category.toLowerCase().includes(search) || (t.subcategory||'').toLowerCase().includes(search));
-  if (tipo)      txs = txs.filter(t => t.type === tipo);
+  if (tipo === 'transferencia') {
+    txs = txs.filter(t => t.isTransfer);
+  } else if (tipo) {
+    txs = txs.filter(t => t.type === tipo && !t.isTransfer);
+  }
   if (pagamento) txs = txs.filter(t => t.formaPgto === pagamento);
   if (conta)     txs = txs.filter(t => t.accountId === conta);
   if (custo)     txs = txs.filter(t => (t.custoTipo || autoCustoTipo(t.category)) === custo);
+  if (titular)   txs = txs.filter(t => t.user === titular);
 
   txs.sort((a,b) => new Date(b.date) - new Date(a.date));
   return txs;
+}
+
+function limparFiltroData() {
+  document.getElementById('fil-data-de').value = '';
+  document.getElementById('fil-data-ate').value = '';
+  renderHistorico();
 }
 
 function renderHistorico() {
@@ -3140,9 +3269,10 @@ function renderHistorico() {
     despesa:      { ic:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#e11d48" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>', clr:'#e11d48', sign:'-', badgeBg:'#fff1f2', badgeTxt:'#9f1239', label:'Despesa' },
     investimento: { ic:'🐷', clr:'#2563eb', sign:'+', badgeBg:'#eff6ff', badgeTxt:'#1e40af', label:'Investimento' }
   };
+  const TRANSFER_CFG = { ic:'🔄', clr:'#6366f1', sign:'', badgeBg:'#eef2ff', badgeTxt:'#4f46e5', label:'Transferência' };
 
   cards.innerHTML = txs.map(t => {
-    const s = TYPE_CFG[t.type];
+    const s = t.isTransfer ? TRANSFER_CFG : TYPE_CFG[t.type];
     const acc = S.accounts.find(a => a.id === t.accountId);
     const bankName = acc ? (BANKS[acc.bank]?.name || acc.bank) : '';
     const bankIcon = acc ? (acc.accountType === 'cartao' ? '💳' : '🏦') : '';
