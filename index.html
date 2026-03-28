@@ -81,6 +81,10 @@
     .tf-btn { padding:7px 14px;border-radius:9px;border:none;font-size:13px;font-weight:600;cursor:pointer;background:transparent;color:#64748b;transition:all 0.15s; }
     .tf-btn.tf-active { background:white;color:#4f46e5;box-shadow:0 1px 4px rgba(0,0,0,0.1); }
 
+    /* Hide values mode */
+    .hide-values .hv { filter: blur(8px); user-select: none; pointer-events: none; transition: filter 0.2s; }
+    .hide-values .hv:hover { filter: blur(8px); }
+
     /* No data placeholder */
     .empty-state { text-align: center; padding: 60px 20px; color: #94a3b8; }
     .empty-state .icon { font-size: 48px; margin-bottom: 12px; }
@@ -203,6 +207,10 @@
       <p id="dash-subtitle" style="color:#94a3b8;font-size:14px;margin-top:2px;"></p>
     </div>
     <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+      <!-- Ocultar valores -->
+      <button id="btn-hide-values" onclick="toggleHideValues()" style="width:38px;height:38px;border-radius:10px;border:1.5px solid #e2e8f0;background:white;cursor:pointer;display:flex;align-items:center;justify-content:center;" title="Ocultar/Mostrar valores">
+        <svg id="eye-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+      </button>
       <!-- Conta / Crédito toggle -->
       <div style="display:flex;gap:6px;background:#f1f5f9;border-radius:12px;padding:4px;">
         <button id="dv-conta"   onclick="setDashView('conta')"   class="tf-btn tf-active">🏦 Conta</button>
@@ -245,13 +253,13 @@
           <span id="c-saldo-pct" class="badge" style="background:#eef2ff;color:#4f46e5;"></span>
         </div>
         <p style="font-size:12px;color:#94a3b8;margin-bottom:4px;">Saldo</p>
-        <p id="c-saldo" style="font-size:22px;font-weight:800;color:#0f172a;">R$ 0,00</p>
-        <p id="c-saldo-sub" style="font-size:11px;color:#94a3b8;margin-top:4px;cursor:pointer;display:inline-block;padding:2px 10px;border:1px solid #e2e8f0;border-radius:20px;"></p>
+        <p id="c-saldo" class="hv" style="font-size:22px;font-weight:800;color:#0f172a;">R$ 0,00</p>
+        <p id="c-saldo-sub" class="hv" style="font-size:11px;color:#94a3b8;margin-top:4px;cursor:pointer;display:inline-block;padding:2px 10px;border:1px solid #e2e8f0;border-radius:20px;"></p>
         <!-- Chevron toggle -->
         <div style="text-align:center;margin-top:10px;border-top:1px solid #f1f5f9;padding-top:8px;">
           <button onclick="toggleCardBreakdown('saldo')" style="background:none;border:none;cursor:pointer;color:#94a3b8;font-size:14px;transition:transform 0.2s;" id="chevron-saldo">▾</button>
         </div>
-        <div id="breakdown-saldo" style="display:none;margin-top:8px;"></div>
+        <div id="breakdown-saldo" class="hv" style="display:none;margin-top:8px;"></div>
       </div>
 
       <!-- RECEITAS -->
@@ -263,12 +271,12 @@
           <span id="c-receitas-pct" class="badge" style="background:#ecfdf5;color:#065f46;"></span>
         </div>
         <p style="font-size:12px;color:#94a3b8;margin-bottom:4px;">Receitas</p>
-        <p id="c-receitas" style="font-size:22px;font-weight:800;" class="green">R$ 0,00</p>
+        <p id="c-receitas" style="font-size:22px;font-weight:800;" class="green hv">R$ 0,00</p>
         <p id="c-receitas-n" style="font-size:11px;color:#94a3b8;margin-top:4px;">0 lançamentos</p>
         <div style="text-align:center;margin-top:10px;border-top:1px solid #f1f5f9;padding-top:8px;">
           <button onclick="toggleCardBreakdown('receitas')" style="background:none;border:none;cursor:pointer;color:#94a3b8;font-size:14px;" id="chevron-receitas">▾</button>
         </div>
-        <div id="breakdown-receitas" style="display:none;margin-top:8px;"></div>
+        <div id="breakdown-receitas" class="hv" style="display:none;margin-top:8px;"></div>
       </div>
 
       <!-- DESPESAS -->
@@ -280,12 +288,12 @@
           <span id="c-despesas-pct" class="badge" style="background:#fff1f2;color:#9f1239;"></span>
         </div>
         <p style="font-size:12px;color:#94a3b8;margin-bottom:4px;">Despesas</p>
-        <p id="c-despesas" style="font-size:22px;font-weight:800;" class="red">R$ 0,00</p>
+        <p id="c-despesas" style="font-size:22px;font-weight:800;" class="red hv">R$ 0,00</p>
         <p id="c-despesas-n" style="font-size:11px;color:#94a3b8;margin-top:4px;">0 lançamentos</p>
         <div style="text-align:center;margin-top:10px;border-top:1px solid #f1f5f9;padding-top:8px;">
           <button onclick="toggleCardBreakdown('despesas')" style="background:none;border:none;cursor:pointer;color:#94a3b8;font-size:14px;" id="chevron-despesas">▾</button>
         </div>
-        <div id="breakdown-despesas" style="display:none;margin-top:8px;"></div>
+        <div id="breakdown-despesas" class="hv" style="display:none;margin-top:8px;"></div>
       </div>
 
       <!-- INVESTIMENTOS -->
@@ -297,12 +305,12 @@
           <span class="badge" style="background:#eff6ff;color:#1e40af;">Investimentos</span>
         </div>
         <p style="font-size:12px;color:#94a3b8;margin-bottom:4px;">Total Investido</p>
-        <p id="c-invest" style="font-size:22px;font-weight:800;" class="blue">R$ 0,00</p>
-        <p id="c-invest-n" style="font-size:11px;color:#94a3b8;margin-top:4px;">0 aportes no total</p>
+        <p id="c-invest" style="font-size:22px;font-weight:800;" class="blue hv">R$ 0,00</p>
+        <p id="c-invest-n" class="hv" style="font-size:11px;color:#94a3b8;margin-top:4px;">0 aportes no total</p>
         <div style="text-align:center;margin-top:10px;border-top:1px solid #f1f5f9;padding-top:8px;">
           <button onclick="toggleCardBreakdown('invest')" style="background:none;border:none;cursor:pointer;color:#94a3b8;font-size:14px;" id="chevron-invest">▾</button>
         </div>
-        <div id="breakdown-invest" style="display:none;margin-top:8px;"></div>
+        <div id="breakdown-invest" class="hv" style="display:none;margin-top:8px;"></div>
       </div>
 
     </div>
@@ -330,13 +338,30 @@
       </div>
     </div>
 
+    <!-- Análise por Categoria (barras empilhadas) -->
+    <div class="card" style="margin-bottom:24px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px;">
+        <p style="font-weight:700;font-size:14px;color:#334155;">Análise por Categoria</p>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <div style="display:flex;gap:4px;background:#f1f5f9;border-radius:8px;padding:3px;">
+            <button onclick="setCatChartMode('despesa')" id="cat-ch-despesa" style="padding:4px 12px;border-radius:6px;border:none;background:#4f46e5;color:white;font-size:12px;font-weight:600;cursor:pointer;">Despesas</button>
+            <button onclick="setCatChartMode('receita')" id="cat-ch-receita" style="padding:4px 12px;border-radius:6px;border:none;background:transparent;color:#64748b;font-size:12px;font-weight:600;cursor:pointer;">Receitas</button>
+          </div>
+          <select id="cat-ch-year" onchange="renderCatStackedChart()" style="padding:4px 10px;border-radius:8px;border:1px solid #e2e8f0;font-size:12px;color:#475569;cursor:pointer;"></select>
+        </div>
+      </div>
+      <div id="cat-ch-legend" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;font-size:11px;"></div>
+      <div style="height:250px;"><canvas id="ch-cat-stacked"></canvas></div>
+      <p id="cat-ch-total" class="hv" style="text-align:right;font-size:13px;font-weight:700;color:#64748b;margin-top:8px;"></p>
+    </div>
+
     <!-- Recent transactions -->
     <div class="card" style="padding:0;overflow:hidden;">
       <div style="display:flex;justify-content:space-between;align-items:center;padding:18px 24px;border-bottom:1px solid #f1f5f9;">
         <p style="font-weight:700;font-size:14px;color:#334155;">Transações Recentes</p>
         <a onclick="goto('historico')" style="font-size:13px;color:#6366f1;cursor:pointer;font-weight:600;">Ver todas →</a>
       </div>
-      <div id="recent-list"></div>
+      <div id="recent-list" class="hv"></div>
     </div>
   </div>
 
@@ -351,7 +376,7 @@
           </div>
         </div>
         <p style="font-size:12px;color:#94a3b8;margin-bottom:4px;">Limite Total</p>
-        <p id="cc-limite-total" style="font-size:22px;font-weight:800;color:#0f172a;">R$ 0,00</p>
+        <p id="cc-limite-total" class="hv" style="font-size:22px;font-weight:800;color:#0f172a;">R$ 0,00</p>
       </div>
       <div class="card">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
@@ -360,7 +385,7 @@
           </div>
         </div>
         <p style="font-size:12px;color:#94a3b8;margin-bottom:4px;">Limite Utilizado</p>
-        <p id="cc-limite-usado" style="font-size:22px;font-weight:800;color:#e11d48;">R$ 0,00</p>
+        <p id="cc-limite-usado" class="hv" style="font-size:22px;font-weight:800;color:#e11d48;">R$ 0,00</p>
       </div>
       <div class="card">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
@@ -369,7 +394,7 @@
           </div>
         </div>
         <p style="font-size:12px;color:#94a3b8;margin-bottom:4px;">Limite Disponível</p>
-        <p id="cc-limite-disp" style="font-size:22px;font-weight:800;color:#059669;">R$ 0,00</p>
+        <p id="cc-limite-disp" class="hv" style="font-size:22px;font-weight:800;color:#059669;">R$ 0,00</p>
       </div>
       <div class="card">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
@@ -378,7 +403,7 @@
           </div>
         </div>
         <p style="font-size:12px;color:#94a3b8;margin-bottom:4px;">Fatura Atual</p>
-        <p id="cc-fatura-atual" style="font-size:22px;font-weight:800;color:#ca8a04;">R$ 0,00</p>
+        <p id="cc-fatura-atual" class="hv" style="font-size:22px;font-weight:800;color:#ca8a04;">R$ 0,00</p>
       </div>
     </div>
 
@@ -390,7 +415,7 @@
           <div style="flex:1;">
             <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
               <span style="font-size:13px;font-weight:600;color:#4f46e5;">📌 Fixo</span>
-              <span id="cc-fixo-val" style="font-size:13px;font-weight:700;color:#4f46e5;">R$ 0,00</span>
+              <span id="cc-fixo-val" class="hv" style="font-size:13px;font-weight:700;color:#4f46e5;">R$ 0,00</span>
             </div>
             <div style="height:8px;background:#f1f5f9;border-radius:4px;overflow:hidden;">
               <div id="cc-fixo-bar" style="height:100%;background:#4f46e5;border-radius:4px;width:0%;transition:width 0.3s;"></div>
@@ -399,7 +424,7 @@
           <div style="flex:1;">
             <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
               <span style="font-size:13px;font-weight:600;color:#f59e0b;">📊 Variável</span>
-              <span id="cc-var-val" style="font-size:13px;font-weight:700;color:#f59e0b;">R$ 0,00</span>
+              <span id="cc-var-val" class="hv" style="font-size:13px;font-weight:700;color:#f59e0b;">R$ 0,00</span>
             </div>
             <div style="height:8px;background:#f1f5f9;border-radius:4px;overflow:hidden;">
               <div id="cc-var-bar" style="height:100%;background:#f59e0b;border-radius:4px;width:0%;transition:width 0.3s;"></div>
@@ -2908,6 +2933,7 @@ function renderDashConta(ym, ymPrev) {
   // Donut only for debit expenses
   renderDonutDash(mTx.filter(t=>t.type==='despesa' && t.formaPgto !== 'credito'));
   renderBarDash();
+  renderCatStackedChart();
   renderRecent();
 }
 
@@ -6171,6 +6197,116 @@ function verRendimentos(id) {
       <td style="padding:10px 12px;"></td>
     </tr>
   `;
+}
+
+// ─── ANÁLISE POR CATEGORIA (BARRAS EMPILHADAS) ──────────────────────────────
+let catChartMode = 'despesa';
+
+function setCatChartMode(mode) {
+  catChartMode = mode;
+  document.getElementById('cat-ch-despesa').style.cssText = `padding:4px 12px;border-radius:6px;border:none;font-size:12px;font-weight:600;cursor:pointer;${mode==='despesa'?'background:#4f46e5;color:white;':'background:transparent;color:#64748b;'}`;
+  document.getElementById('cat-ch-receita').style.cssText = `padding:4px 12px;border-radius:6px;border:none;font-size:12px;font-weight:600;cursor:pointer;${mode==='receita'?'background:#059669;color:white;':'background:transparent;color:#64748b;'}`;
+  renderCatStackedChart();
+}
+
+function renderCatStackedChart() {
+  const yearSel = document.getElementById('cat-ch-year');
+  if (!yearSel.options.length) {
+    const years = new Set();
+    S.transactions.forEach(t => years.add(parseInt(t.date.substring(0,4))));
+    years.add(new Date().getFullYear());
+    [...years].sort((a,b) => b-a).forEach(y => {
+      const o = document.createElement('option');
+      o.value = y; o.textContent = y;
+      yearSel.appendChild(o);
+    });
+    yearSel.value = new Date().getFullYear();
+  }
+
+  const year = parseInt(yearSel.value);
+  const txs = txByTitular(S.transactions).filter(t => {
+    if (t.isTransfer) return false;
+    if (t.type !== catChartMode) return false;
+    if (catChartMode === 'despesa' && t.formaPgto === 'credito') return false;
+    return t.date.startsWith(String(year));
+  });
+
+  // Group by category and month
+  const catMonths = {};
+  txs.forEach(t => {
+    const cat = t.category || 'Outros';
+    const month = parseInt(t.date.substring(5,7)) - 1;
+    if (!catMonths[cat]) catMonths[cat] = new Array(12).fill(0);
+    catMonths[cat][month] += amountBrl(t);
+  });
+
+  // Sort categories by total (descending), keep top 8, rest as "Outros"
+  const sorted = Object.entries(catMonths).sort((a,b) => b[1].reduce((s,v)=>s+v,0) - a[1].reduce((s,v)=>s+v,0));
+  const topCats = sorted.slice(0, 8);
+  if (sorted.length > 8) {
+    const outrosArr = new Array(12).fill(0);
+    sorted.slice(8).forEach(([,arr]) => arr.forEach((v,i) => outrosArr[i] += v));
+    topCats.push(['Outros', outrosArr]);
+  }
+
+  const grandTotal = txs.reduce((s,t) => s + amountBrl(t), 0);
+  document.getElementById('cat-ch-total').textContent = `Total ${year}: ${brl(grandTotal)}`;
+
+  // Legend
+  document.getElementById('cat-ch-legend').innerHTML = topCats.map(([cat], i) =>
+    `<span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:3px;background:${COLORS[i % COLORS.length]};"></span>${cat}</span>`
+  ).join('');
+
+  // Chart
+  destroyChart('ch-cat-stacked');
+  const ctx = document.getElementById('ch-cat-stacked');
+  if (!ctx || !topCats.length) return;
+
+  const datasets = topCats.map(([cat, data], i) => ({
+    label: cat,
+    data: data,
+    backgroundColor: COLORS[i % COLORS.length],
+    borderWidth: 0,
+    borderRadius: 3
+  }));
+
+  charts['ch-cat-stacked'] = new Chart(ctx, {
+    type: 'bar',
+    data: { labels: MESES, datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      scales: {
+        x: { stacked: true, grid: { display: false } },
+        y: {
+          stacked: true,
+          grid: { color: '#f1f5f9' },
+          ticks: { callback: v => 'R$' + (v>=1000 ? (v/1000).toFixed(1)+'k' : v.toFixed(0)) }
+        }
+      },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => `${ctx.dataset.label}: ${brl(ctx.raw)}`
+          }
+        }
+      }
+    }
+  });
+}
+
+let valuesHidden = false;
+function toggleHideValues() {
+  valuesHidden = !valuesHidden;
+  document.getElementById('page-dashboard').classList.toggle('hide-values', valuesHidden);
+  const btn = document.getElementById('btn-hide-values');
+  btn.style.background = valuesHidden ? '#4f46e5' : 'white';
+  btn.style.borderColor = valuesHidden ? '#4f46e5' : '#e2e8f0';
+  document.getElementById('eye-icon').setAttribute('stroke', valuesHidden ? 'white' : '#64748b');
+  // Update icon to eye-off when hidden
+  document.getElementById('eye-icon').innerHTML = valuesHidden
+    ? '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>'
+    : '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
 }
 
 function initSalemBot() {
