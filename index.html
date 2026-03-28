@@ -467,14 +467,13 @@
 <section id="page-nova" style="display:none;max-width:580px;">
   <div style="margin-bottom:24px;">
     <h1 style="font-size:24px;font-weight:800;color:#0f172a;">Nova Transação</h1>
-    <p style="color:#94a3b8;font-size:14px;margin-top:2px;">Registre receitas, despesas ou investimentos</p>
+    <p style="color:#94a3b8;font-size:14px;margin-top:2px;">Registre receitas, despesas e transferências</p>
   </div>
 
   <!-- Type selector -->
-  <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px;margin-bottom:20px;">
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:20px;">
     <button class="type-btn active-receita" id="btn-receita" onclick="setType('receita')"><span style="color:#059669;font-weight:800;">&#8593;</span> Receita</button>
     <button class="type-btn" id="btn-despesa" onclick="setType('despesa')"><span style="color:#e11d48;font-weight:800;">&#8595;</span> Despesa</button>
-    <button class="type-btn" id="btn-invest" onclick="setType('investimento')">🐷 Investimento</button>
     <button class="type-btn" id="btn-transferencia" onclick="setType('transferencia')">🔄 Transferência</button>
   </div>
 
@@ -631,7 +630,6 @@
         <option value="">🔄 Todas</option>
         <option value="receita">&#8593; Receitas</option>
         <option value="despesa">&#8595; Despesas</option>
-        <option value="investimento">🐷 Investimentos</option>
         <option value="transferencia">🔄 Transferências</option>
       </select>
       <select class="finput" id="fil-pagamento" onchange="renderHistorico()" style="width:140px;padding:8px 10px;font-size:13px;">
@@ -2238,9 +2236,8 @@ let formaPgto = 'debito';
 // ─── TYPE SELECTOR ────────────────────────────────────────────────────────────
 function setType(t) {
   currentType = t;
-  ['receita','despesa','invest','transferencia'].forEach(x => document.getElementById('btn-'+x).className = 'type-btn');
-  const key = t === 'investimento' ? 'invest' : t;
-  document.getElementById('btn-'+key).classList.add('active-' + (t==='investimento'?'invest': t==='transferencia'?'invest':t));
+  ['receita','despesa','transferencia'].forEach(x => document.getElementById('btn-'+x).className = 'type-btn');
+  document.getElementById('btn-'+t).classList.add('active-' + (t==='transferencia'?'invest':t));
 
   const isDespesa = t === 'despesa';
   const isTransf  = t === 'transferencia';
@@ -3351,7 +3348,7 @@ function getFilteredTxs() {
   const dataDe   = document.getElementById('fil-data-de')?.value || '';
   const dataAte  = document.getElementById('fil-data-ate')?.value || '';
 
-  let txs = [...S.transactions];
+  let txs = S.transactions.filter(t => t.type !== 'investimento');
 
   // Date range filter (takes priority over year/month pills)
   if (dataDe || dataAte) {
