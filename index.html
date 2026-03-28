@@ -1307,24 +1307,84 @@
         <label class="flabel">Descrição *</label>
         <input class="finput" type="text" id="div-desc" placeholder="Ex: Empréstimo pessoal">
       </div>
+      <!-- Sistema de amortização -->
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
         <div>
-          <label class="flabel">Valor Total *</label>
-          <input class="finput" type="number" id="div-total" step="0.01" min="0.01" placeholder="0,00">
+          <label class="flabel">Sistema de Amortização</label>
+          <select class="finput" id="div-sistema" onchange="togglePriceFields()">
+            <option value="simples">Simples (sem juros)</option>
+            <option value="price">Tabela PRICE</option>
+            <option value="sac">SAC</option>
+          </select>
         </div>
         <div>
-          <label class="flabel">Número de Parcelas *</label>
-          <input class="finput" type="number" id="div-parcelas" min="1" max="360" placeholder="48" oninput="calcParcelaDivida()">
+          <label class="flabel">Titular *</label>
+          <select class="finput" id="div-titular"></select>
+        </div>
+      </div>
+      <!-- Valores principais -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
+        <div>
+          <label class="flabel">Valor Emprestado (Principal) *</label>
+          <input class="finput" type="number" id="div-principal" step="0.01" min="0.01" placeholder="53641.00" oninput="calcParcelaDivida()">
+        </div>
+        <div>
+          <label class="flabel">Valor Total (com juros/IOF)</label>
+          <input class="finput" type="number" id="div-total" step="0.01" min="0.01" placeholder="75732.96">
         </div>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
         <div>
+          <label class="flabel">Número de Parcelas *</label>
+          <input class="finput" type="number" id="div-parcelas" min="1" max="600" placeholder="48" oninput="calcParcelaDivida()">
+        </div>
+        <div>
           <label class="flabel">Valor da Parcela</label>
-          <input class="finput" type="number" id="div-parcela-val" step="0.01" placeholder="Auto">
+          <input class="finput" type="number" id="div-parcela-val" step="0.01" placeholder="Auto (calculado)">
+        </div>
+      </div>
+      <!-- Campos PRICE/SAC -->
+      <div id="div-price-fields" style="display:none;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
+          <div>
+            <label class="flabel">Taxa de Juros Mensal (%) *</label>
+            <input class="finput" type="number" id="div-taxa-mensal" step="0.01" min="0" placeholder="1.49" oninput="calcParcelaDivida()">
+          </div>
+          <div>
+            <label class="flabel">Taxa Juros Inadimplência (%/mês)</label>
+            <input class="finput" type="number" id="div-taxa-inadimpl" step="0.01" min="0" placeholder="2.49">
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
+          <div>
+            <label class="flabel">Taxa Efetiva Anual (%)</label>
+            <input class="finput" type="number" id="div-taxa-efetiva-anual" step="0.01" min="0" placeholder="19.42">
+          </div>
+          <div>
+            <label class="flabel">Taxa Anual (CET) (%)</label>
+            <input class="finput" type="number" id="div-taxa-anual" step="0.01" min="0" placeholder="17.88">
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
+          <div>
+            <label class="flabel">IOF Básico (R$)</label>
+            <input class="finput" type="number" id="div-iof-basico" step="0.01" min="0" placeholder="1481.60">
+          </div>
+          <div>
+            <label class="flabel">IOF Adicional (R$)</label>
+            <input class="finput" type="number" id="div-iof-adc" step="0.01" min="0" placeholder="203.84">
+          </div>
+        </div>
+      </div>
+      <!-- Datas e vencimento -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
+        <div>
+          <label class="flabel">Data 1ª Parcela *</label>
+          <input class="finput" type="date" id="div-data-inicio">
         </div>
         <div>
           <label class="flabel">Dia de Vencimento *</label>
-          <input class="finput" type="number" id="div-vencimento" min="1" max="31" placeholder="10">
+          <input class="finput" type="number" id="div-vencimento" min="1" max="31" placeholder="15">
         </div>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
@@ -1338,13 +1398,9 @@
           </select>
         </div>
         <div>
-          <label class="flabel">Titular *</label>
-          <select class="finput" id="div-titular"></select>
+          <label class="flabel">Parcelas já pagas</label>
+          <input class="finput" type="number" id="div-pagas" min="0" value="0" placeholder="0">
         </div>
-      </div>
-      <div style="margin-bottom:14px;">
-        <label class="flabel">Parcelas já pagas</label>
-        <input class="finput" type="number" id="div-pagas" min="0" value="0" placeholder="0">
       </div>
       <input type="hidden" id="div-edit-id" value="">
       <div style="display:flex;gap:10px;margin-top:4px;">
@@ -1384,6 +1440,104 @@
         <button onclick="fecharPagarParcelaModal()" style="flex:1;padding:12px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:14px;font-weight:600;color:#64748b;background:white;cursor:pointer;">Cancelar</button>
         <button onclick="confirmarPagarParcela()" style="flex:1;padding:12px;background:#059669;color:white;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;">Pagar</button>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ TABELA AMORTIZAÇÃO MODAL -->
+<div id="amort-table-modal" style="display:none;">
+  <div id="modal-backdrop" onclick="fecharAmortModal()">
+    <div onclick="event.stopPropagation()" style="background:white;border-radius:18px;padding:28px;max-width:900px;width:95%;box-shadow:0 20px 60px rgba(0,0,0,0.15);max-height:90vh;overflow-y:auto;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <p id="amort-modal-title" style="font-weight:800;font-size:17px;color:#0f172a;">Tabela de Amortização</p>
+        <button onclick="fecharAmortModal()" style="background:none;border:none;font-size:20px;cursor:pointer;color:#94a3b8;">✕</button>
+      </div>
+      <!-- Resumo do empréstimo -->
+      <div id="amort-resumo" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:20px;"></div>
+      <!-- Tabela -->
+      <div style="overflow-x:auto;">
+        <table id="amort-tabela" style="width:100%;border-collapse:collapse;font-size:13px;">
+          <thead>
+            <tr style="background:#f8fafc;border-bottom:2px solid #e2e8f0;">
+              <th style="padding:10px 12px;text-align:center;color:#64748b;font-weight:700;font-size:12px;">Nº</th>
+              <th style="padding:10px 12px;text-align:center;color:#64748b;font-weight:700;font-size:12px;">Vencimento</th>
+              <th style="padding:10px 12px;text-align:right;color:#64748b;font-weight:700;font-size:12px;">Parcela</th>
+              <th style="padding:10px 12px;text-align:right;color:#64748b;font-weight:700;font-size:12px;">Juros</th>
+              <th style="padding:10px 12px;text-align:right;color:#64748b;font-weight:700;font-size:12px;">Amortização</th>
+              <th style="padding:10px 12px;text-align:right;color:#64748b;font-weight:700;font-size:12px;">Saldo Devedor</th>
+              <th style="padding:10px 12px;text-align:center;color:#64748b;font-weight:700;font-size:12px;">Status</th>
+            </tr>
+          </thead>
+          <tbody id="amort-tbody"></tbody>
+          <tfoot id="amort-tfoot"></tfoot>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ SIMULADOR AMORTIZAÇÃO MODAL -->
+<div id="simul-amort-modal" style="display:none;">
+  <div id="modal-backdrop" onclick="fecharSimulModal()">
+    <div onclick="event.stopPropagation()" style="background:white;border-radius:18px;padding:28px;max-width:700px;width:95%;box-shadow:0 20px 60px rgba(0,0,0,0.15);max-height:90vh;overflow-y:auto;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <p style="font-weight:800;font-size:17px;color:#0f172a;">Simulador de Amortização Extraordinária</p>
+        <button onclick="fecharSimulModal()" style="background:none;border:none;font-size:20px;cursor:pointer;color:#94a3b8;">✕</button>
+      </div>
+      <div id="simul-divida-info" style="border:2px solid #eef2ff;border-radius:12px;padding:14px 18px;margin-bottom:18px;"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
+        <div>
+          <label class="flabel">Valor da Amortização Extra (R$) *</label>
+          <input class="finput" type="number" id="simul-valor" step="0.01" min="0.01" placeholder="30000.00" oninput="calcSimulacao()">
+        </div>
+        <div>
+          <label class="flabel">Data da Amortização</label>
+          <input class="finput" type="date" id="simul-data" onchange="calcSimulacao()">
+        </div>
+      </div>
+      <div style="margin-bottom:18px;">
+        <label class="flabel">Modalidade</label>
+        <div style="display:flex;gap:10px;margin-top:6px;">
+          <button id="simul-modo-prazo" onclick="setSimulModo('prazo')" class="type-btn" style="flex:1;padding:10px;font-size:13px;">Reduzir Prazo</button>
+          <button id="simul-modo-parcela" onclick="setSimulModo('parcela')" class="type-btn" style="flex:1;padding:10px;font-size:13px;">Reduzir Parcela</button>
+        </div>
+      </div>
+      <!-- Resultado -->
+      <div id="simul-resultado" style="display:none;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">
+          <div class="card" style="padding:16px;border:2px solid #ecfdf5;">
+            <p style="font-size:12px;color:#94a3b8;">Antes</p>
+            <div id="simul-antes" style="margin-top:8px;"></div>
+          </div>
+          <div class="card" style="padding:16px;border:2px solid #4f46e5;">
+            <p style="font-size:12px;color:#4f46e5;font-weight:700;">Depois</p>
+            <div id="simul-depois" style="margin-top:8px;"></div>
+          </div>
+        </div>
+        <div class="card" style="padding:16px;border:2px solid #059669;margin-bottom:16px;">
+          <div id="simul-economia"></div>
+        </div>
+        <!-- Nova tabela resumida -->
+        <details style="margin-top:8px;">
+          <summary style="cursor:pointer;font-size:14px;font-weight:700;color:#4f46e5;">Ver nova tabela de amortização</summary>
+          <div style="overflow-x:auto;margin-top:12px;">
+            <table id="simul-nova-tabela" style="width:100%;border-collapse:collapse;font-size:12px;">
+              <thead>
+                <tr style="background:#f8fafc;border-bottom:2px solid #e2e8f0;">
+                  <th style="padding:8px;text-align:center;color:#64748b;font-size:11px;">Nº</th>
+                  <th style="padding:8px;text-align:center;color:#64748b;font-size:11px;">Vencimento</th>
+                  <th style="padding:8px;text-align:right;color:#64748b;font-size:11px;">Parcela</th>
+                  <th style="padding:8px;text-align:right;color:#64748b;font-size:11px;">Juros</th>
+                  <th style="padding:8px;text-align:right;color:#64748b;font-size:11px;">Amortização</th>
+                  <th style="padding:8px;text-align:right;color:#64748b;font-size:11px;">Saldo</th>
+                </tr>
+              </thead>
+              <tbody id="simul-nova-tbody"></tbody>
+            </table>
+          </div>
+        </details>
+      </div>
+      <input type="hidden" id="simul-divida-id" value="">
     </div>
   </div>
 </div>
@@ -4539,7 +4693,9 @@ function renderDividas() {
     const bank = BANKS[d.bank] || { name: d.bank, color:'#64748b', svg:'' };
     const st = STATUS_DIVIDA[d.status] || STATUS_DIVIDA.em_dia;
     const pctPago = d.totalParcelas > 0 ? Math.round((d.parcelasPagas / d.totalParcelas) * 100) : 0;
-    const restante = Math.max(0, (d.totalAmount||0) - (d.parcelasPagas||0) * (d.parcelaAmount||0));
+    const hasSistema = d.sistema === 'price' || d.sistema === 'sac';
+    const saldoDev = hasSistema ? calcSaldoDevedor(d) : Math.max(0, (d.totalAmount||0) - (d.parcelasPagas||0) * (d.parcelaAmount||0));
+    const restante = saldoDev;
     const hoje = new Date();
     const vencDate = new Date(hoje.getFullYear(), hoje.getMonth(), d.vencimentoDia || 1);
     const vencStr = `${String(d.vencimentoDia||1).padStart(2,'0')}/${String(hoje.getMonth()+1).padStart(2,'0')}/${hoje.getFullYear()}`;
@@ -4560,18 +4716,22 @@ function renderDividas() {
           <span style="font-size:12px;color:#94a3b8;">Parcela ${d.parcelasPagas||0}/${d.totalParcelas||0}</span>
         </div>
       </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:14px;">
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:14px;">
         <div>
-          <p style="font-size:11px;color:#94a3b8;">Total</p>
-          <p style="font-size:14px;font-weight:700;color:#0f172a;">${brl(d.totalAmount)}</p>
+          <p style="font-size:11px;color:#94a3b8;">${hasSistema ? 'Principal' : 'Total'}</p>
+          <p style="font-size:14px;font-weight:700;color:#0f172a;">${brl(hasSistema ? (d.principal||d.totalAmount) : d.totalAmount)}</p>
         </div>
         <div>
-          <p style="font-size:11px;color:#94a3b8;">Restante</p>
+          <p style="font-size:11px;color:#94a3b8;">Saldo Devedor</p>
           <p style="font-size:14px;font-weight:700;color:#e11d48;">${brl(restante)}</p>
         </div>
         <div>
-          <p style="font-size:11px;color:#94a3b8;">Vencimento</p>
-          <p style="font-size:14px;font-weight:700;color:#475569;">Dia ${d.vencimentoDia||'-'}</p>
+          <p style="font-size:11px;color:#94a3b8;">${hasSistema ? 'Taxa / Sistema' : 'Vencimento'}</p>
+          <p style="font-size:14px;font-weight:700;color:#475569;">${hasSistema ? (d.taxaMensal||0)+'% · '+(d.sistema||'').toUpperCase() : 'Dia '+(d.vencimentoDia||'-')}</p>
+        </div>
+        <div>
+          <p style="font-size:11px;color:#94a3b8;">Parcela</p>
+          <p style="font-size:14px;font-weight:700;color:#475569;">${brl(d.parcelaAmount)}${hasSistema ? ' (dia '+(d.vencimentoDia||'-')+')' : ''}</p>
         </div>
       </div>
       <div style="margin-bottom:14px;">
@@ -4585,6 +4745,8 @@ function renderDividas() {
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;">
         ${d.status !== 'paga' ? `<button onclick="pagarParcelaDivida('${d.id}')" style="padding:8px 16px;background:#059669;color:white;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;">Pagar</button>` : ''}
+        <button onclick="abrirTabelaAmort('${d.id}')" style="padding:8px 16px;background:#eff6ff;color:#2563eb;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;">Tabela</button>
+        ${d.status !== 'paga' ? `<button onclick="abrirSimulAmort('${d.id}')" style="padding:8px 16px;background:#fef3c7;color:#92400e;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;">Simular Amortização</button>` : ''}
         <button onclick="editarDivida('${d.id}')" style="padding:8px 16px;background:#eef2ff;color:#4f46e5;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;">Editar</button>
         <button onclick="deletarDivida('${d.id}')" style="padding:8px 16px;background:#fff1f2;color:#e11d48;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;">Excluir</button>
       </div>
@@ -4611,22 +4773,43 @@ function abrirNovaDividaModal(editId) {
     if (d) {
       bankSel.value = d.bank;
       document.getElementById('div-desc').value = d.desc;
-      document.getElementById('div-total').value = d.totalAmount;
+      document.getElementById('div-sistema').value = d.sistema || 'simples';
+      document.getElementById('div-principal').value = d.principal || d.totalAmount || '';
+      document.getElementById('div-total').value = d.totalAmount || '';
       document.getElementById('div-parcelas').value = d.totalParcelas;
       document.getElementById('div-parcela-val').value = d.parcelaAmount;
       document.getElementById('div-vencimento').value = d.vencimentoDia;
       document.getElementById('div-status').value = d.status;
       document.getElementById('div-titular').value = d.titular;
       document.getElementById('div-pagas').value = d.parcelasPagas || 0;
+      document.getElementById('div-taxa-mensal').value = d.taxaMensal || '';
+      document.getElementById('div-taxa-inadimpl').value = d.taxaInadimpl || '';
+      document.getElementById('div-taxa-efetiva-anual').value = d.taxaEfetivaAnual || '';
+      document.getElementById('div-taxa-anual').value = d.taxaAnual || '';
+      document.getElementById('div-iof-basico').value = d.iofBasico || '';
+      document.getElementById('div-iof-adc').value = d.iofAdc || '';
+      document.getElementById('div-data-inicio').value = d.dataInicio || '';
+      togglePriceFields();
     }
   } else {
     document.getElementById('div-desc').value = '';
+    document.getElementById('div-sistema').value = 'simples';
+    document.getElementById('div-principal').value = '';
     document.getElementById('div-total').value = '';
+    document.getElementById('div-total').dataset.auto = '0';
     document.getElementById('div-parcelas').value = '';
     document.getElementById('div-parcela-val').value = '';
     document.getElementById('div-vencimento').value = '';
     document.getElementById('div-status').value = 'em_dia';
     document.getElementById('div-pagas').value = '0';
+    document.getElementById('div-taxa-mensal').value = '';
+    document.getElementById('div-taxa-inadimpl').value = '';
+    document.getElementById('div-taxa-efetiva-anual').value = '';
+    document.getElementById('div-taxa-anual').value = '';
+    document.getElementById('div-iof-basico').value = '';
+    document.getElementById('div-iof-adc').value = '';
+    document.getElementById('div-data-inicio').value = '';
+    togglePriceFields();
   }
 }
 
@@ -4634,17 +4817,104 @@ function fecharDividaModal() {
   document.getElementById('divida-modal').style.display = 'none';
 }
 
+function togglePriceFields() {
+  const sistema = document.getElementById('div-sistema').value;
+  document.getElementById('div-price-fields').style.display = (sistema === 'price' || sistema === 'sac') ? 'block' : 'none';
+  calcParcelaDivida();
+}
+
+function calcPMT(pv, i, n) {
+  if (i === 0) return pv / n;
+  return pv * (i * Math.pow(1 + i, n)) / (Math.pow(1 + i, n) - 1);
+}
+
+function gerarTabelaAmortizacao(principal, taxaMensal, nParcelas, sistema, dataInicio, parcelasPagas) {
+  const taxa = taxaMensal / 100;
+  const tabela = [];
+  let saldo = principal;
+  const dt = dataInicio ? new Date(dataInicio + 'T12:00:00') : new Date();
+  let totalJuros = 0, totalAmort = 0, totalPago = 0;
+
+  if (sistema === 'price') {
+    const pmt = calcPMT(principal, taxa, nParcelas);
+    for (let i = 1; i <= nParcelas; i++) {
+      const juros = saldo * taxa;
+      const amort = pmt - juros;
+      saldo = Math.max(0, saldo - amort);
+      const venc = new Date(dt);
+      venc.setMonth(venc.getMonth() + (i - 1));
+      totalJuros += juros;
+      totalAmort += amort;
+      totalPago += pmt;
+      tabela.push({
+        n: i, vencimento: venc, parcela: pmt, juros: juros,
+        amortizacao: amort, saldo: saldo,
+        pago: i <= (parcelasPagas || 0)
+      });
+    }
+  } else if (sistema === 'sac') {
+    const amortFixa = principal / nParcelas;
+    for (let i = 1; i <= nParcelas; i++) {
+      const juros = saldo * taxa;
+      const pmt = amortFixa + juros;
+      saldo = Math.max(0, saldo - amortFixa);
+      const venc = new Date(dt);
+      venc.setMonth(venc.getMonth() + (i - 1));
+      totalJuros += juros;
+      totalAmort += amortFixa;
+      totalPago += pmt;
+      tabela.push({
+        n: i, vencimento: venc, parcela: pmt, juros: juros,
+        amortizacao: amortFixa, saldo: saldo,
+        pago: i <= (parcelasPagas || 0)
+      });
+    }
+  } else {
+    const pmt = principal / nParcelas;
+    for (let i = 1; i <= nParcelas; i++) {
+      saldo = Math.max(0, saldo - pmt);
+      const venc = new Date(dt);
+      venc.setMonth(venc.getMonth() + (i - 1));
+      totalPago += pmt;
+      totalAmort += pmt;
+      tabela.push({
+        n: i, vencimento: venc, parcela: pmt, juros: 0,
+        amortizacao: pmt, saldo: saldo,
+        pago: i <= (parcelasPagas || 0)
+      });
+    }
+  }
+
+  return { tabela, totalJuros, totalAmort, totalPago };
+}
+
 function calcParcelaDivida() {
-  const total = parseFloat(document.getElementById('div-total').value) || 0;
+  const sistema = document.getElementById('div-sistema').value;
+  const principal = parseFloat(document.getElementById('div-principal').value) || 0;
   const parcelas = parseInt(document.getElementById('div-parcelas').value) || 0;
-  if (total > 0 && parcelas > 0) {
-    document.getElementById('div-parcela-val').value = (total / parcelas).toFixed(2);
+  const taxaMensal = parseFloat(document.getElementById('div-taxa-mensal')?.value) || 0;
+
+  if (principal > 0 && parcelas > 0) {
+    if ((sistema === 'price' || sistema === 'sac') && taxaMensal > 0) {
+      const taxa = taxaMensal / 100;
+      const pmt = calcPMT(principal, taxa, parcelas);
+      document.getElementById('div-parcela-val').value = pmt.toFixed(2);
+      const totalComJuros = pmt * parcelas;
+      if (!document.getElementById('div-total').value || document.getElementById('div-total').dataset.auto === '1') {
+        document.getElementById('div-total').value = totalComJuros.toFixed(2);
+        document.getElementById('div-total').dataset.auto = '1';
+      }
+    } else {
+      document.getElementById('div-parcela-val').value = (principal / parcelas).toFixed(2);
+    }
   }
 }
 
 function salvarDivida() {
   const banco = document.getElementById('div-banco').value;
   const desc = document.getElementById('div-desc').value.trim();
+  const sistema = document.getElementById('div-sistema').value;
+  const principal = parseFloat(document.getElementById('div-principal').value) || 0;
   const totalAmount = parseFloat(document.getElementById('div-total').value) || 0;
   const totalParcelas = parseInt(document.getElementById('div-parcelas').value) || 0;
   let parcelaAmount = parseFloat(document.getElementById('div-parcela-val').value) || 0;
@@ -4653,41 +4923,47 @@ function salvarDivida() {
   const titular = document.getElementById('div-titular').value;
   const parcelasPagas = parseInt(document.getElementById('div-pagas').value) || 0;
   const editId = document.getElementById('div-edit-id').value;
+  const taxaMensal = parseFloat(document.getElementById('div-taxa-mensal')?.value) || 0;
+  const taxaInadimpl = parseFloat(document.getElementById('div-taxa-inadimpl')?.value) || 0;
+  const taxaEfetivaAnual = parseFloat(document.getElementById('div-taxa-efetiva-anual')?.value) || 0;
+  const taxaAnual = parseFloat(document.getElementById('div-taxa-anual')?.value) || 0;
+  const iofBasico = parseFloat(document.getElementById('div-iof-basico')?.value) || 0;
+  const iofAdc = parseFloat(document.getElementById('div-iof-adc')?.value) || 0;
+  const dataInicio = document.getElementById('div-data-inicio')?.value || '';
 
-  if (!desc || totalAmount <= 0 || totalParcelas <= 0) {
+  if (!desc || principal <= 0 || totalParcelas <= 0) {
     toast('Preencha todos os campos obrigatórios');
     return;
   }
-  if (parcelaAmount <= 0) parcelaAmount = totalAmount / totalParcelas;
+  if (parcelaAmount <= 0) {
+    if (sistema === 'price' && taxaMensal > 0) {
+      parcelaAmount = calcPMT(principal, taxaMensal / 100, totalParcelas);
+    } else {
+      parcelaAmount = principal / totalParcelas;
+    }
+  }
+
+  const debtData = {
+    bank: banco, desc, sistema, principal, totalAmount: totalAmount || (parcelaAmount * totalParcelas),
+    parcelaAmount, totalParcelas, parcelasPagas, vencimentoDia, status, titular,
+    taxaMensal, taxaInadimpl, taxaEfetivaAnual, taxaAnual,
+    iofBasico, iofAdc, dataInicio,
+    amortizacoesExtra: []
+  };
 
   S.debts = S.debts || [];
 
   if (editId) {
     const d = S.debts.find(x => x.id === editId);
     if (d) {
-      d.bank = banco;
-      d.desc = desc;
-      d.totalAmount = totalAmount;
-      d.totalParcelas = totalParcelas;
-      d.parcelaAmount = parcelaAmount;
-      d.vencimentoDia = vencimentoDia;
-      d.status = status;
-      d.titular = titular;
-      d.parcelasPagas = parcelasPagas;
+      Object.assign(d, debtData);
     }
   } else {
     S.debts.push({
       id: 'div_' + Date.now(),
-      bank: banco,
-      desc: desc,
-      totalAmount: totalAmount,
-      parcelaAmount: parcelaAmount,
-      totalParcelas: totalParcelas,
-      parcelasPagas: parcelasPagas,
-      vencimentoDia: vencimentoDia,
-      status: status,
-      titular: titular,
+      ...debtData,
       pagamentos: [],
+      amortizacoesExtra: [],
       at: new Date().toISOString()
     });
   }
@@ -4779,6 +5055,304 @@ function confirmarPagarParcela() {
   fecharPagarParcelaModal();
   renderDividas();
   toast(`Parcela ${d.parcelasPagas}/${d.totalParcelas} paga com sucesso!`);
+}
+
+// ─── TABELA DE AMORTIZAÇÃO ─────────────────────────────────────────────────
+function formatDateBR(d) {
+  return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
+}
+
+function abrirTabelaAmort(id) {
+  const d = S.debts.find(x => x.id === id);
+  if (!d) return;
+  const modal = document.getElementById('amort-table-modal');
+  modal.style.display = 'block';
+
+  const sistema = d.sistema || 'simples';
+  const principal = d.principal || d.totalAmount || 0;
+  const taxaMensal = d.taxaMensal || 0;
+  const nParcelas = d.totalParcelas || 0;
+  const dataInicio = d.dataInicio || '';
+  const parcelasPagas = d.parcelasPagas || 0;
+  const iofTotal = (d.iofBasico || 0) + (d.iofAdc || 0);
+
+  document.getElementById('amort-modal-title').textContent = `Tabela de Amortização — ${d.desc}`;
+
+  const { tabela, totalJuros, totalAmort, totalPago } = gerarTabelaAmortizacao(principal, taxaMensal, nParcelas, sistema, dataInicio, parcelasPagas);
+
+  // Resumo
+  document.getElementById('amort-resumo').innerHTML = `
+    <div style="background:#f8fafc;border-radius:10px;padding:12px 16px;">
+      <p style="font-size:11px;color:#94a3b8;">Principal</p>
+      <p style="font-size:16px;font-weight:800;color:#0f172a;">${brl(principal)}</p>
+    </div>
+    <div style="background:#f8fafc;border-radius:10px;padding:12px 16px;">
+      <p style="font-size:11px;color:#94a3b8;">Total Juros</p>
+      <p style="font-size:16px;font-weight:800;color:#e11d48;">${brl(totalJuros)}</p>
+    </div>
+    <div style="background:#f8fafc;border-radius:10px;padding:12px 16px;">
+      <p style="font-size:11px;color:#94a3b8;">IOF Total</p>
+      <p style="font-size:16px;font-weight:800;color:#ca8a04;">${brl(iofTotal)}</p>
+    </div>
+    <div style="background:#f8fafc;border-radius:10px;padding:12px 16px;">
+      <p style="font-size:11px;color:#94a3b8;">Total a Pagar</p>
+      <p style="font-size:16px;font-weight:800;color:#4f46e5;">${brl(totalPago + iofTotal)}</p>
+    </div>
+    <div style="background:#f8fafc;border-radius:10px;padding:12px 16px;">
+      <p style="font-size:11px;color:#94a3b8;">Sistema</p>
+      <p style="font-size:16px;font-weight:800;color:#475569;">${sistema.toUpperCase()}</p>
+    </div>
+    <div style="background:#f8fafc;border-radius:10px;padding:12px 16px;">
+      <p style="font-size:11px;color:#94a3b8;">Taxa Mensal</p>
+      <p style="font-size:16px;font-weight:800;color:#475569;">${taxaMensal}%</p>
+    </div>
+  `;
+
+  // Tabela
+  const tbody = document.getElementById('amort-tbody');
+  tbody.innerHTML = tabela.map(r => {
+    const isPago = r.pago;
+    const rowBg = isPago ? 'background:#f0fdf4;' : '';
+    return `<tr style="border-bottom:1px solid #f1f5f9;${rowBg}">
+      <td style="padding:8px 12px;text-align:center;font-weight:600;">${r.n}</td>
+      <td style="padding:8px 12px;text-align:center;">${formatDateBR(r.vencimento)}</td>
+      <td style="padding:8px 12px;text-align:right;font-weight:600;">${brl(r.parcela)}</td>
+      <td style="padding:8px 12px;text-align:right;color:#e11d48;">${brl(r.juros)}</td>
+      <td style="padding:8px 12px;text-align:right;color:#059669;">${brl(r.amortizacao)}</td>
+      <td style="padding:8px 12px;text-align:right;font-weight:700;">${brl(r.saldo)}</td>
+      <td style="padding:8px 12px;text-align:center;">
+        ${isPago ? '<span style="font-size:11px;font-weight:600;padding:2px 10px;border-radius:20px;background:#ecfdf5;color:#065f46;">Pago</span>' :
+          '<span style="font-size:11px;font-weight:600;padding:2px 10px;border-radius:20px;background:#f1f5f9;color:#64748b;">Pendente</span>'}
+      </td>
+    </tr>`;
+  }).join('');
+
+  // Totais
+  document.getElementById('amort-tfoot').innerHTML = `
+    <tr style="border-top:2px solid #e2e8f0;background:#f8fafc;font-weight:800;">
+      <td style="padding:10px 12px;text-align:center;" colspan="2">TOTAL</td>
+      <td style="padding:10px 12px;text-align:right;">${brl(totalPago)}</td>
+      <td style="padding:10px 12px;text-align:right;color:#e11d48;">${brl(totalJuros)}</td>
+      <td style="padding:10px 12px;text-align:right;color:#059669;">${brl(totalAmort)}</td>
+      <td style="padding:10px 12px;text-align:right;">—</td>
+      <td style="padding:10px 12px;text-align:center;">${parcelasPagas}/${nParcelas}</td>
+    </tr>
+  `;
+}
+
+function fecharAmortModal() {
+  document.getElementById('amort-table-modal').style.display = 'none';
+}
+
+// ─── SIMULADOR DE AMORTIZAÇÃO EXTRAORDINÁRIA ─────────────────────────────
+let simulModo = 'prazo';
+
+function setSimulModo(modo) {
+  simulModo = modo;
+  document.getElementById('simul-modo-prazo').className = 'type-btn' + (modo === 'prazo' ? ' active-invest' : '');
+  document.getElementById('simul-modo-parcela').className = 'type-btn' + (modo === 'parcela' ? ' active-invest' : '');
+  calcSimulacao();
+}
+
+function abrirSimulAmort(id) {
+  const d = S.debts.find(x => x.id === id);
+  if (!d) return;
+  const modal = document.getElementById('simul-amort-modal');
+  modal.style.display = 'block';
+  document.getElementById('simul-divida-id').value = id;
+  document.getElementById('simul-valor').value = '';
+  document.getElementById('simul-data').value = new Date().toISOString().slice(0, 10);
+  document.getElementById('simul-resultado').style.display = 'none';
+  setSimulModo('prazo');
+
+  const sistema = (d.sistema || 'price').toUpperCase();
+  const saldoAtual = calcSaldoDevedor(d);
+  document.getElementById('simul-divida-info').innerHTML = `
+    <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+      <div>
+        <p style="font-size:12px;color:#94a3b8;">Dívida</p>
+        <p style="font-size:15px;font-weight:700;color:#0f172a;">${d.desc}</p>
+      </div>
+      <div style="text-align:right;">
+        <p style="font-size:12px;color:#94a3b8;">Saldo Devedor Atual</p>
+        <p style="font-size:18px;font-weight:800;color:#e11d48;">${brl(saldoAtual)}</p>
+      </div>
+    </div>
+    <div style="display:flex;gap:16px;margin-top:10px;flex-wrap:wrap;">
+      <div><span style="font-size:12px;color:#94a3b8;">Sistema:</span> <strong>${sistema}</strong></div>
+      <div><span style="font-size:12px;color:#94a3b8;">Taxa:</span> <strong>${d.taxaMensal || 0}% a.m.</strong></div>
+      <div><span style="font-size:12px;color:#94a3b8;">Parcelas restantes:</span> <strong>${(d.totalParcelas||0) - (d.parcelasPagas||0)}</strong></div>
+      <div><span style="font-size:12px;color:#94a3b8;">Parcela atual:</span> <strong>${brl(d.parcelaAmount)}</strong></div>
+    </div>
+  `;
+}
+
+function calcSaldoDevedor(d) {
+  const sistema = d.sistema || 'simples';
+  const principal = d.principal || d.totalAmount || 0;
+  const taxa = (d.taxaMensal || 0) / 100;
+  const n = d.totalParcelas || 0;
+  const pagas = d.parcelasPagas || 0;
+
+  if (sistema === 'price' && taxa > 0) {
+    const pmt = calcPMT(principal, taxa, n);
+    let saldo = principal;
+    for (let i = 0; i < pagas; i++) {
+      const juros = saldo * taxa;
+      saldo = saldo - (pmt - juros);
+    }
+    return Math.max(0, saldo);
+  } else if (sistema === 'sac' && taxa > 0) {
+    const amortFixa = principal / n;
+    return Math.max(0, principal - amortFixa * pagas);
+  } else {
+    return Math.max(0, principal - (principal / n) * pagas);
+  }
+}
+
+function calcSimulacao() {
+  const id = document.getElementById('simul-divida-id').value;
+  const d = S.debts.find(x => x.id === id);
+  if (!d) return;
+
+  const valorAmort = parseFloat(document.getElementById('simul-valor').value) || 0;
+  if (valorAmort <= 0) {
+    document.getElementById('simul-resultado').style.display = 'none';
+    return;
+  }
+
+  const sistema = d.sistema || 'simples';
+  const principal = d.principal || d.totalAmount || 0;
+  const taxa = (d.taxaMensal || 0) / 100;
+  const totalParcelas = d.totalParcelas || 0;
+  const parcelasPagas = d.parcelasPagas || 0;
+  const parcelasRestantes = totalParcelas - parcelasPagas;
+  const saldoAtual = calcSaldoDevedor(d);
+  const parcelaAtual = d.parcelaAmount || 0;
+
+  if (valorAmort >= saldoAtual) {
+    document.getElementById('simul-resultado').style.display = 'block';
+    document.getElementById('simul-antes').innerHTML = `
+      <p style="font-size:13px;"><strong>Saldo:</strong> ${brl(saldoAtual)}</p>
+      <p style="font-size:13px;"><strong>Parcelas:</strong> ${parcelasRestantes}x ${brl(parcelaAtual)}</p>
+    `;
+    const totalOriginal = parcelaAtual * parcelasRestantes;
+    document.getElementById('simul-depois').innerHTML = `
+      <p style="font-size:18px;font-weight:800;color:#059669;">QUITAÇÃO TOTAL!</p>
+      <p style="font-size:13px;margin-top:4px;">Valor para quitar: ${brl(saldoAtual)}</p>
+    `;
+    document.getElementById('simul-economia').innerHTML = `
+      <p style="font-size:14px;font-weight:700;color:#059669;">Economia total de juros: ${brl(totalOriginal - saldoAtual)}</p>
+      <p style="font-size:12px;color:#64748b;margin-top:4px;">Troco: ${brl(valorAmort - saldoAtual)}</p>
+    `;
+    document.getElementById('simul-nova-tbody').innerHTML = '';
+    return;
+  }
+
+  const novoSaldo = saldoAtual - valorAmort;
+  let novasParcelas, novaParcela, totalAntes, totalDepois;
+
+  if (simulModo === 'prazo') {
+    // Reduzir prazo: manter valor da parcela, recalcular nº de parcelas
+    novaParcela = parcelaAtual;
+    if (sistema === 'price' && taxa > 0) {
+      // n = -log(1 - saldo*i/PMT) / log(1+i)
+      const x = 1 - (novoSaldo * taxa) / novaParcela;
+      if (x <= 0) {
+        novasParcelas = parcelasRestantes;
+      } else {
+        novasParcelas = Math.ceil(-Math.log(x) / Math.log(1 + taxa));
+      }
+    } else if (sistema === 'sac' && taxa > 0) {
+      novasParcelas = Math.ceil(novoSaldo / (parcelaAtual - novoSaldo * taxa));
+      if (novasParcelas <= 0 || !isFinite(novasParcelas)) novasParcelas = Math.ceil(novoSaldo / novaParcela);
+    } else {
+      novasParcelas = Math.ceil(novoSaldo / novaParcela);
+    }
+  } else {
+    // Reduzir parcela: manter prazo, recalcular valor da parcela
+    novasParcelas = parcelasRestantes;
+    if (sistema === 'price' && taxa > 0) {
+      novaParcela = calcPMT(novoSaldo, taxa, novasParcelas);
+    } else if (sistema === 'sac' && taxa > 0) {
+      const amortFixa = novoSaldo / novasParcelas;
+      novaParcela = amortFixa + novoSaldo * taxa; // primeira parcela SAC
+    } else {
+      novaParcela = novoSaldo / novasParcelas;
+    }
+  }
+
+  // Calcular totais
+  if (sistema === 'price' && taxa > 0) {
+    totalAntes = parcelaAtual * parcelasRestantes;
+    totalDepois = (simulModo === 'prazo' ? novaParcela * novasParcelas : novaParcela * novasParcelas) + valorAmort;
+  } else {
+    totalAntes = parcelaAtual * parcelasRestantes;
+    totalDepois = novaParcela * novasParcelas + valorAmort;
+  }
+  // For PRICE, calculate actual total with interest
+  let totalJurosAntes = totalAntes - saldoAtual;
+  let totalJurosDepois = 0;
+
+  // Gerar nova tabela
+  const dataSimul = document.getElementById('simul-data').value;
+  const { tabela: novaTabela, totalJuros: jurosNovos } = gerarTabelaAmortizacao(
+    novoSaldo, d.taxaMensal || 0, novasParcelas, sistema, dataSimul, 0
+  );
+  totalJurosDepois = jurosNovos;
+  totalDepois = novoSaldo + jurosNovos + valorAmort;
+
+  const economia = totalAntes - (novoSaldo + jurosNovos + valorAmort);
+
+  document.getElementById('simul-resultado').style.display = 'block';
+
+  document.getElementById('simul-antes').innerHTML = `
+    <p style="font-size:13px;margin-bottom:4px;"><strong>Saldo devedor:</strong> ${brl(saldoAtual)}</p>
+    <p style="font-size:13px;margin-bottom:4px;"><strong>Parcelas restantes:</strong> ${parcelasRestantes}x</p>
+    <p style="font-size:13px;margin-bottom:4px;"><strong>Valor parcela:</strong> ${brl(parcelaAtual)}</p>
+    <p style="font-size:13px;margin-bottom:4px;"><strong>Total juros restante:</strong> <span style="color:#e11d48;">${brl(totalJurosAntes)}</span></p>
+    <p style="font-size:13px;"><strong>Total a pagar:</strong> ${brl(totalAntes)}</p>
+  `;
+
+  document.getElementById('simul-depois').innerHTML = `
+    <p style="font-size:13px;margin-bottom:4px;"><strong>Novo saldo:</strong> ${brl(novoSaldo)}</p>
+    <p style="font-size:13px;margin-bottom:4px;"><strong>Parcelas restantes:</strong> ${novasParcelas}x</p>
+    <p style="font-size:13px;margin-bottom:4px;"><strong>Valor parcela:</strong> ${brl(novaParcela)}</p>
+    <p style="font-size:13px;margin-bottom:4px;"><strong>Total juros restante:</strong> <span style="color:#e11d48;">${brl(totalJurosDepois)}</span></p>
+    <p style="font-size:13px;"><strong>Total a pagar:</strong> ${brl(novoSaldo + jurosNovos + valorAmort)}</p>
+  `;
+
+  const econJuros = totalJurosAntes - totalJurosDepois;
+  document.getElementById('simul-economia').innerHTML = `
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+      <span style="font-size:24px;">💰</span>
+      <div>
+        <p style="font-size:16px;font-weight:800;color:#059669;">Economia de juros: ${brl(econJuros)}</p>
+        <p style="font-size:13px;color:#64748b;">
+          ${simulModo === 'prazo'
+            ? `Redução de ${parcelasRestantes - novasParcelas} parcelas (${parcelasRestantes} → ${novasParcelas})`
+            : `Redução de ${brl(parcelaAtual - novaParcela)} por parcela (${brl(parcelaAtual)} → ${brl(novaParcela)})`
+          }
+        </p>
+      </div>
+    </div>
+  `;
+
+  // Nova tabela
+  document.getElementById('simul-nova-tbody').innerHTML = novaTabela.map(r => `
+    <tr style="border-bottom:1px solid #f1f5f9;">
+      <td style="padding:6px 8px;text-align:center;">${r.n}</td>
+      <td style="padding:6px 8px;text-align:center;">${formatDateBR(r.vencimento)}</td>
+      <td style="padding:6px 8px;text-align:right;font-weight:600;">${brl(r.parcela)}</td>
+      <td style="padding:6px 8px;text-align:right;color:#e11d48;">${brl(r.juros)}</td>
+      <td style="padding:6px 8px;text-align:right;color:#059669;">${brl(r.amortizacao)}</td>
+      <td style="padding:6px 8px;text-align:right;font-weight:600;">${brl(r.saldo)}</td>
+    </tr>
+  `).join('');
+}
+
+function fecharSimulModal() {
+  document.getElementById('simul-amort-modal').style.display = 'none';
 }
 
 function init() {
