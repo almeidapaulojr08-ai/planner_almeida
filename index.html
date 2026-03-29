@@ -1410,6 +1410,7 @@
           <option value="bradesco">Bradesco</option>
           <option value="nubank">Nubank</option>
           <option value="sicredi">Sicredi</option>
+          <option value="caixa">Caixa Econômica</option>
           <option value="binance">Binance (USD)</option>
         </select>
       </div>
@@ -3217,10 +3218,11 @@ function renderCardBreakdowns(mTx) {
     </div>`;
   }
 
-  // Saldo breakdown
+  // Saldo breakdown — acumulado (todas as transações, não só mês atual)
+  const allTxTit = txByTitular(S.transactions);
   let saldoHtml = '';
   accToShow.forEach(a => {
-    const accTx = mTx.filter(t => t.accountId === a.id);
+    const accTx = allTxTit.filter(t => t.accountId === a.id);
     const rec  = accTx.filter(t=>t.type==='receita').reduce((s,t)=>s+amountRaw(t),0);
     const desp = accTx.filter(t=>t.type==='despesa' && t.formaPgto !== 'credito').reduce((s,t)=>s+amountRaw(t),0);
     const bal = rec - desp;
@@ -3230,18 +3232,18 @@ function renderCardBreakdowns(mTx) {
   });
   document.getElementById('breakdown-saldo').innerHTML = saldoHtml;
 
-  // Receitas breakdown (exclui transferências — não são receita real)
+  // Receitas breakdown (inclui transferências recebidas por banco)
   let recHtml = '';
   accToShow.forEach(a => {
-    const val = mTx.filter(t => t.accountId === a.id && t.type === 'receita' && !t.isTransfer).reduce((s,t)=>s+amountBrl(t),0);
+    const val = mTx.filter(t => t.accountId === a.id && t.type === 'receita').reduce((s,t)=>s+amountBrl(t),0);
     recHtml += bankRow(a.bank, val, '#059669');
   });
   document.getElementById('breakdown-receitas').innerHTML = recHtml;
 
-  // Despesas breakdown (exclui transferências — não são despesa real)
+  // Despesas breakdown (inclui transferências enviadas por banco)
   let despHtml = '';
   accToShow.forEach(a => {
-    const val = mTx.filter(t => t.accountId === a.id && t.type === 'despesa' && t.formaPgto !== 'credito' && !t.isTransfer).reduce((s,t)=>s+amountBrl(t),0);
+    const val = mTx.filter(t => t.accountId === a.id && t.type === 'despesa' && t.formaPgto !== 'credito').reduce((s,t)=>s+amountBrl(t),0);
     despHtml += bankRow(a.bank, val, '#e11d48');
   });
   document.getElementById('breakdown-despesas').innerHTML = despHtml;
@@ -3747,10 +3749,10 @@ function renderHistorico() {
   const empty = document.getElementById('hist-empty');
   const cards = document.getElementById('hist-cards');
 
-  // Summary cards (exclui transferências dos totais)
-  const rec  = txs.filter(t=>t.type==='receita' && !t.isTransfer).reduce((s,t)=>s+amountBrl(t),0);
-  const desp = txs.filter(t=>t.type==='despesa' && !t.isTransfer).reduce((s,t)=>s+amountBrl(t),0);
-  const pend = txs.filter(t=>t.type==='despesa' && !t.isTransfer && t.pago===false).reduce((s,t)=>s+amountBrl(t),0);
+  // Summary cards
+  const rec  = txs.filter(t=>t.type==='receita').reduce((s,t)=>s+amountBrl(t),0);
+  const desp = txs.filter(t=>t.type==='despesa').reduce((s,t)=>s+amountBrl(t),0);
+  const pend = txs.filter(t=>t.type==='despesa'&&t.pago===false).reduce((s,t)=>s+amountBrl(t),0);
   const inv  = txs.filter(t=>t.type==='investimento').reduce((s,t)=>s+amountBrl(t),0);
   document.getElementById('hist-sum-rec').textContent  = brl(rec);
   document.getElementById('hist-sum-desp').textContent = brl(desp);
