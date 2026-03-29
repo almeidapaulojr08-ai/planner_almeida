@@ -187,6 +187,9 @@
   </nav>
 
   <div style="padding:10px 10px 16px;border-top:1px solid #f1f5f9;display:flex;flex-direction:column;gap:2px;">
+    <a class="nav-item" data-page="leiaaqui" onclick="goto('leiaaqui')" id="nav-leiaaqui" style="display:none;">
+      <span style="font-size:18px;">💌</span> Leia aqui
+    </a>
     <a class="nav-item" data-page="config" onclick="goto('config')">
       <span style="font-size:18px;">⚙️</span> Configurações
     </a>
@@ -235,6 +238,16 @@
         <button onclick="dashNavMonth(1)" style="background:none;border:none;cursor:pointer;padding:4px 6px;font-size:16px;color:#64748b;">▶</button>
       </div>
     </div>
+  </div>
+
+  <!-- ═══════ TEMPO JUNTOS ═══════ -->
+  <div id="tempo-juntos-card" class="card" style="padding:16px 24px;margin-bottom:20px;background:linear-gradient(135deg,#fff0f3 0%,#ffe4ec 50%,#fdf2f8 100%);border:1.5px solid #fecdd3;display:flex;align-items:center;justify-content:center;gap:16px;">
+    <span style="font-size:28px;">❤️</span>
+    <div style="text-align:center;">
+      <p style="font-size:13px;font-weight:700;color:#be123c;letter-spacing:0.5px;">Tempo Juntos</p>
+      <p id="tempo-juntos-valor" style="font-size:20px;font-weight:800;color:#9f1239;margin-top:2px;"></p>
+    </div>
+    <span style="font-size:28px;">❤️</span>
   </div>
 
   <!-- ═══════ VISÃO CONTA (BANCO) ═══════ -->
@@ -1196,6 +1209,70 @@
   </div>
 </section>
 
+<!-- ==================== LEIA AQUI (página especial) ==================== -->
+<section id="page-leiaaqui" style="display:none;max-width:700px;">
+  <div style="text-align:center;padding:20px 0 30px;">
+    <p style="font-size:40px;margin-bottom:8px;">💕</p>
+    <h1 style="font-size:26px;font-weight:800;color:#be123c;">Para Você, Meu Amor</h1>
+    <p style="font-size:14px;color:#94a3b8;margin-top:6px;">Algumas palavras que preciso te dizer...</p>
+  </div>
+
+  <div id="cartas-amor" style="display:flex;flex-direction:column;gap:20px;padding-bottom:40px;">
+
+    <div class="card" style="padding:28px;border:1.5px solid #fecdd3;background:linear-gradient(135deg,#fff0f3,#ffffff);">
+      <p style="font-size:15px;line-height:1.8;color:#4a1d2e;">
+        Meu amor, eu quero que você saiba que cada dia ao seu lado é um presente. Você transforma
+        os dias mais comuns em momentos especiais, só com o seu sorriso. Obrigado por ser exatamente
+        quem você é.
+      </p>
+      <p style="text-align:right;margin-top:14px;font-size:20px;">🌹</p>
+    </div>
+
+    <div class="card" style="padding:28px;border:1.5px solid #fecdd3;background:linear-gradient(135deg,#fdf2f8,#ffffff);">
+      <p style="font-size:15px;line-height:1.8;color:#4a1d2e;">
+        Às vezes eu não sei expressar tudo que sinto, mas saiba que meu coração é todinho seu.
+        Quando eu penso no futuro, é o seu rosto que eu vejo ao meu lado. Você é minha pessoa,
+        minha companheira, minha paz.
+      </p>
+      <p style="text-align:right;margin-top:14px;font-size:20px;">💗</p>
+    </div>
+
+    <div class="card" style="padding:28px;border:1.5px solid #fecdd3;background:linear-gradient(135deg,#fff0f3,#ffffff);">
+      <p style="font-size:15px;line-height:1.8;color:#4a1d2e;">
+        Obrigado por construir essa vida comigo. Por cuidar das nossas finanças juntos, por planejar
+        o futuro do nosso lado. Cada planilha, cada meta, cada sonho — tudo fica mais bonito
+        porque é com você.
+      </p>
+      <p style="text-align:right;margin-top:14px;font-size:20px;">✨</p>
+    </div>
+
+    <div class="card" style="padding:28px;border:1.5px solid #fecdd3;background:linear-gradient(135deg,#fdf2f8,#ffffff);">
+      <p style="font-size:15px;line-height:1.8;color:#4a1d2e;">
+        Eu te escolho todos os dias. Nos dias fáceis e nos difíceis. Nos dias de conta paga e nos
+        de apertar o cinto. Porque com você, tudo vale a pena. Te amo mais do que palavras
+        conseguem dizer.
+      </p>
+      <p style="text-align:right;margin-top:14px;font-size:20px;">💍</p>
+    </div>
+
+    <div class="card" style="padding:28px;border:1.5px solid #fecdd3;background:linear-gradient(135deg,#fff0f3,#ffffff);">
+      <p style="font-size:15px;line-height:1.8;color:#4a1d2e;">
+        Prometo sempre ser seu parceiro. Na vida, no amor e até nas finanças. Vamos continuar
+        construindo juntos, passo a passo, dia a dia. Nosso melhor capítulo ainda está
+        por vir.
+      </p>
+      <p style="text-align:right;margin-top:14px;font-size:20px;">🏠💕</p>
+    </div>
+
+    <div style="text-align:center;padding:20px;">
+      <p style="font-size:16px;font-weight:700;color:#be123c;">Com todo meu amor,</p>
+      <p style="font-size:18px;font-weight:800;color:#9f1239;margin-top:4px;" id="leia-assinatura">Paulo</p>
+      <p style="font-size:28px;margin-top:8px;">❤️</p>
+    </div>
+
+  </div>
+</section>
+
 </main><!-- end main -->
 
 <!-- ============================================================ TOAST -->
@@ -1528,6 +1605,71 @@
       <div style="display:flex;gap:10px;margin-top:4px;">
         <button onclick="fecharPagarParcelaModal()" style="flex:1;padding:12px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:14px;font-weight:600;color:#64748b;background:white;cursor:pointer;">Cancelar</button>
         <button onclick="confirmarPagarParcela()" style="flex:1;padding:12px;background:#059669;color:white;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;">Pagar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ ESCOLHA TIPO PAGAMENTO MODAL -->
+<div id="escolha-pgto-modal" style="display:none;">
+  <div id="modal-backdrop" onclick="fecharEscolhaPgtoModal()">
+    <div onclick="event.stopPropagation()" style="background:white;border-radius:18px;padding:28px;max-width:400px;width:95%;box-shadow:0 20px 60px rgba(0,0,0,0.15);">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+        <p style="font-weight:800;font-size:17px;color:#0f172a;">Como deseja pagar?</p>
+        <button onclick="fecharEscolhaPgtoModal()" style="background:none;border:none;font-size:20px;cursor:pointer;color:#94a3b8;">✕</button>
+      </div>
+      <p id="escolha-pgto-info" style="font-size:13px;color:#64748b;margin-bottom:18px;"></p>
+      <input type="hidden" id="escolha-pgto-divida-id" value="">
+      <div style="display:flex;flex-direction:column;gap:12px;">
+        <button onclick="escolherPagamentoNormal()" style="padding:16px;background:#ecfdf5;border:2px solid #059669;border-radius:12px;cursor:pointer;text-align:left;">
+          <p style="font-weight:700;font-size:15px;color:#059669;margin-bottom:4px;">Pagar Parcela Normal</p>
+          <p style="font-size:12px;color:#64748b;">Pagamento mensal regular da dívida</p>
+        </button>
+        <button onclick="escolherPagamentoAmortizacao()" style="padding:16px;background:#eef2ff;border:2px solid #4f46e5;border-radius:12px;cursor:pointer;text-align:left;">
+          <p style="font-weight:700;font-size:15px;color:#4f46e5;margin-bottom:4px;">Pagar Amortização Extra</p>
+          <p style="font-size:12px;color:#64748b;">Pagamento extra para reduzir o saldo devedor</p>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ PAGAR AMORTIZAÇÃO EXTRA MODAL -->
+<div id="pagar-amort-modal" style="display:none;">
+  <div id="modal-backdrop" onclick="fecharPagarAmortModal()">
+    <div onclick="event.stopPropagation()" style="background:white;border-radius:18px;padding:28px;max-width:420px;width:95%;box-shadow:0 20px 60px rgba(0,0,0,0.15);">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+        <p style="font-weight:800;font-size:17px;color:#4f46e5;">Amortização Extra</p>
+        <button onclick="fecharPagarAmortModal()" style="background:none;border:none;font-size:20px;cursor:pointer;color:#94a3b8;">✕</button>
+      </div>
+      <div style="border:2px solid #eef2ff;border-radius:12px;padding:14px 18px;margin-bottom:18px;">
+        <p style="font-size:12px;color:#94a3b8;">Saldo Devedor Atual</p>
+        <p id="pa-saldo-info" style="font-size:18px;font-weight:800;color:#4f46e5;margin-top:2px;"></p>
+      </div>
+      <div style="margin-bottom:14px;">
+        <label class="flabel">Valor da amortização *</label>
+        <input class="finput" type="number" id="pa-valor" step="0.01" min="0.01">
+      </div>
+      <div style="margin-bottom:14px;">
+        <label class="flabel">Data do pagamento *</label>
+        <input class="finput" type="date" id="pa-data">
+      </div>
+      <div style="margin-bottom:14px;">
+        <label class="flabel">Debitar da conta *</label>
+        <select class="finput" id="pa-conta"></select>
+      </div>
+      <div style="margin-bottom:14px;">
+        <label class="flabel">Modalidade</label>
+        <div style="display:flex;gap:10px;margin-top:6px;">
+          <button id="pa-modo-prazo" onclick="setPaAmortModo('prazo')" class="type-btn" style="flex:1;padding:10px;font-size:13px;">Reduzir Prazo</button>
+          <button id="pa-modo-parcela" onclick="setPaAmortModo('parcela')" class="type-btn" style="flex:1;padding:10px;font-size:13px;">Reduzir Parcela</button>
+        </div>
+      </div>
+      <input type="hidden" id="pa-divida-id" value="">
+      <input type="hidden" id="pa-modo" value="prazo">
+      <div style="display:flex;gap:10px;margin-top:4px;">
+        <button onclick="fecharPagarAmortModal()" style="flex:1;padding:12px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:14px;font-weight:600;color:#64748b;background:white;cursor:pointer;">Cancelar</button>
+        <button onclick="confirmarPagarAmortizacao()" style="flex:1;padding:12px;background:#4f46e5;color:white;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;">Pagar</button>
       </div>
     </div>
   </div>
@@ -2141,6 +2283,7 @@ function setTitularFilter(f) {
   titularFilter = f;
   document.querySelectorAll('.tf-btn').forEach(b => b.classList.remove('tf-active'));
   document.getElementById('tf-' + f)?.classList.add('tf-active');
+  updateLeiaAquiVisibility();
   renderDashboard();
 }
 
@@ -2218,6 +2361,7 @@ function goto(page) {
   if (page === 'categorias') renderCategorias();
   if (page === 'dividas')    renderDividas();
   if (page === 'investimentos') renderInvestimentos();
+  if (page === 'leiaaqui') { document.getElementById('leia-assinatura').textContent = S.settings.u1; }
 }
 
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
@@ -2826,10 +2970,51 @@ function dashNavMonth(dir) {
   renderDashboard();
 }
 
+// ─── TEMPO JUNTOS ────────────────────────────────────────────────────────────
+function calcTempoJuntos() {
+  const inicio = new Date(2025, 5, 29); // 29/06/2025 (month is 0-indexed)
+  const hoje = new Date();
+  let anos = hoje.getFullYear() - inicio.getFullYear();
+  let meses = hoje.getMonth() - inicio.getMonth();
+  let dias = hoje.getDate() - inicio.getDate();
+  if (dias < 0) {
+    meses--;
+    const mesAnterior = new Date(hoje.getFullYear(), hoje.getMonth(), 0);
+    dias += mesAnterior.getDate();
+  }
+  if (meses < 0) {
+    anos--;
+    meses += 12;
+  }
+  const partes = [];
+  if (anos > 0) partes.push(anos === 1 ? '1 ano' : anos + ' anos');
+  if (meses > 0) partes.push(meses === 1 ? '1 mês' : meses + ' meses');
+  partes.push(dias === 1 ? '1 dia' : dias + ' dias');
+  return partes.join(', ');
+}
+
+function updateTempoJuntos() {
+  const el = document.getElementById('tempo-juntos-valor');
+  if (el) el.textContent = calcTempoJuntos();
+}
+
+// ─── LEIA AQUI - VISIBILIDADE BASEADA NO TITULAR ─────────────────────────────
+function updateLeiaAquiVisibility() {
+  const nav = document.getElementById('nav-leiaaqui');
+  if (nav) {
+    nav.style.display = (titularFilter === 'esposa') ? 'flex' : 'none';
+  }
+  // Assinatura dinâmica
+  const assinatura = document.getElementById('leia-assinatura');
+  if (assinatura) assinatura.textContent = S.settings.u1;
+}
+
 function renderDashboard() {
   // Update filter button labels
   document.getElementById('tf-paulo').textContent  = S.settings.u1;
   document.getElementById('tf-esposa').textContent = S.settings.u2;
+  updateTempoJuntos();
+  updateLeiaAquiVisibility();
 
   // Init period selectors (preserve current selection)
   const mSel = document.getElementById('dash-month');
@@ -4831,6 +5016,19 @@ function parseFaturaText(text, refMonth, refYear) {
       }
     }
 
+    // Format: "IFOOD MAR.2026 R$ 30,00" or "IFOOD MAR 2026 30,00" or "IFOOD MAR.2026 30,00"
+    // Description + month abbreviation + optional year + amount (no specific day → use day 01)
+    if (!date) {
+      let m = line.match(/^(.+?)\s+(JAN|FEV|MAR|ABR|MAI|JUN|JUL|AGO|SET|OUT|NOV|DEZ)[.\s\/\-]*(\d{4})?\s+(?:R\$\s*)?(\d[\d.,]*[.,]\d{2})\s*$/i);
+      if (m) {
+        const mi = mesesAbr.indexOf(m[2].toUpperCase());
+        const yr = m[3] ? parseInt(m[3]) : refYear;
+        date = `${yr}-${String(mi + 1).padStart(2, '0')}-01`;
+        desc = m[1].trim();
+        amount = parseFloat(m[4].replace(/\./g, '').replace(',', '.'));
+      }
+    }
+
     // Format: "SPOTIFY 31,90" (no date)
     if (!date) {
       let m = line.match(/^(.+?)\s+(?:R\$\s*)?(\d[\d.,]*[.,]\d{2})\s*$/);
@@ -5123,7 +5321,7 @@ function renderDividas() {
         </div>
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;">
-        ${d.status !== 'paga' ? `<button onclick="pagarParcelaDivida('${d.id}')" style="padding:8px 16px;background:#059669;color:white;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;">Pagar</button>` : ''}
+        ${d.status !== 'paga' ? `<button onclick="abrirEscolhaPgto('${d.id}')" style="padding:8px 16px;background:#059669;color:white;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;">Pagar</button>` : ''}
         <button onclick="abrirTabelaAmort('${d.id}')" style="padding:8px 16px;background:#eff6ff;color:#2563eb;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;">Tabela</button>
         ${d.status !== 'paga' ? `<button onclick="abrirSimulAmort('${d.id}')" style="padding:8px 16px;background:#fef3c7;color:#92400e;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;">Simular Amortização</button>` : ''}
         <button onclick="editarDivida('${d.id}')" style="padding:8px 16px;background:#eef2ff;color:#4f46e5;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;">Editar</button>
@@ -5388,6 +5586,165 @@ function pagarParcelaDivida(id) {
 
 function fecharPagarParcelaModal() {
   document.getElementById('pagar-parcela-modal').style.display = 'none';
+}
+
+// ─── ESCOLHA TIPO DE PAGAMENTO ─────────────────────────────────────────────
+function abrirEscolhaPgto(id) {
+  const d = S.debts.find(x => x.id === id);
+  if (!d) return;
+  document.getElementById('escolha-pgto-divida-id').value = id;
+  const proxParcela = (d.parcelasPagas || 0) + 1;
+  const saldo = (d.sistema === 'price' || d.sistema === 'sac') ? calcSaldoDevedor(d) : Math.max(0, (d.totalAmount||0) - (d.parcelasPagas||0) * (d.parcelaAmount||0));
+  document.getElementById('escolha-pgto-info').innerHTML = `<b>${d.desc}</b> — Parcela ${proxParcela}/${d.totalParcelas} | Saldo: ${brl(saldo)}`;
+  document.getElementById('escolha-pgto-modal').style.display = 'block';
+}
+
+function fecharEscolhaPgtoModal() {
+  document.getElementById('escolha-pgto-modal').style.display = 'none';
+}
+
+function escolherPagamentoNormal() {
+  const id = document.getElementById('escolha-pgto-divida-id').value;
+  fecharEscolhaPgtoModal();
+  pagarParcelaDivida(id);
+}
+
+function escolherPagamentoAmortizacao() {
+  const id = document.getElementById('escolha-pgto-divida-id').value;
+  fecharEscolhaPgtoModal();
+  abrirPagarAmortModal(id);
+}
+
+// ─── PAGAR AMORTIZAÇÃO EXTRA ────────────────────────────────────────────────
+function abrirPagarAmortModal(id) {
+  const d = S.debts.find(x => x.id === id);
+  if (!d) return;
+
+  const modal = document.getElementById('pagar-amort-modal');
+  modal.style.display = 'block';
+  document.getElementById('pa-divida-id').value = id;
+
+  const saldo = (d.sistema === 'price' || d.sistema === 'sac') ? calcSaldoDevedor(d) : Math.max(0, (d.totalAmount||0) - (d.parcelasPagas||0) * (d.parcelaAmount||0));
+  document.getElementById('pa-saldo-info').textContent = brl(saldo);
+  document.getElementById('pa-valor').value = '';
+  document.getElementById('pa-data').value = new Date().toISOString().slice(0,10);
+  document.getElementById('pa-modo').value = 'prazo';
+  setPaAmortModo('prazo');
+
+  const contaSel = document.getElementById('pa-conta');
+  contaSel.innerHTML = S.accounts
+    .filter(a => a.accountType === 'conta')
+    .map(a => `<option value="${a.id}">${a.label || BANKS[a.bank]?.name || a.bank}</option>`)
+    .join('');
+}
+
+function fecharPagarAmortModal() {
+  document.getElementById('pagar-amort-modal').style.display = 'none';
+}
+
+function setPaAmortModo(modo) {
+  document.getElementById('pa-modo').value = modo;
+  document.getElementById('pa-modo-prazo').className = 'type-btn' + (modo === 'prazo' ? ' active-invest' : '');
+  document.getElementById('pa-modo-parcela').className = 'type-btn' + (modo === 'parcela' ? ' active-invest' : '');
+}
+
+function confirmarPagarAmortizacao() {
+  const dividaId = document.getElementById('pa-divida-id').value;
+  const valor = parseFloat(document.getElementById('pa-valor').value) || 0;
+  const data = document.getElementById('pa-data').value;
+  const contaId = document.getElementById('pa-conta').value;
+  const modo = document.getElementById('pa-modo').value;
+
+  if (valor <= 0 || !data || !contaId) {
+    toast('Preencha todos os campos');
+    return;
+  }
+
+  const d = S.debts.find(x => x.id === dividaId);
+  if (!d) return;
+
+  const saldoAtual = (d.sistema === 'price' || d.sistema === 'sac') ? calcSaldoDevedor(d) : Math.max(0, (d.totalAmount||0) - (d.parcelasPagas||0) * (d.parcelaAmount||0));
+
+  if (valor > saldoAtual) {
+    toast('Valor maior que o saldo devedor (' + brl(saldoAtual) + ')');
+    return;
+  }
+
+  // Record amortization
+  d.amortizacoesExtra = d.amortizacoesExtra || [];
+  d.amortizacoesExtra.push({ date: data, amount: valor, modo: modo });
+
+  const novoSaldo = saldoAtual - valor;
+
+  if (novoSaldo <= 0.01) {
+    // Quitação total
+    d.status = 'paga';
+    d.parcelasPagas = d.totalParcelas;
+  } else {
+    const sistema = d.sistema || 'simples';
+    const taxa = (d.taxaMensal || 0) / 100;
+    const parcelasRestantes = d.totalParcelas - (d.parcelasPagas || 0);
+
+    if (modo === 'prazo') {
+      // Reduce number of installments, keep same payment amount
+      if (sistema === 'price' && taxa > 0) {
+        const pmt = d.parcelaAmount;
+        // n = -log(1 - saldo*i/pmt) / log(1+i)
+        const novasParcelas = Math.ceil(-Math.log(1 - novoSaldo * taxa / pmt) / Math.log(1 + taxa));
+        d.totalParcelas = (d.parcelasPagas || 0) + Math.max(1, novasParcelas);
+      } else if (sistema === 'sac' && taxa > 0) {
+        const amortFixa = d.parcelaAmount - (saldoAtual * taxa);
+        const novasParcelas = Math.ceil(novoSaldo / amortFixa);
+        d.totalParcelas = (d.parcelasPagas || 0) + Math.max(1, novasParcelas);
+      } else {
+        const pmt = d.parcelaAmount;
+        const novasParcelas = Math.ceil(novoSaldo / pmt);
+        d.totalParcelas = (d.parcelasPagas || 0) + Math.max(1, novasParcelas);
+      }
+      // Recalculate totalAmount
+      d.principal = novoSaldo;
+    } else {
+      // Reduce installment amount, keep same number of installments
+      d.principal = novoSaldo;
+      if (sistema === 'price' && taxa > 0) {
+        d.parcelaAmount = calcPMT(novoSaldo, taxa, parcelasRestantes);
+      } else if (sistema === 'sac' && taxa > 0) {
+        const amortFixa = novoSaldo / parcelasRestantes;
+        d.parcelaAmount = amortFixa + (novoSaldo * taxa);
+      } else {
+        d.parcelaAmount = novoSaldo / parcelasRestantes;
+      }
+      d.parcelaAmount = Math.round(d.parcelaAmount * 100) / 100;
+    }
+  }
+
+  // Create transaction
+  S.transactions.push({
+    id: 'tx_' + Date.now(),
+    type: 'despesa',
+    desc: `Amortização Extra - ${d.desc}`,
+    amount: valor,
+    date: data,
+    category: 'Outros',
+    subcategory: '',
+    accountId: contaId,
+    user: d.titular,
+    formaPgto: 'debito',
+    pago: true,
+    custoTipo: 'fixo',
+    notas: `Amortização extra (${modo === 'prazo' ? 'reduzir prazo' : 'reduzir parcela'}): ${d.desc} (${BANKS[d.bank]?.name || d.bank})`,
+    at: new Date().toISOString()
+  });
+
+  save();
+  fecharPagarAmortModal();
+  renderDividas();
+
+  if (novoSaldo <= 0.01) {
+    toast('Dívida quitada com amortização extra!');
+  } else {
+    toast(`Amortização de ${brl(valor)} registrada! Novo saldo: ${brl(novoSaldo)}`);
+  }
 }
 
 function confirmarPagarParcela() {
