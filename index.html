@@ -206,7 +206,7 @@
 <section id="page-dashboard" style="display:none;max-width:1100px;">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:28px;flex-wrap:wrap;gap:12px;">
     <div>
-      <h1 style="font-size:24px;font-weight:800;color:#0f172a;">Dashboard</h1>
+      <h1 id="dash-greeting" style="font-size:24px;font-weight:800;color:#0f172a;">Olá! 👋</h1>
       <p id="dash-subtitle" style="color:#94a3b8;font-size:14px;margin-top:2px;"></p>
     </div>
     <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
@@ -3022,12 +3022,23 @@ function updateLeiaAquiVisibility() {
   if (assinatura) assinatura.textContent = S.settings.u1;
 }
 
+function getLoggedUserName() {
+  const logged = sessionStorage.getItem('fincasal_logged_user');
+  if (logged === 'u2') return S.settings.u2;
+  if (logged === 'u1') return S.settings.u1;
+  return S.settings.u1;
+}
+
 function renderDashboard() {
   // Update filter button labels
   document.getElementById('tf-paulo').textContent  = S.settings.u1;
   document.getElementById('tf-esposa').textContent = S.settings.u2;
   updateTempoJuntos();
   updateLeiaAquiVisibility();
+
+  // Greeting with logged user name
+  const userName = getLoggedUserName();
+  document.getElementById('dash-greeting').innerHTML = `Olá, ${userName}! 👋`;
 
   // Init period selectors (preserve current selection)
   const mSel = document.getElementById('dash-month');
@@ -3041,7 +3052,7 @@ function renderDashboard() {
 
   const filterLabel = titularFilter === 'ambos' ? 'Geral' : (titularFilter === 'paulo' ? S.settings.u1 : S.settings.u2);
   const periodLabel = isAno ? `Ano ${dashYear}` : `${MESES_FULL[dashMonth]} ${dashYear}`;
-  document.getElementById('dash-subtitle').textContent = `${filterLabel} — ${periodLabel}`;
+  document.getElementById('dash-subtitle').textContent = `Bem-vindo(a) de volta! Aqui está o resumo das suas finanças. — ${filterLabel} · ${periodLabel}`;
 
   if (dashView === 'conta') {
     renderDashConta(ym, ymPrev);
