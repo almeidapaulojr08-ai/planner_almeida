@@ -2292,7 +2292,6 @@ function setTitularFilter(f) {
   titularFilter = f;
   document.querySelectorAll('.tf-btn').forEach(b => b.classList.remove('tf-active'));
   document.getElementById('tf-' + f)?.classList.add('tf-active');
-  updateLeiaAquiVisibility();
   renderDashboard();
 }
 
@@ -2330,8 +2329,10 @@ function doLogin() {
   const validUser = user === u1.toLowerCase() || user === u2.toLowerCase() || user === 'casal';
   if (validUser && pass === (password || '1234')) {
     sessionStorage.setItem('fincasal_auth', '1');
+    sessionStorage.setItem('fincasal_logged_user', user === u2.toLowerCase() ? 'u2' : 'u1');
     document.getElementById('login-screen').style.display = 'none';
     err.style.display = 'none';
+    updateLeiaAquiVisibility();
     goto('dashboard');
   } else {
     err.textContent = '❌ Usuário ou senha incorretos';
@@ -2343,10 +2344,12 @@ function doLogin() {
 
 function logout() {
   sessionStorage.removeItem('fincasal_auth');
+  sessionStorage.removeItem('fincasal_logged_user');
   document.getElementById('login-user').value = '';
   document.getElementById('login-pass').value = '';
   document.getElementById('login-err').style.display = 'none';
   document.getElementById('login-screen').style.display = 'flex';
+  updateLeiaAquiVisibility();
 }
 
 // ─── NAVIGATION ───────────────────────────────────────────────────────────────
@@ -3007,11 +3010,12 @@ function updateTempoJuntos() {
   if (el) el.textContent = calcTempoJuntos();
 }
 
-// ─── LEIA AQUI - VISIBILIDADE BASEADA NO TITULAR ─────────────────────────────
+// ─── LEIA AQUI - VISIBILIDADE BASEADA NO LOGIN ──────────────────────────────
 function updateLeiaAquiVisibility() {
   const nav = document.getElementById('nav-leiaaqui');
+  const loggedUser = sessionStorage.getItem('fincasal_logged_user');
   if (nav) {
-    nav.style.display = (titularFilter === 'esposa') ? 'flex' : 'none';
+    nav.style.display = (loggedUser === 'u2') ? 'flex' : 'none';
   }
   // Assinatura dinâmica
   const assinatura = document.getElementById('leia-assinatura');
