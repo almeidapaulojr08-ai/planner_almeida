@@ -1406,13 +1406,33 @@
 
       <div style="margin-bottom:14px;">
         <label class="flabel">Banco</label>
-        <select class="finput" id="cm-banco">
-          <option value="bradesco">Bradesco</option>
-          <option value="nubank">Nubank</option>
-          <option value="sicredi">Sicredi</option>
-          <option value="caixa">Caixa Econômica</option>
-          <option value="binance">Binance (USD)</option>
-        </select>
+        <select class="finput" id="cm-banco" onchange="onCmBancoChange()"></select>
+      </div>
+      <div id="cm-novo-banco-fields" style="display:none;margin-bottom:14px;padding:14px;background:#f8fafc;border-radius:12px;border:1.5px dashed #cbd5e1;">
+        <p style="font-weight:700;font-size:13px;color:#334155;margin-bottom:10px;">Cadastrar Novo Banco</p>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+          <div>
+            <label class="flabel">Nome do Banco</label>
+            <input class="finput" type="text" id="cm-novo-banco-nome" placeholder="Ex: Inter, C6, Itaú...">
+          </div>
+          <div>
+            <label class="flabel">Sigla (2-3 letras)</label>
+            <input class="finput" type="text" id="cm-novo-banco-sigla" placeholder="Ex: C6" maxlength="3" style="text-transform:uppercase;">
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+          <div>
+            <label class="flabel">Cor</label>
+            <input type="color" id="cm-novo-banco-cor" value="#4f46e5" style="width:100%;height:38px;border:1.5px solid #e2e8f0;border-radius:8px;cursor:pointer;">
+          </div>
+          <div>
+            <label class="flabel">Moeda</label>
+            <select class="finput" id="cm-novo-banco-moeda">
+              <option value="BRL">BRL (Real)</option>
+              <option value="USD">USD (Dólar)</option>
+            </select>
+          </div>
+        </div>
       </div>
 
       <div style="margin-bottom:14px;">
@@ -2006,6 +2026,7 @@ function initFirebaseSync() {
     if (fbData.budget) S.budget = { ...(S.budget || {}), ...fbData.budget };
     if (fbData.chatHistory) S.chatHistory = fbToArray(fbData.chatHistory);
     if (fbData.customCats) S.customCats = fbData.customCats;
+    if (fbData.customBanks) { S.customBanks = fbData.customBanks; Object.assign(BANKS, fbData.customBanks); }
 
     // Save merged data to localStorage
     localStorage.setItem('fincasal_v2', JSON.stringify(S));
@@ -2124,6 +2145,7 @@ function load() {
     if (d.debts)        S.debts        = d.debts;
     if (d.investments)  S.investments  = d.investments;
     if (d.customCats)   S.customCats   = d.customCats;
+    if (d.customBanks)  { S.customBanks = d.customBanks; Object.assign(BANKS, d.customBanks); }
     if (d.settings)     S.settings     = { ...S.settings, ...d.settings };
   } catch(e) {}
 }
@@ -2141,7 +2163,8 @@ function save() {
       investments: S.investments || [],
       budget: S.budget || {},
       chatHistory: S.chatHistory || [],
-      customCats: S.customCats || null
+      customCats: S.customCats || null,
+      customBanks: S.customBanks || null
     }).then(() => {
       updateSyncStatus('ok');
     }).catch(e => {
@@ -2245,12 +2268,56 @@ function renderContas() {
     : `<p style="color:#94a3b8;font-size:13px;padding:12px 0;">Nenhum cartão cadastrado ainda.</p>`;
 }
 
+// Carrega bancos customizados salvos no state
+function getAllBanks() {
+  const custom = S.customBanks || {};
+  return { ...BANKS, ...custom };
+}
+
+function refreshBancoSelect(selectedBank) {
+  const sel = document.getElementById('cm-banco');
+  const banks = getAllBanks();
+  sel.innerHTML = Object.entries(banks).map(([key, b]) =>
+    `<option value="${key}">${b.name}${b.currency === 'USD' ? ' (USD)' : ''}</option>`
+  ).join('') + '<option value="__novo__">+ Novo Banco...</option>';
+  if (selectedBank && banks[selectedBank]) sel.value = selectedBank;
+  onCmBancoChange();
+}
+
+function onCmBancoChange() {
+  const isNovo = document.getElementById('cm-banco').value === '__novo__';
+  document.getElementById('cm-novo-banco-fields').style.display = isNovo ? 'block' : 'none';
+}
+
+function criarBancoCustom() {
+  const nome = document.getElementById('cm-novo-banco-nome').value.trim();
+  const sigla = (document.getElementById('cm-novo-banco-sigla').value.trim() || nome.substring(0, 2)).toUpperCase();
+  const cor = document.getElementById('cm-novo-banco-cor').value;
+  const moeda = document.getElementById('cm-novo-banco-moeda').value;
+  if (!nome) { toast('Informe o nome do banco'); return null; }
+  const key = nome.toLowerCase().replace(/[^a-z0-9]/g, '_');
+  const lighten = (hex) => {
+    const r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
+    return `rgb(${Math.min(255,r+200)},${Math.min(255,g+200)},${Math.min(255,b+200)})`;
+  };
+  const fontSize = sigla.length > 2 ? 14 : 18;
+  const bank = {
+    name: nome, color: cor, bg: lighten(cor), currency: moeda,
+    svg: `<rect width="48" height="48" rx="0" fill="${cor}"/><text x="24" y="32" text-anchor="middle" fill="white" font-family="Arial,sans-serif" font-weight="900" font-size="${fontSize}">${sigla}</text>`
+  };
+  if (!S.customBanks) S.customBanks = {};
+  S.customBanks[key] = bank;
+  BANKS[key] = bank;
+  save();
+  return key;
+}
+
 function abrirModalConta() {
   editContaId = null;
   contaTabAtual = 'conta';
   tipoContaAtual = 'corrente';
   document.getElementById('conta-modal-title').textContent = 'Adicionar';
-  document.getElementById('cm-banco').value  = 'bradesco';
+  refreshBancoSelect('nubank');
   document.getElementById('cm-label').value  = '';
   document.getElementById('cm-limite').value = '';
   document.getElementById('cm-fecha').value  = '';
@@ -2269,7 +2336,7 @@ function editarConta(id) {
   contaTabAtual = a.accountType === 'cartao' ? 'cartao' : 'conta';
   tipoContaAtual = a.tipoConta || 'corrente';
   document.getElementById('conta-modal-title').textContent = 'Editar';
-  document.getElementById('cm-banco').value  = a.bank;
+  refreshBancoSelect(a.bank);
   document.getElementById('cm-label').value  = a.label;
   document.getElementById('cm-limite').value = a.limite || '';
   document.getElementById('cm-fecha').value  = a.fecha  || '';
@@ -2287,7 +2354,11 @@ function fecharModalConta() {
 }
 
 function salvarConta() {
-  const bank  = document.getElementById('cm-banco').value;
+  let bank = document.getElementById('cm-banco').value;
+  if (bank === '__novo__') {
+    bank = criarBancoCustom();
+    if (!bank) return;
+  }
   const label = document.getElementById('cm-label').value.trim();
   const owner = document.getElementById('cm-owner').value;
   if (!label) { toast('❌ Informe um apelido'); return; }
