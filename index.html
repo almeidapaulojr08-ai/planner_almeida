@@ -2322,7 +2322,7 @@ function doLogin() {
   const validUser = user === u1.toLowerCase() || user === u2.toLowerCase() || user === 'casal';
   if (validUser && pass === (password || '1234')) {
     sessionStorage.setItem('fincasal_auth', '1');
-    sessionStorage.setItem('fincasal_logged_user', user === u2.toLowerCase() ? 'u2' : 'u1');
+    sessionStorage.setItem('fincasal_logged_user', (user === u2.toLowerCase()) ? 'u2' : (user === u1.toLowerCase() ? 'u1' : 'casal'));
     document.getElementById('login-screen').style.display = 'none';
     err.style.display = 'none';
     updateLeiaAquiVisibility();
@@ -3006,7 +3006,16 @@ function updateTempoJuntos() {
 // ─── LEIA AQUI - VISIBILIDADE BASEADA NO LOGIN ──────────────────────────────
 function updateLeiaAquiVisibility() {
   const nav = document.getElementById('nav-leiaaqui');
-  const loggedUser = sessionStorage.getItem('fincasal_logged_user');
+  let loggedUser = sessionStorage.getItem('fincasal_logged_user');
+  // Fallback: se não tem o valor salvo mas está autenticado, tenta detectar pelo campo de login
+  if (!loggedUser && sessionStorage.getItem('fincasal_auth')) {
+    const loginField = document.getElementById('login-user');
+    if (loginField && loginField.value.trim()) {
+      const u = loginField.value.trim().toLowerCase();
+      loggedUser = (u === S.settings.u2.toLowerCase()) ? 'u2' : 'u1';
+      sessionStorage.setItem('fincasal_logged_user', loggedUser);
+    }
+  }
   if (nav) {
     nav.style.display = (loggedUser === 'u2') ? 'flex' : 'none';
   }
