@@ -2008,8 +2008,10 @@ function initFirebaseSync() {
     if (fbData.investments) S.investments = fbToArray(fbData.investments);
     if (fbData.budget) S.budget = fbData.budget;
     if (fbData.chatHistory) S.chatHistory = fbToArray(fbData.chatHistory);
-    if (fbData.customCats) S.customCats = fbData.customCats;
-    if (fbData.customBanks) { S.customBanks = fbData.customBanks; Object.assign(BANKS, fbData.customBanks); }
+    // Categorias e bancos: só aceitar do Firebase se local estiver vazio (device novo)
+    // Nunca sobrescrever categorias/bancos que o usuário já tem localmente
+    if (fbData.customCats && !S.customCats) S.customCats = fbData.customCats;
+    if (fbData.customBanks && !S.customBanks) { S.customBanks = fbData.customBanks; Object.assign(BANKS, fbData.customBanks); }
 
     localStorage.setItem('fincasal_v2', JSON.stringify(S));
 
