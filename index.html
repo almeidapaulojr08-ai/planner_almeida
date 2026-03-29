@@ -6852,7 +6852,10 @@ function init() {
   load();
   // Limpeza: remover conta Caixa automática que foi criada por erro
   const caixaIdx = S.accounts.findIndex(a => a.id === 'caixa_conta');
-  if (caixaIdx >= 0) { S.accounts.splice(caixaIdx, 1); localStorage.setItem('fincasal_v2', JSON.stringify(S)); }
+  if (caixaIdx >= 0) {
+    S.accounts.splice(caixaIdx, 1);
+    save(); // salva no localStorage E no Firebase pra não voltar
+  }
   seedAccounts();
   importExcelData();
   initFirebaseSync();
