@@ -1977,6 +1977,9 @@ function initFirebaseSync() {
       S.settings = { ...S.settings, ...fbData.settings };
     }
     if (fbData.debts) S.debts = fbToArray(fbData.debts);
+    if (fbData.investments) S.investments = fbToArray(fbData.investments);
+    if (fbData.budget) S.budget = fbData.budget;
+    if (fbData.chatHistory) S.chatHistory = fbToArray(fbData.chatHistory);
     if (fbData.customCats) S.customCats = fbData.customCats;
 
     // Save to localStorage as cache
@@ -1990,6 +1993,7 @@ function initFirebaseSync() {
         if (page === 'dashboard') renderDashboard();
         else if (page === 'historico') renderHistorico();
         else if (page === 'dividas') renderDividas();
+        else if (page === 'investimentos') renderInvestimentos();
       }
     }
 
@@ -2098,6 +2102,8 @@ function save() {
       settings: S.settings,
       debts: S.debts || [],
       investments: S.investments || [],
+      budget: S.budget || {},
+      chatHistory: S.chatHistory || [],
       customCats: S.customCats || null
     }).then(() => {
       updateSyncStatus('ok');
