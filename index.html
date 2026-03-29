@@ -2106,6 +2106,10 @@ const BANKS = {
     name:'Binance', color:'#F0B90B', bg:'#FFFBEA', currency:'USD',
     svg:`<rect width="48" height="48" rx="0" fill="#F0B90B"/><polygon points="24,10 28,14 24,18 20,14" fill="white"/><polygon points="15,19 19,15 23,19 19,23" fill="white"/><polygon points="33,19 29,15 25,19 29,23" fill="white"/><polygon points="24,20 28,24 24,28 20,24" fill="white"/><polygon points="24,30 28,26 32,30 28,34" fill="white"/><polygon points="24,30 20,26 16,30 20,34" fill="white"/>`
   },
+  caixa: {
+    name:'Caixa', color:'#005CA9', bg:'#E6F0FF', currency:'BRL',
+    svg:`<rect width="48" height="48" rx="0" fill="#005CA9"/><path d="M24 8 L38 20 L34 20 L34 38 L14 38 L14 20 L10 20 Z" fill="#F79520"/><rect x="20" y="26" width="8" height="12" fill="#005CA9"/>`
+  },
 };
 
 // ─── PERSISTENCE ──────────────────────────────────────────────────────────────
@@ -3226,18 +3230,18 @@ function renderCardBreakdowns(mTx) {
   });
   document.getElementById('breakdown-saldo').innerHTML = saldoHtml;
 
-  // Receitas breakdown
+  // Receitas breakdown (exclui transferências — não são receita real)
   let recHtml = '';
   accToShow.forEach(a => {
-    const val = mTx.filter(t => t.accountId === a.id && t.type === 'receita').reduce((s,t)=>s+amountBrl(t),0);
+    const val = mTx.filter(t => t.accountId === a.id && t.type === 'receita' && !t.isTransfer).reduce((s,t)=>s+amountBrl(t),0);
     recHtml += bankRow(a.bank, val, '#059669');
   });
   document.getElementById('breakdown-receitas').innerHTML = recHtml;
 
-  // Despesas breakdown
+  // Despesas breakdown (exclui transferências — não são despesa real)
   let despHtml = '';
   accToShow.forEach(a => {
-    const val = mTx.filter(t => t.accountId === a.id && t.type === 'despesa' && t.formaPgto !== 'credito').reduce((s,t)=>s+amountBrl(t),0);
+    const val = mTx.filter(t => t.accountId === a.id && t.type === 'despesa' && t.formaPgto !== 'credito' && !t.isTransfer).reduce((s,t)=>s+amountBrl(t),0);
     despHtml += bankRow(a.bank, val, '#e11d48');
   });
   document.getElementById('breakdown-despesas').innerHTML = despHtml;
@@ -3743,10 +3747,10 @@ function renderHistorico() {
   const empty = document.getElementById('hist-empty');
   const cards = document.getElementById('hist-cards');
 
-  // Summary cards
-  const rec  = txs.filter(t=>t.type==='receita').reduce((s,t)=>s+amountBrl(t),0);
-  const desp = txs.filter(t=>t.type==='despesa').reduce((s,t)=>s+amountBrl(t),0);
-  const pend = txs.filter(t=>t.type==='despesa'&&t.pago===false).reduce((s,t)=>s+amountBrl(t),0);
+  // Summary cards (exclui transferências dos totais)
+  const rec  = txs.filter(t=>t.type==='receita' && !t.isTransfer).reduce((s,t)=>s+amountBrl(t),0);
+  const desp = txs.filter(t=>t.type==='despesa' && !t.isTransfer).reduce((s,t)=>s+amountBrl(t),0);
+  const pend = txs.filter(t=>t.type==='despesa' && !t.isTransfer && t.pago===false).reduce((s,t)=>s+amountBrl(t),0);
   const inv  = txs.filter(t=>t.type==='investimento').reduce((s,t)=>s+amountBrl(t),0);
   document.getElementById('hist-sum-rec').textContent  = brl(rec);
   document.getElementById('hist-sum-desp').textContent = brl(desp);
@@ -5237,6 +5241,7 @@ function seedAccounts() {
     { id: 'card_nubank',   bank:'nubank',  label:'Cartão Nubank',  owner: S.settings.u1, accountType:'cartao', tipoConta:null, limite:'17500', fecha:'2', vence:'10' },
     { id: 'card_sicredi',  bank:'sicredi', label:'Cartão Sicredi', owner: S.settings.u1, accountType:'cartao', tipoConta:null, limite:'13000', fecha:'2', vence:'15' },
     { id: 'binance_conta', bank:'binance', label:'Conta Binance',  owner: S.settings.u1, accountType:'conta', tipoConta:'corrente' },
+    { id: 'caixa_conta',   bank:'caixa',   label:'Conta Caixa',    owner: S.settings.u1, accountType:'conta', tipoConta:'corrente' },
   ];
   let changed = false;
   // Only add missing accounts, NEVER remove or deduplicate existing ones
