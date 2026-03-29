@@ -2007,7 +2007,7 @@ function initFirebaseSync() {
   if (!db) return;
 
   db.ref('data').on('value', (snapshot) => {
-    if (_fbSyncing) return; // prevent loop from our own update
+    if (_fbSyncing || _savingToFb) return; // prevent overwriting our own save
     const fbData = snapshot.val();
     if (!fbData) {
       // Firebase is empty, push our local data up
@@ -2150,11 +2150,14 @@ function load() {
   } catch(e) {}
 }
 
+let _savingToFb = false;
+
 function save() {
   localStorage.setItem('fincasal_v2', JSON.stringify(S));
   // Sync to Firebase
   if (db) {
     updateSyncStatus('syncing');
+    _savingToFb = true;
     db.ref('data').set({
       transactions: S.transactions,
       accounts: S.accounts,
@@ -2166,8 +2169,10 @@ function save() {
       customCats: S.customCats || null,
       customBanks: S.customBanks || null
     }).then(() => {
+      _savingToFb = false;
       updateSyncStatus('ok');
     }).catch(e => {
+      _savingToFb = false;
       console.warn('Firebase save error:', e);
       updateSyncStatus('error');
     });
@@ -5314,7 +5319,6 @@ function seedAccounts() {
     { id: 'card_nubank',   bank:'nubank',  label:'Cartão Nubank',  owner: S.settings.u1, accountType:'cartao', tipoConta:null, limite:'17500', fecha:'2', vence:'10' },
     { id: 'card_sicredi',  bank:'sicredi', label:'Cartão Sicredi', owner: S.settings.u1, accountType:'cartao', tipoConta:null, limite:'13000', fecha:'2', vence:'15' },
     { id: 'binance_conta', bank:'binance', label:'Conta Binance',  owner: S.settings.u1, accountType:'conta', tipoConta:'corrente' },
-    { id: 'caixa_conta',   bank:'caixa',   label:'Conta Caixa',    owner: S.settings.u1, accountType:'conta', tipoConta:'corrente' },
   ];
   let changed = false;
   // Only add missing accounts, NEVER remove or deduplicate existing ones
