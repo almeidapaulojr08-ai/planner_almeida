@@ -1959,10 +1959,34 @@ function updateSyncStatus(status) {
   else if (status === 'syncing') { el.textContent = '🔄'; el.title = 'Syncing...'; }
 }
 
+// Merge two arrays by 'id' field — keeps both, prefers newer (updatedAt) on conflict
+function mergeById(local, remote) {
+  const map = new Map();
+  for (const item of local) {
+    if (item && item.id) map.set(item.id, item);
+  }
+  for (const item of remote) {
+    if (!item || !item.id) continue;
+    const existing = map.get(item.id);
+    if (!existing) {
+      map.set(item.id, item);
+    } else {
+      // Prefer whichever was updated more recently, fallback to remote
+      const localTime = existing.updatedAt || existing.createdAt || 0;
+      const remoteTime = item.updatedAt || item.createdAt || 0;
+      if (remoteTime >= localTime) map.set(item.id, item);
+    }
+  }
+  return Array.from(map.values());
+}
+
+let _fbSyncing = false;
+
 function initFirebaseSync() {
   if (!db) return;
 
   db.ref('data').on('value', (snapshot) => {
+    if (_fbSyncing) return; // prevent loop from our own update
     const fbData = snapshot.val();
     if (!fbData) {
       // Firebase is empty, push our local data up
@@ -1970,20 +1994,28 @@ function initFirebaseSync() {
       return;
     }
 
-    // If Firebase has data, use it (shared source of truth)
-    if (fbData.transactions) S.transactions = fbToArray(fbData.transactions);
-    if (fbData.accounts) S.accounts = fbToArray(fbData.accounts);
+    // Merge arrays by ID so no device overwrites the other's data
+    if (fbData.transactions) S.transactions = mergeById(S.transactions, fbToArray(fbData.transactions));
+    if (fbData.accounts) S.accounts = mergeById(S.accounts, fbToArray(fbData.accounts));
     if (fbData.settings) {
       S.settings = { ...S.settings, ...fbData.settings };
     }
-    if (fbData.debts) S.debts = fbToArray(fbData.debts);
-    if (fbData.investments) S.investments = fbToArray(fbData.investments);
-    if (fbData.budget) S.budget = fbData.budget;
+    if (fbData.debts) S.debts = mergeById(S.debts, fbToArray(fbData.debts));
+    if (fbData.investments) S.investments = mergeById(S.investments, fbToArray(fbData.investments));
+    if (fbData.budget) S.budget = { ...(S.budget || {}), ...fbData.budget };
     if (fbData.chatHistory) S.chatHistory = fbToArray(fbData.chatHistory);
     if (fbData.customCats) S.customCats = fbData.customCats;
 
-    // Save to localStorage as cache
+    // Save merged data to localStorage
     localStorage.setItem('fincasal_v2', JSON.stringify(S));
+    // Push merged data back to Firebase so both sources stay complete
+    _fbSyncing = true;
+    db.ref('data').update({
+      transactions: S.transactions,
+      accounts: S.accounts,
+      debts: S.debts || [],
+      investments: S.investments || []
+    }).then(() => { _fbSyncing = false; }).catch(() => { _fbSyncing = false; });
 
     // Re-render current view if already logged in
     if (sessionStorage.getItem('fincasal_auth')) {
