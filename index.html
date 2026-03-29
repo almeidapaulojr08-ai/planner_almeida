@@ -1980,66 +1980,35 @@ function updateSyncStatus(status) {
   else if (status === 'syncing') { el.textContent = '🔄'; el.title = 'Syncing...'; }
 }
 
-// Merge two arrays by 'id' field — keeps both, prefers newer (updatedAt) on conflict
-function mergeById(local, remote) {
-  const map = new Map();
-  for (const item of local) {
-    if (item && item.id) map.set(item.id, item);
-  }
-  for (const item of remote) {
-    if (!item || !item.id) continue;
-    const existing = map.get(item.id);
-    if (!existing) {
-      map.set(item.id, item);
-    } else {
-      // Prefer whichever was updated more recently, fallback to remote
-      const localTime = existing.updatedAt || existing.createdAt || 0;
-      const remoteTime = item.updatedAt || item.createdAt || 0;
-      if (remoteTime >= localTime) map.set(item.id, item);
-    }
-  }
-  return Array.from(map.values());
-}
-
-let _fbSyncing = false;
+let _lastSaveTs = 0;
 
 function initFirebaseSync() {
   if (!db) return;
 
   db.ref('data').on('value', (snapshot) => {
-    if (_fbSyncing || _savingToFb) return; // prevent overwriting our own save
+    // Ignorar eventos disparados pelo nosso próprio save (dentro de 3s)
+    if (Date.now() - _lastSaveTs < 3000) return;
+
     const fbData = snapshot.val();
     if (!fbData) {
-      // Firebase is empty, push our local data up
       save();
       return;
     }
 
-    // Merge arrays by ID so no device overwrites the other's data
-    if (fbData.transactions) S.transactions = mergeById(S.transactions, fbToArray(fbData.transactions));
-    if (fbData.accounts) S.accounts = mergeById(S.accounts, fbToArray(fbData.accounts));
-    if (fbData.settings) {
-      S.settings = { ...S.settings, ...fbData.settings };
-    }
-    if (fbData.debts) S.debts = mergeById(S.debts, fbToArray(fbData.debts));
-    if (fbData.investments) S.investments = mergeById(S.investments, fbToArray(fbData.investments));
-    if (fbData.budget) S.budget = { ...(S.budget || {}), ...fbData.budget };
+    // Receber dados do Firebase (outro dispositivo salvou)
+    if (fbData.transactions) S.transactions = fbToArray(fbData.transactions);
+    if (fbData.accounts) S.accounts = fbToArray(fbData.accounts);
+    if (fbData.settings) S.settings = { ...S.settings, ...fbData.settings };
+    if (fbData.debts) S.debts = fbToArray(fbData.debts);
+    if (fbData.investments) S.investments = fbToArray(fbData.investments);
+    if (fbData.budget) S.budget = fbData.budget;
     if (fbData.chatHistory) S.chatHistory = fbToArray(fbData.chatHistory);
     if (fbData.customCats) S.customCats = fbData.customCats;
     if (fbData.customBanks) { S.customBanks = fbData.customBanks; Object.assign(BANKS, fbData.customBanks); }
 
-    // Save merged data to localStorage
     localStorage.setItem('fincasal_v2', JSON.stringify(S));
-    // Push merged data back to Firebase so both sources stay complete
-    _fbSyncing = true;
-    db.ref('data').update({
-      transactions: S.transactions,
-      accounts: S.accounts,
-      debts: S.debts || [],
-      investments: S.investments || []
-    }).then(() => { _fbSyncing = false; }).catch(() => { _fbSyncing = false; });
 
-    // Re-render current view if already logged in
+    // Re-render só se logado (sem re-render constante)
     if (sessionStorage.getItem('fincasal_auth')) {
       const current = document.querySelector('section[id^="page-"]:not([style*="display:none"])');
       if (current) {
@@ -2150,14 +2119,11 @@ function load() {
   } catch(e) {}
 }
 
-let _savingToFb = false;
-
 function save() {
   localStorage.setItem('fincasal_v2', JSON.stringify(S));
-  // Sync to Firebase
   if (db) {
     updateSyncStatus('syncing');
-    _savingToFb = true;
+    _lastSaveTs = Date.now();
     db.ref('data').set({
       transactions: S.transactions,
       accounts: S.accounts,
@@ -2169,10 +2135,8 @@ function save() {
       customCats: S.customCats || null,
       customBanks: S.customBanks || null
     }).then(() => {
-      _savingToFb = false;
       updateSyncStatus('ok');
     }).catch(e => {
-      _savingToFb = false;
       console.warn('Firebase save error:', e);
       updateSyncStatus('error');
     });
