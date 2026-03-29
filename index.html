@@ -803,6 +803,11 @@
       <p style="font-size:13px;color:#64748b;margin-bottom:16px;">Importe extratos do banco nos formatos TXT, CSV ou Excel (.xlsx). O arquivo deve ter colunas de data, descrição e valor.</p>
 
       <div style="margin-bottom:14px;">
+        <label class="flabel">Titular</label>
+        <select class="finput" id="imp-titular" onchange="filtrarContasImport()"></select>
+      </div>
+
+      <div style="margin-bottom:14px;">
         <label class="flabel">Conta / Cartão destino</label>
         <select class="finput" id="imp-conta"></select>
       </div>
@@ -3996,13 +4001,23 @@ function pagarFatura() {
 }
 
 // ─── IMPORT MODAL ─────────────────────────────────────────────────────────────
-function abrirImportModal() {
+function filtrarContasImport() {
+  const titular = document.getElementById('imp-titular').value;
   const sel = document.getElementById('imp-conta');
-  sel.innerHTML = S.accounts.map(a => {
-    const b = BANKS[a.bank];
+  const filtered = titular ? S.accounts.filter(a => a.owner === titular) : S.accounts;
+  sel.innerHTML = filtered.map(a => {
+    const b = BANKS[a.bank] || { name: a.bank };
     const icon = a.accountType === 'cartao' ? '💳' : '🏦';
-    return `<option value="${a.id}">${icon} ${b.name} — ${a.label}</option>`;
+    return `<option value="${a.id}">${icon} ${b.name} — ${a.label} [${a.owner}]</option>`;
   }).join('');
+}
+
+function abrirImportModal() {
+  // Popular titular
+  const titSel = document.getElementById('imp-titular');
+  const { u1, u2 } = S.settings;
+  titSel.innerHTML = `<option value="">Todos</option><option value="${u1}">${u1}</option><option value="${u2}">${u2}</option>`;
+  filtrarContasImport();
   document.getElementById('imp-file').value = '';
   document.getElementById('imp-file-label').innerHTML = 'Clique para selecionar arquivo<br><span style="font-size:11px;">.txt, .csv, .xlsx</span>';
   document.getElementById('imp-preview').style.display = 'none';
@@ -4087,7 +4102,7 @@ function parseCSV(text) {
       category: 'Outros',
       subcategory: '',
       date,
-      user: 'Paulo',
+      user: acc?.owner || document.getElementById('imp-titular').value || S.settings.u1,
       accountId: contaId,
       formaPgto: isCartao ? 'credito' : (tipoDefault === 'despesa' ? 'debito' : null),
       pago: true
