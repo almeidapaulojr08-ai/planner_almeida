@@ -5356,10 +5356,13 @@ function renderDividas() {
     return true;
   });
 
-  // Summary
+  // Summary (usa total com juros — é o que realmente será pago)
   const allDebts = S.debts;
-  const totalDividas = allDebts.reduce((s,d) => s + (d.totalAmount||0), 0);
-  const totalRestante = allDebts.reduce((s,d) => s + Math.max(0, (d.totalAmount||0) - (d.parcelasPagas||0) * (d.parcelaAmount||0)), 0);
+  const totalDividas = allDebts.reduce((s,d) => s + calcTotalComJuros(d), 0);
+  const totalRestante = allDebts.reduce((s,d) => {
+    const hasSist = d.sistema === 'price' || d.sistema === 'sac';
+    return s + (hasSist ? calcSaldoDevedor(d) : Math.max(0, (d.totalAmount||0) - (d.parcelasPagas||0) * (d.parcelaAmount||0)));
+  }, 0);
   const vencidas = allDebts.filter(d => d.status === 'atrasada').length;
   const pgtoMensal = allDebts.filter(d => d.status !== 'paga').reduce((s,d) => s + (d.parcelaAmount||0), 0);
 
@@ -5441,12 +5444,14 @@ function renderDividas() {
       </div>
       <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:14px;">
         <div>
-          <p style="font-size:11px;color:#94a3b8;">${hasSistema ? 'Principal' : 'Total'}</p>
-          <p style="font-size:14px;font-weight:700;color:#0f172a;">${brl(hasSistema ? (d.principal||d.totalAmount) : d.totalAmount)}</p>
+          <p style="font-size:11px;color:#94a3b8;">Total c/ Juros</p>
+          <p style="font-size:14px;font-weight:700;color:#0f172a;">${brl(calcTotalComJuros(d))}</p>
+          ${hasSistema ? `<p style="font-size:10px;color:#94a3b8;margin-top:2px;">Principal: ${brl(d.principal||d.totalAmount)}</p>` : ''}
         </div>
         <div>
           <p style="font-size:11px;color:#94a3b8;">Saldo Devedor</p>
           <p style="font-size:14px;font-weight:700;color:#e11d48;">${brl(restante)}</p>
+          ${hasSistema ? `<p style="font-size:10px;color:#94a3b8;margin-top:2px;">Juros: ${brl(calcTotalJuros(d))}</p>` : ''}
         </div>
         <div>
           <p style="font-size:11px;color:#94a3b8;">${hasSistema ? 'Taxa / Sistema' : 'Vencimento'}</p>
@@ -6067,6 +6072,34 @@ function abrirSimulAmort(id) {
       <div><span style="font-size:12px;color:#94a3b8;">Parcela atual:</span> <strong>${brl(d.parcelaAmount)}</strong></div>
     </div>
   `;
+}
+
+// Calcula o total com juros de uma dívida (quanto será pago ao todo)
+function calcTotalComJuros(d) {
+  const sistema = d.sistema || 'simples';
+  const principal = d.principal || d.totalAmount || 0;
+  const taxa = (d.taxaMensal || 0) / 100;
+  const n = d.totalParcelas || 0;
+  if (!taxa || taxa === 0 || !n) return d.totalAmount || principal;
+  if (sistema === 'price') {
+    const pmt = calcPMT(principal, taxa, n);
+    return pmt * n;
+  } else if (sistema === 'sac') {
+    const amortFixa = principal / n;
+    let total = 0, saldo = principal;
+    for (let i = 0; i < n; i++) {
+      total += amortFixa + saldo * taxa;
+      saldo -= amortFixa;
+    }
+    return total;
+  }
+  return d.totalAmount || principal;
+}
+
+// Calcula total de juros da dívida
+function calcTotalJuros(d) {
+  const principal = d.principal || d.totalAmount || 0;
+  return calcTotalComJuros(d) - principal;
 }
 
 function calcSaldoDevedor(d) {
