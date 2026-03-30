@@ -3471,8 +3471,8 @@ function renderBarDash() {
 }
 
 function renderRecent() {
-  // Only show non-credit transactions in bank view
-  const recent = [...S.transactions]
+  // Only show non-credit transactions in bank view, filtered by titular
+  const recent = txByTitular([...S.transactions])
     .filter(t => !(t.type === 'despesa' && t.formaPgto === 'credito'))
     .sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,7);
   const el = document.getElementById('recent-list');
@@ -3717,12 +3717,12 @@ function renderCreditRecent() {
   const faturaYM = `${dashYear}-${String(dashMonth + 1).padStart(2, '0')}`;
   let recent;
   if (isAno) {
-    recent = S.transactions.filter(t =>
+    recent = txByTitular(S.transactions.filter(t =>
       t.type === 'despesa' && t.formaPgto === 'credito' &&
       getTxFaturaRef(t).startsWith(String(dashYear))
-    ).sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 7);
+    )).sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 7);
   } else {
-    recent = getCreditTxByFatura(faturaYM)
+    recent = txByTitular(getCreditTxByFatura(faturaYM))
       .sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 7);
   }
   const el = document.getElementById('cc-recent-list');
