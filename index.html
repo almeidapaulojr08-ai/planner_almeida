@@ -693,6 +693,11 @@
         <option value="pendente">⏳ Pendente</option>
         <option value="pago">✅ Pago</option>
       </select>
+      <select class="finput" id="fil-recorrente" onchange="renderHistorico()" style="width:140px;padding:8px 10px;font-size:13px;">
+        <option value="">Recorrência</option>
+        <option value="sim">🔁 Recorrente</option>
+        <option value="nao">Não recorrente</option>
+      </select>
       <select class="finput" id="fil-titular" onchange="onHistTitularChange()" style="width:140px;padding:8px 10px;font-size:13px;">
         <option value="">Todos Titulares</option>
       </select>
@@ -3316,9 +3321,9 @@ function renderDashConta(ym, ymPrev) {
     t.type === 'despesa' && t.formaPgto === 'credito' && t.pago === true &&
     getTxFaturaRef(t) === ym
   );
-  // Débito do mês (por data), excluindo Pagamento Fatura e transferências
+  // Débito PAGO do mês (por data), excluindo Pagamento Fatura, transferências e pendentes
   const debitoYM = mTx.filter(t =>
-    t.type === 'despesa' && t.formaPgto !== 'credito' && !t.isTransfer && !isPgtoFatura(t)
+    t.type === 'despesa' && t.formaPgto !== 'credito' && !t.isTransfer && !isPgtoFatura(t) && t.pago !== false
   );
 
   const rec   = mTx.filter(t=>t.type==='receita' && !t.isTransfer).reduce((s,t)=>s+amountBrl(t),0);
@@ -3331,7 +3336,7 @@ function renderDashConta(ym, ymPrev) {
     getTxFaturaRef(t) === ymPrev
   );
   const debitoPrev = pTx.filter(t =>
-    t.type === 'despesa' && t.formaPgto !== 'credito' && !t.isTransfer && !isPgtoFatura(t)
+    t.type === 'despesa' && t.formaPgto !== 'credito' && !t.isTransfer && !isPgtoFatura(t) && t.pago !== false
   );
   const pRec   = pTx.filter(t=>t.type==='receita' && !t.isTransfer).reduce((s,t)=>s+amountBrl(t),0);
   const pDesp  = debitoPrev.reduce((s,t)=>s+amountBrl(t),0) + creditPagoPrev.reduce((s,t)=>s+amountBrl(t),0);
@@ -3353,7 +3358,7 @@ function renderDashConta(ym, ymPrev) {
 
   // Saldo total: receitas - (débito excl pgto fatura + crédito pago)
   const totalRec  = allTitTx.filter(t=>t.type==='receita').reduce((s,t)=>s+amountBrl(t),0);
-  const totalDespDebito = allTitTx.filter(t=>t.type==='despesa' && t.formaPgto !== 'credito' && !isPgtoFatura(t)).reduce((s,t)=>s+amountBrl(t),0);
+  const totalDespDebito = allTitTx.filter(t=>t.type==='despesa' && t.formaPgto !== 'credito' && !isPgtoFatura(t) && t.pago !== false).reduce((s,t)=>s+amountBrl(t),0);
   const totalDespCredPago = allTitTx.filter(t=>t.type==='despesa' && t.formaPgto === 'credito' && t.pago === true).reduce((s,t)=>s+amountBrl(t),0);
   document.getElementById('c-saldo-sub').textContent = `Saldo Total: ${brl(totalRec - totalDespDebito - totalDespCredPago)}`;
   document.getElementById('c-saldo-sub').style.color = '#94a3b8';
@@ -3374,12 +3379,15 @@ function renderDashConta(ym, ymPrev) {
   // Despesas with percentage change and pending info
   document.getElementById('c-despesas').textContent = brl(desp);
   const despN = debitoYM.length + creditPagoYM.length;
-  // Pendente crédito: faturas do mês que ainda não foram pagas
+  // Pendente: débito pendente do mês + crédito pendente (faturaRef do mês)
+  const debitoPendYM = mTx.filter(t =>
+    t.type === 'despesa' && t.formaPgto !== 'credito' && !t.isTransfer && !isPgtoFatura(t) && t.pago === false
+  );
   const creditPendYM = allTitTx.filter(t =>
     t.type === 'despesa' && t.formaPgto === 'credito' && t.pago === false &&
     getTxFaturaRef(t) === ym
   );
-  const pendente = creditPendYM.reduce((s,t)=>s+amountBrl(t),0);
+  const pendente = debitoPendYM.reduce((s,t)=>s+amountBrl(t),0) + creditPendYM.reduce((s,t)=>s+amountBrl(t),0);
   let despSub = `${despN} lançamentos`;
   if (pendente > 0) despSub += ` · Pendente: ${brl(pendente)}`;
   document.getElementById('c-despesas-n').textContent = despSub;
@@ -3954,6 +3962,9 @@ function getFilteredTxs() {
   const status   = document.getElementById('fil-status')?.value || '';
   if (status === 'pendente') txs = txs.filter(t => t.pago === false);
   if (status === 'pago')     txs = txs.filter(t => t.pago !== false);
+  const recFil   = document.getElementById('fil-recorrente')?.value || '';
+  if (recFil === 'sim') txs = txs.filter(t => t.recorrente === true);
+  if (recFil === 'nao') txs = txs.filter(t => !t.recorrente);
   if (titular)   txs = txs.filter(t => t.user === titular);
 
   txs.sort((a,b) => new Date(b.date) - new Date(a.date));
@@ -4099,7 +4110,7 @@ function bulkMarcarPago() {
 }
 
 function clearFiltros() {
-  ['fil-search','fil-tipo','fil-pagamento','fil-conta','fil-custo','fil-status'].forEach(id => { const el=document.getElementById(id); if(el)el.value=''; });
+  ['fil-search','fil-tipo','fil-pagamento','fil-conta','fil-custo','fil-status','fil-recorrente'].forEach(id => { const el=document.getElementById(id); if(el)el.value=''; });
   histMesSel = null;
   renderHistorico();
 }
