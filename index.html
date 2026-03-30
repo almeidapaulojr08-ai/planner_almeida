@@ -607,9 +607,14 @@
       <!-- Transação Recorrente (só despesa) -->
       <div id="f-row-recorrente" style="display:none;margin-bottom:18px;">
         <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:14px;color:#334155;font-weight:500;">
-          <input type="checkbox" id="f-recorrente" style="width:16px;height:16px;accent-color:#4f46e5;">
+          <input type="checkbox" id="f-recorrente" onchange="toggleRecorrenteMeses()" style="width:16px;height:16px;accent-color:#4f46e5;">
           Transação Recorrente <span style="font-size:12px;color:#94a3b8;font-weight:400;">(mesmo valor todo mês)</span>
         </label>
+        <div id="f-recorrente-meses-row" style="display:none;margin-top:10px;margin-left:26px;">
+          <label class="flabel">Repetir por quantos meses? *</label>
+          <input class="finput" type="number" id="f-recorrente-meses" min="2" max="60" value="12" placeholder="12" style="width:120px;">
+          <span style="font-size:11px;color:#94a3b8;margin-left:8px;">(incluindo o mês atual)</span>
+        </div>
       </div>
 
       <!-- Observações -->
@@ -2572,6 +2577,11 @@ function fmtDate(s) {
   return `${d}/${m}/${y}`;
 }
 
+function toggleRecorrenteMeses() {
+  const checked = document.getElementById('f-recorrente').checked;
+  document.getElementById('f-recorrente-meses-row').style.display = checked ? 'block' : 'none';
+}
+
 function setTodayDate() {
   document.getElementById('f-data').value = new Date().toISOString().slice(0,10);
 }
@@ -2646,6 +2656,7 @@ function setType(t) {
   document.getElementById('f-row-pago').style.display       = isDespesa ? 'block' : 'none';
   document.getElementById('f-row-pagamento').style.display  = isDespesa ? 'block' : 'none';
   document.getElementById('f-row-recorrente').style.display = isDespesa ? 'block' : 'none';
+  if (!isDespesa) { document.getElementById('f-recorrente').checked = false; document.getElementById('f-recorrente-meses-row').style.display = 'none'; }
   document.getElementById('f-row-custo-tipo').style.display = isDespesa ? 'block' : 'none';
   document.getElementById('f-row-parcela').style.display    = 'none';
   document.getElementById('f-row-conta-destino').style.display = isTransf ? 'block' : 'none';
@@ -2854,6 +2865,28 @@ function saveTransacao(e) {
       });
     }
     toast(`✅ ${numParcelas} parcelas salvas!`);
+  } else if (baseTx.recorrente && document.getElementById('f-recorrente').checked) {
+    // Recorrente: replicate same transaction for N months
+    const meses = parseInt(document.getElementById('f-recorrente-meses').value) || 12;
+    const startDate = new Date(date + 'T12:00:00');
+    for (let i = 0; i < meses; i++) {
+      const txDate = new Date(startDate.getFullYear(), startDate.getMonth() + i, startDate.getDate());
+      const txDateStr = `${txDate.getFullYear()}-${String(txDate.getMonth()+1).padStart(2,'0')}-${String(txDate.getDate()).padStart(2,'0')}`;
+      const tx = {
+        ...baseTx,
+        id: Date.now().toString() + '_rec_' + i,
+        desc,
+        amount: amountRaw,
+        date: txDateStr,
+        recorrente: true,
+        pago: i === 0 ? baseTx.pago : false
+      };
+      if (isCredito) {
+        tx.faturaRef = getTxFaturaRef(tx);
+      }
+      S.transactions.push(tx);
+    }
+    toast(`✅ ${meses} transações recorrentes criadas!`);
   } else {
     // Single transaction
     const tx = { ...baseTx, id: Date.now().toString(), desc, amount: amountRaw };
@@ -2870,6 +2903,8 @@ function saveTransacao(e) {
   document.getElementById('f-notas').value = '';
   document.getElementById('f-pago').checked = false;
   document.getElementById('f-recorrente').checked = false;
+  document.getElementById('f-recorrente-meses-row').style.display = 'none';
+  document.getElementById('f-recorrente-meses').value = '12';
   document.getElementById('f-parcelado').checked = false;
   document.getElementById('f-parcela-num-row').style.display = 'none';
   setTodayDate();
@@ -3966,6 +4001,7 @@ function renderHistorico() {
           ${t.formaPgto ? `<span style="font-size:11px;padding:2px 8px;border-radius:20px;background:#f8fafc;color:#94a3b8;">${t.formaPgto==='credito'?'Crédito':'Débito'}</span>` : ''}
           ${t.parcela ? `<span style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px;background:#fef3c7;color:#92400e;">🔄 ${t.parcela}</span>` : ''}
           ${t.custoTipo ? `<span style="font-size:11px;padding:2px 8px;border-radius:20px;background:${t.custoTipo==='fixo'?'#eef2ff':'#fff7ed'};color:${t.custoTipo==='fixo'?'#4f46e5':'#c2410c'};">${t.custoTipo==='fixo'?'📌 Fixo':'📊 Variável'}</span>` : ''}
+          ${t.recorrente ? `<span style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px;background:#f0fdf4;color:#15803d;">🔁 Recorrente</span>` : ''}
         </div>
       </div>
       <div style="text-align:right;flex-shrink:0;">
