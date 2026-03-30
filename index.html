@@ -729,7 +729,8 @@
     </label>
     <div style="display:flex;align-items:center;gap:12px;">
       <span id="hist-count" style="font-size:13px;color:#94a3b8;"></span>
-      <button id="hist-bulk-delete" onclick="bulkDelete()" style="display:none;padding:6px 14px;background:#fff1f2;border:1px solid #fecdd3;border-radius:8px;font-size:12px;font-weight:600;color:#e11d48;cursor:pointer;">🗑️ Excluir selecionados</button>
+      <button id="hist-bulk-pago" onclick="bulkMarcarPago()" style="display:none;padding:6px 14px;background:#ecfdf5;border:1px solid #a7f3d0;border-radius:8px;font-size:12px;font-weight:600;color:#059669;cursor:pointer;">Marcar como Pago</button>
+      <button id="hist-bulk-delete" onclick="bulkDelete()" style="display:none;padding:6px 14px;background:#fff1f2;border:1px solid #fecdd3;border-radius:8px;font-size:12px;font-weight:600;color:#e11d48;cursor:pointer;">Excluir selecionados</button>
     </div>
   </div>
 
@@ -3946,6 +3947,7 @@ function renderHistorico() {
   const chk = document.getElementById('hist-select-all');
   if (chk) chk.checked = false;
   document.getElementById('hist-bulk-delete').style.display = 'none';
+  document.getElementById('hist-bulk-pago').style.display = 'none';
 
   // Update pills
   const pillsEl = document.getElementById('fil-meses-pills');
@@ -4028,6 +4030,7 @@ function onTxSelect(chk) {
   const id = chk.dataset.txid;
   if (chk.checked) selectedTxIds.add(id); else selectedTxIds.delete(id);
   document.getElementById('hist-bulk-delete').style.display = selectedTxIds.size > 0 ? 'inline-block' : 'none';
+  document.getElementById('hist-bulk-pago').style.display = selectedTxIds.size > 0 ? 'inline-block' : 'none';
 }
 
 function toggleSelectAll() {
@@ -4038,6 +4041,7 @@ function toggleSelectAll() {
     if (checked) selectedTxIds.add(id); else selectedTxIds.delete(id);
   });
   document.getElementById('hist-bulk-delete').style.display = selectedTxIds.size > 0 ? 'inline-block' : 'none';
+  document.getElementById('hist-bulk-pago').style.display = selectedTxIds.size > 0 ? 'inline-block' : 'none';
 }
 
 function bulkDelete() {
@@ -4049,6 +4053,24 @@ function bulkDelete() {
   save();
   renderHistorico();
   toast(`🗑️ Transações excluídas`);
+}
+
+function bulkMarcarPago() {
+  if (!selectedTxIds.size) return;
+  if (!confirm(`Marcar ${selectedTxIds.size} transações como pagas?`)) return;
+  const now = new Date().toISOString();
+  let count = 0;
+  S.transactions.forEach(t => {
+    if (selectedTxIds.has(t.id) && t.pago !== true) {
+      t.pago = true;
+      t.updatedAt = now;
+      count++;
+    }
+  });
+  selectedTxIds.clear();
+  save();
+  renderHistorico();
+  toast(`${count} transações marcadas como pagas`);
 }
 
 function clearFiltros() {
