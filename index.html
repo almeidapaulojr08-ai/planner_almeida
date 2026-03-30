@@ -683,7 +683,7 @@
         <option value="fixo">📌 Fixo</option>
         <option value="variavel">📊 Variável</option>
       </select>
-      <select class="finput" id="fil-titular" onchange="renderHistorico()" style="width:140px;padding:8px 10px;font-size:13px;">
+      <select class="finput" id="fil-titular" onchange="onHistTitularChange()" style="width:140px;padding:8px 10px;font-size:13px;">
         <option value="">Todos Titulares</option>
       </select>
       <input class="finput" type="text" id="fil-search" placeholder="🔍 Buscar…" oninput="renderHistorico()" style="flex:1;min-width:150px;padding:8px 12px;font-size:13px;">
@@ -3265,11 +3265,10 @@ function renderCardBreakdowns(mTx) {
     </div>`;
   }
 
-  // Saldo breakdown — acumulado (todas as transações, não só mês atual)
-  const allTxTit = txByTitular(S.transactions);
+  // Saldo breakdown — usa mTx (período selecionado: mês ou ano)
   let saldoHtml = '';
   accToShow.forEach(a => {
-    const accTx = allTxTit.filter(t => t.accountId === a.id);
+    const accTx = mTx.filter(t => t.accountId === a.id);
     const rec  = accTx.filter(t=>t.type==='receita').reduce((s,t)=>s+amountRaw(t),0);
     const desp = accTx.filter(t=>t.type==='despesa' && t.formaPgto !== 'credito').reduce((s,t)=>s+amountRaw(t),0);
     const bal = rec - desp;
@@ -3695,17 +3694,6 @@ function initHistFiltros() {
     `<button onclick="setHistMes(${i})" class="mes-pill ${histMesSel === i ? 'mp-active' : ''}">${m}</button>`
   ).join('');
 
-  // Conta filter (preserve current selection)
-  const contaSel = document.getElementById('fil-conta');
-  const prevConta = contaSel.value;
-  contaSel.innerHTML = '<option value="">Todas Contas</option>' +
-    S.accounts.map(a => {
-      const b = BANKS[a.bank];
-      const icon = a.accountType === 'cartao' ? '💳' : '🏦';
-      return `<option value="${a.id}">${icon} ${b ? b.name : a.bank} — ${a.label}</option>`;
-    }).join('');
-  if (prevConta) contaSel.value = prevConta;
-
   // Titular filter (preserve current selection)
   const titSel = document.getElementById('fil-titular');
   const prevTit = titSel.value;
@@ -3713,6 +3701,28 @@ function initHistFiltros() {
     <option value="${S.settings.u1}">${S.settings.u1}</option>
     <option value="${S.settings.u2}">${S.settings.u2}</option>`;
   if (prevTit) titSel.value = prevTit;
+
+  // Conta filter (filtrada pelo titular selecionado)
+  refreshHistContaFilter();
+}
+
+function refreshHistContaFilter() {
+  const titular = document.getElementById('fil-titular')?.value || '';
+  const contaSel = document.getElementById('fil-conta');
+  const prevConta = contaSel.value;
+  const filtered = titular ? S.accounts.filter(a => a.owner === titular) : S.accounts;
+  contaSel.innerHTML = '<option value="">Todas Contas</option>' +
+    filtered.map(a => {
+      const b = BANKS[a.bank];
+      const icon = a.accountType === 'cartao' ? '💳' : '🏦';
+      return `<option value="${a.id}">${icon} ${b ? b.name : a.bank} — ${a.label} [${a.owner}]</option>`;
+    }).join('');
+  if (prevConta && filtered.some(a => a.id === prevConta)) contaSel.value = prevConta;
+}
+
+function onHistTitularChange() {
+  refreshHistContaFilter();
+  renderHistorico();
 }
 
 function onHistAnoChange() {
