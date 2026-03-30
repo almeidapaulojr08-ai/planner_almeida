@@ -2454,8 +2454,10 @@ function deletarConta(id) {
 // ─── TITULAR FILTER ────────────────────────────────────────────────────────────
 function setTitularFilter(f) {
   titularFilter = f;
-  document.querySelectorAll('.tf-btn').forEach(b => b.classList.remove('tf-active'));
-  document.getElementById('tf-' + f)?.classList.add('tf-active');
+  ['tf-ambos','tf-paulo','tf-esposa'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.classList.toggle('tf-active', id === 'tf-' + f);
+  });
   renderDashboard();
 }
 
