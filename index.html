@@ -744,6 +744,14 @@
         <button onclick="fecharFaturaModal()" style="background:none;border:none;font-size:20px;cursor:pointer;color:#94a3b8;">✕</button>
       </div>
 
+      <!-- Titular filter -->
+      <div style="margin-bottom:14px;">
+        <label class="flabel">Titular</label>
+        <select class="finput" id="fat-titular" onchange="filtrarCartoesFatura()">
+          <option value="">Todos Titulares</option>
+        </select>
+      </div>
+
       <!-- Card selector -->
       <div style="margin-bottom:14px;">
         <label class="flabel">Cartão de crédito *</label>
@@ -3986,9 +3994,15 @@ function clearFiltros() {
 // ─── FATURA MODAL ─────────────────────────────────────────────────────────────
 function abrirFaturaModal() {
   const now = new Date();
-  const cartoes = S.accounts.filter(a => a.accountType === 'cartao');
-  const sel = document.getElementById('fat-cartao');
-  sel.innerHTML = cartoes.map(c => `<option value="${c.id}">${BANKS[c.bank].name} Cartão — ${c.label}</option>`).join('');
+
+  // Titular filter
+  const titSel = document.getElementById('fat-titular');
+  titSel.innerHTML = `<option value="">Todos Titulares</option>
+    <option value="${S.settings.u1}">${S.settings.u1}</option>
+    <option value="${S.settings.u2}">${S.settings.u2}</option>`;
+
+  // Cartões (todos inicialmente)
+  filtrarCartoesFatura();
 
   const mesSel = document.getElementById('fat-mes');
   mesSel.innerHTML = MESES.map((m,i) => `<option value="${i}" ${i===now.getMonth()?'selected':''}>${m}</option>`).join('');
@@ -4008,6 +4022,17 @@ function abrirFaturaModal() {
 
   renderFaturaDetail();
   document.getElementById('fatura-modal').style.display = 'block';
+}
+
+function filtrarCartoesFatura() {
+  const titular = document.getElementById('fat-titular').value;
+  const cartoes = S.accounts.filter(a => a.accountType === 'cartao');
+  const filtered = titular ? cartoes.filter(c => c.owner === titular) : cartoes;
+  const sel = document.getElementById('fat-cartao');
+  const prev = sel.value;
+  sel.innerHTML = filtered.map(c => `<option value="${c.id}">${BANKS[c.bank].name} Cartão — ${c.label}</option>`).join('');
+  if (prev && filtered.some(c => c.id === prev)) sel.value = prev;
+  renderFaturaDetail();
 }
 
 function fecharFaturaModal() { document.getElementById('fatura-modal').style.display = 'none'; }
