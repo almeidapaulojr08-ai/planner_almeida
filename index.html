@@ -784,6 +784,17 @@
       <!-- Pay fatura -->
       <div style="border-top:1px solid #f1f5f9;padding-top:16px;">
         <div style="margin-bottom:12px;">
+          <label class="flabel">Tipo de Pagamento</label>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+            <button type="button" id="fat-tipo-integral" onclick="setFatPgtoTipo('integral')" style="padding:10px;border-radius:10px;border:2px solid #059669;background:#ecfdf5;color:#059669;font-weight:700;font-size:13px;cursor:pointer;">Integral</button>
+            <button type="button" id="fat-tipo-parcial" onclick="setFatPgtoTipo('parcial')" style="padding:10px;border-radius:10px;border:2px solid #e2e8f0;background:white;color:#64748b;font-weight:700;font-size:13px;cursor:pointer;">Parcial</button>
+          </div>
+        </div>
+        <div id="fat-valor-parcial-row" style="display:none;margin-bottom:12px;">
+          <label class="flabel">Valor Pago *</label>
+          <input class="finput" type="number" step="0.01" id="fat-valor-parcial" placeholder="0,00" style="font-size:16px;font-weight:700;">
+        </div>
+        <div style="margin-bottom:12px;">
           <label class="flabel">Inst. Financeira *</label>
           <select class="finput" id="fat-inst"></select>
         </div>
@@ -4081,6 +4092,25 @@ function renderFaturaDetail() {
   }).join('');
 }
 
+let fatPgtoTipo = 'integral';
+
+function setFatPgtoTipo(tipo) {
+  fatPgtoTipo = tipo;
+  const isIntegral = tipo === 'integral';
+  document.getElementById('fat-tipo-integral').style.border = isIntegral ? '2px solid #059669' : '2px solid #e2e8f0';
+  document.getElementById('fat-tipo-integral').style.background = isIntegral ? '#ecfdf5' : 'white';
+  document.getElementById('fat-tipo-integral').style.color = isIntegral ? '#059669' : '#64748b';
+  document.getElementById('fat-tipo-parcial').style.border = !isIntegral ? '2px solid #f59e0b' : '2px solid #e2e8f0';
+  document.getElementById('fat-tipo-parcial').style.background = !isIntegral ? '#fffbeb' : 'white';
+  document.getElementById('fat-tipo-parcial').style.color = !isIntegral ? '#d97706' : '#64748b';
+  document.getElementById('fat-valor-parcial-row').style.display = isIntegral ? 'none' : 'block';
+  if (!isIntegral) {
+    const totalEl = document.getElementById('fat-total');
+    const totalText = totalEl.textContent.replace(/[^\d,.-]/g, '').replace('.','').replace(',','.');
+    document.getElementById('fat-valor-parcial').placeholder = totalText;
+  }
+}
+
 function pagarFatura() {
   const cartaoId = document.getElementById('fat-cartao').value;
   const mes = parseInt(document.getElementById('fat-mes').value);
@@ -4092,29 +4122,41 @@ function pagarFatura() {
   if (!instId) { toast('Selecione a instituição financeira'); return; }
   if (!dataPgto) { toast('Selecione a data de pagamento'); return; }
 
-  // Mark all credit transactions for this card/fatura as paid
   const faturaTxs = getCreditTxByFatura(faturaYM, cartaoId);
+  const total = faturaTxs.reduce((s,t) => s + amountBrl(t), 0);
+
+  let valorPago = total;
+  const isParcial = fatPgtoTipo === 'parcial';
+
+  if (isParcial) {
+    const input = parseFloat(document.getElementById('fat-valor-parcial').value);
+    if (!input || input <= 0) { toast('Informe o valor pago'); return; }
+    if (input > total) { toast('Valor pago não pode ser maior que o total da fatura'); return; }
+    valorPago = input;
+  }
+
+  // Mark all credit transactions as paid
   let count = 0;
   faturaTxs.forEach(t => {
     t.pago = true;
     count++;
   });
 
-  // Create a debit transaction for the fatura payment
-  const total = faturaTxs.reduce((s,t) => s + amountBrl(t), 0);
-
-  if (total > 0) {
+  // Create debit transaction with the actual amount paid
+  if (valorPago > 0) {
     const cartao = S.accounts.find(a => a.id === cartaoId);
     const bankName = cartao ? BANKS[cartao.bank].name : '';
+    const titular = cartao ? cartao.owner : S.settings.u1;
+    const descSuffix = isParcial ? ' (Parcial)' : '';
     S.transactions.push({
       id: Date.now().toString(),
       type: 'despesa',
-      desc: `Pagamento Fatura ${bankName} — ${MESES[mes]}/${ano}`,
-      amount: total,
+      desc: `Pagamento Fatura ${bankName} — ${MESES[mes]}/${ano}${descSuffix}`,
+      amount: valorPago,
       category: 'Outros',
       subcategory: '',
       date: dataPgto,
-      user: 'Paulo',
+      user: titular,
       accountId: instId,
       formaPgto: 'debito',
       pago: true,
@@ -4125,7 +4167,12 @@ function pagarFatura() {
 
   save();
   renderFaturaDetail();
-  toast(`✅ Fatura paga! ${count} lançamentos marcados como pagos`);
+  const msg = isParcial
+    ? `Fatura paga parcialmente! R$ ${valorPago.toFixed(2).replace('.',',')} de R$ ${total.toFixed(2).replace('.',',')} — ${count} lançamentos marcados`
+    : `Fatura paga! ${count} lançamentos marcados como pagos`;
+  toast(msg);
+  // Reset to integral
+  setFatPgtoTipo('integral');
 }
 
 // ─── IMPORT MODAL ─────────────────────────────────────────────────────────────
