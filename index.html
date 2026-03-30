@@ -3266,13 +3266,14 @@ function renderDashConta(ym, ymPrev) {
   const mTx = txByTitular(allMTx);
   const pTx = txByTitular(S.transactions.filter(t => t.date.startsWith(ymPrev)));
 
-  // Only count debit expenses in bank view (transfers excluded from rec/desp cards but included in saldo)
+  // Include all expenses (debit + credit) but exclude "Pagamento Fatura" debit entries to avoid double counting
+  const isPgtoFatura = t => t.desc && t.desc.startsWith('Pagamento Fatura');
   const rec   = mTx.filter(t=>t.type==='receita' && !t.isTransfer).reduce((s,t)=>s+amountBrl(t),0);
-  const desp  = mTx.filter(t=>t.type==='despesa' && t.formaPgto !== 'credito' && !t.isTransfer).reduce((s,t)=>s+amountBrl(t),0);
+  const desp  = mTx.filter(t=>t.type==='despesa' && !t.isTransfer && !isPgtoFatura(t)).reduce((s,t)=>s+amountBrl(t),0);
   const saldo = rec - desp;
 
   const pRec   = pTx.filter(t=>t.type==='receita' && !t.isTransfer).reduce((s,t)=>s+amountBrl(t),0);
-  const pDesp  = pTx.filter(t=>t.type==='despesa' && t.formaPgto !== 'credito' && !t.isTransfer).reduce((s,t)=>s+amountBrl(t),0);
+  const pDesp  = pTx.filter(t=>t.type==='despesa' && !t.isTransfer && !isPgtoFatura(t)).reduce((s,t)=>s+amountBrl(t),0);
   const pSaldo = pRec - pDesp;
 
   const cs = document.getElementById('c-saldo');
@@ -3292,7 +3293,7 @@ function renderDashConta(ym, ymPrev) {
   // Saldo total across all accounts (transfers cancel out, so include them — net zero)
   const allTx = txByTitular(S.transactions);
   const totalRec  = allTx.filter(t=>t.type==='receita').reduce((s,t)=>s+amountBrl(t),0);
-  const totalDesp = allTx.filter(t=>t.type==='despesa' && t.formaPgto !== 'credito').reduce((s,t)=>s+amountBrl(t),0);
+  const totalDesp = allTx.filter(t=>t.type==='despesa' && !isPgtoFatura(t)).reduce((s,t)=>s+amountBrl(t),0);
   document.getElementById('c-saldo-sub').textContent = `Saldo Total: ${brl(totalRec - totalDesp)}`;
   document.getElementById('c-saldo-sub').style.color = '#94a3b8';
 
@@ -3309,10 +3310,10 @@ function renderDashConta(ym, ymPrev) {
     document.getElementById('c-receitas-pct').textContent = '';
   }
 
-  // Despesas (only debit) with percentage change and pending info
+  // Despesas (debit + credit, excluding "Pagamento Fatura") with percentage change and pending info
   document.getElementById('c-despesas').textContent = brl(desp);
-  const despN = mTx.filter(t=>t.type==='despesa' && t.formaPgto !== 'credito').length;
-  const pendente = mTx.filter(t=>t.type==='despesa' && t.formaPgto !== 'credito' && !t.pago).reduce((s,t)=>s+amountBrl(t),0);
+  const despN = mTx.filter(t=>t.type==='despesa' && !isPgtoFatura(t)).length;
+  const pendente = mTx.filter(t=>t.type==='despesa' && !isPgtoFatura(t) && !t.pago).reduce((s,t)=>s+amountBrl(t),0);
   let despSub = `${despN} lançamentos`;
   if (pendente > 0) despSub += ` · Pendente: ${brl(pendente)}`;
   document.getElementById('c-despesas-n').textContent = despSub;
@@ -3339,8 +3340,8 @@ function renderDashConta(ym, ymPrev) {
   // Populate expandable breakdowns per bank
   renderCardBreakdowns(mTx);
 
-  // Donut only for debit expenses
-  renderDonutDash(mTx.filter(t=>t.type==='despesa' && t.formaPgto !== 'credito' && !t.isTransfer));
+  // Donut for all expenses (excluding "Pagamento Fatura" and transfers)
+  renderDonutDash(mTx.filter(t=>t.type==='despesa' && !isPgtoFatura(t) && !t.isTransfer));
   renderBarDash();
   renderCatStackedChart();
   renderRecent();
