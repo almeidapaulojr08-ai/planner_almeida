@@ -1029,6 +1029,7 @@
     </div>
     <!-- Input -->
     <div style="padding:14px;border-top:1px solid #f1f5f9;">
+      <div id="ai-status" style="font-size:11px;color:#94a3b8;padding:0 2px 6px;"><span style="color:#94a3b8;">●</span> Modo offline</div>
       <div style="display:flex;gap:10px;">
         <input class="finput" type="text" id="chat-input" placeholder="Pergunte algo sobre suas finanças..." onkeydown="if(event.key==='Enter')sendChat()" style="flex:1;">
         <button onclick="sendChat()" id="chat-send" style="padding:12px 20px;background:#4f46e5;color:white;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;">Enviar</button>
@@ -1985,14 +1986,40 @@ function updateSyncStatus(status) {
   else if (status === 'syncing') { el.textContent = '🔄'; el.title = 'Syncing...'; }
 }
 
-let _lastSaveTs = 0;
+let _isSyncing = false;
+
+// Merge dois arrays por ID — mantém ambos os lados, prefere o mais recente por updatedAt
+// Tombstones impedem que itens deletados ressuscitem
+function mergeArrayById(local, remote, tombstones) {
+  const tombSet = new Set((tombstones || []).map(t => t.id));
+  const merged = new Map();
+  for (const item of local) {
+    if (item && item.id && !tombSet.has(item.id)) merged.set(item.id, item);
+  }
+  for (const item of remote) {
+    if (!item || !item.id || tombSet.has(item.id)) continue;
+    const existing = merged.get(item.id);
+    if (!existing) { merged.set(item.id, item); continue; }
+    const remoteTime = item.updatedAt || item.at || '';
+    const localTime = existing.updatedAt || existing.at || '';
+    if (remoteTime > localTime) merged.set(item.id, item);
+  }
+  return Array.from(merged.values());
+}
+
+// Merge dois arrays de tombstones (union por ID)
+function mergeTombstones(local, remote) {
+  const map = new Map();
+  for (const t of (local || [])) { if (t && t.id) map.set(t.id, t); }
+  for (const t of (remote || [])) { if (t && t.id && !map.has(t.id)) map.set(t.id, t); }
+  return Array.from(map.values());
+}
 
 function initFirebaseSync() {
   if (!db) return;
 
   db.ref('data').on('value', (snapshot) => {
-    // Ignorar eventos disparados pelo nosso próprio save (dentro de 3s)
-    if (Date.now() - _lastSaveTs < 3000) return;
+    if (_isSyncing) return;
 
     const fbData = snapshot.val();
     if (!fbData) {
@@ -2000,22 +2027,55 @@ function initFirebaseSync() {
       return;
     }
 
-    // Receber dados do Firebase (outro dispositivo salvou)
-    if (fbData.transactions) S.transactions = fbToArray(fbData.transactions);
-    if (fbData.accounts) S.accounts = fbToArray(fbData.accounts);
+    // Merge tombstones primeiro (union de ambos os lados)
+    const allTombstones = mergeTombstones(S.deletedIds, fbToArray(fbData.deletedIds));
+
+    // Merge arrays por ID com tombstones
+    const newTx   = fbData.transactions ? mergeArrayById(S.transactions, fbToArray(fbData.transactions), allTombstones) : S.transactions;
+    const newAcc  = fbData.accounts ? mergeArrayById(S.accounts, fbToArray(fbData.accounts), allTombstones) : S.accounts;
+    const newDebt = fbData.debts ? mergeArrayById(S.debts, fbToArray(fbData.debts), allTombstones) : S.debts;
+    const newInv  = fbData.investments ? mergeArrayById(S.investments, fbToArray(fbData.investments), allTombstones) : S.investments;
+
+    // Detectar se houve mudanças reais
+    const changed = newTx.length !== S.transactions.length ||
+                    newAcc.length !== S.accounts.length ||
+                    newDebt.length !== S.debts.length ||
+                    newInv.length !== S.investments.length ||
+                    allTombstones.length !== (S.deletedIds||[]).length;
+
+    // Aplicar merge
+    S.transactions = newTx;
+    S.accounts = newAcc;
+    S.debts = newDebt;
+    S.investments = newInv;
+    S.deletedIds = allTombstones;
     if (fbData.settings) S.settings = { ...S.settings, ...fbData.settings };
-    if (fbData.debts) S.debts = fbToArray(fbData.debts);
-    if (fbData.investments) S.investments = fbToArray(fbData.investments);
     if (fbData.budget) S.budget = fbData.budget;
     if (fbData.chatHistory) S.chatHistory = fbToArray(fbData.chatHistory);
-    // Categorias e bancos: só aceitar do Firebase se local estiver vazio (device novo)
-    // Nunca sobrescrever categorias/bancos que o usuário já tem localmente
     if (fbData.customCats && !S.customCats) S.customCats = fbData.customCats;
     if (fbData.customBanks && !S.customBanks) { S.customBanks = fbData.customBanks; Object.assign(BANKS, fbData.customBanks); }
 
     localStorage.setItem('fincasal_v2', JSON.stringify(S));
 
-    // Re-render só se logado (sem re-render constante)
+    // Se houve mudanças do merge, enviar resultado combinado de volta
+    if (changed) {
+      _isSyncing = true;
+      db.ref('data').set({
+        transactions: S.transactions,
+        accounts: S.accounts,
+        settings: S.settings,
+        debts: S.debts || [],
+        investments: S.investments || [],
+        deletedIds: S.deletedIds || [],
+        budget: S.budget || {},
+        chatHistory: S.chatHistory || [],
+        customCats: S.customCats || null,
+        customBanks: S.customBanks || null
+      }).then(() => { _isSyncing = false; updateSyncStatus('ok'); })
+        .catch(() => { _isSyncing = false; updateSyncStatus('error'); });
+    }
+
+    // Re-render só se logado
     if (sessionStorage.getItem('fincasal_auth')) {
       const current = document.querySelector('section[id^="page-"]:not([style*="display:none"])');
       if (current) {
@@ -2043,6 +2103,7 @@ let S = {
   budget: {},
   debts: [],
   investments: [],
+  deletedIds: [],
   customCats: null,
   settings: {
     u1: 'Paulo', u2: 'Esposa',
@@ -2120,6 +2181,7 @@ function load() {
     if (d.budget)       S.budget       = d.budget;
     if (d.debts)        S.debts        = d.debts;
     if (d.investments)  S.investments  = d.investments;
+    if (d.deletedIds)   S.deletedIds   = d.deletedIds;
     if (d.customCats)   S.customCats   = d.customCats;
     if (d.customBanks)  { S.customBanks = d.customBanks; Object.assign(BANKS, d.customBanks); }
     if (d.settings)     S.settings     = { ...S.settings, ...d.settings };
@@ -2130,20 +2192,23 @@ function save() {
   localStorage.setItem('fincasal_v2', JSON.stringify(S));
   if (db) {
     updateSyncStatus('syncing');
-    _lastSaveTs = Date.now();
+    _isSyncing = true;
     db.ref('data').set({
       transactions: S.transactions,
       accounts: S.accounts,
       settings: S.settings,
       debts: S.debts || [],
       investments: S.investments || [],
+      deletedIds: S.deletedIds || [],
       budget: S.budget || {},
       chatHistory: S.chatHistory || [],
       customCats: S.customCats || null,
       customBanks: S.customBanks || null
     }).then(() => {
+      _isSyncing = false;
       updateSyncStatus('ok');
     }).catch(e => {
+      _isSyncing = false;
       console.warn('Firebase save error:', e);
       updateSyncStatus('error');
     });
@@ -2348,6 +2413,7 @@ function salvarConta() {
     limite: isCartao ? document.getElementById('cm-limite').value : null,
     fecha:  isCartao ? document.getElementById('cm-fecha').value  : null,
     vence:  isCartao ? document.getElementById('cm-vence').value  : null,
+    updatedAt: new Date().toISOString(),
   };
 
   if (editContaId) {
@@ -2364,6 +2430,7 @@ function salvarConta() {
 
 function deletarConta(id) {
   if (!confirm('Excluir? As transações vinculadas não serão apagadas.')) return;
+  S.deletedIds.push({ id, collection: 'accounts', deletedAt: new Date().toISOString() });
   S.accounts = S.accounts.filter(a => a.id !== id);
   save();
   renderContas();
@@ -2668,7 +2735,8 @@ function saveTransacao(e) {
       isTransfer: true,
       transferId,
       transferDir: 'saida',
-      at: new Date().toISOString()
+      at: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
     });
 
     // Entrada na conta destino (receita)
@@ -2686,7 +2754,8 @@ function saveTransacao(e) {
       isTransfer: true,
       transferId,
       transferDir: 'entrada',
-      at: new Date().toISOString()
+      at: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
     });
 
     save();
@@ -2710,7 +2779,8 @@ function saveTransacao(e) {
     formaPgto:    isDespesa ? formaPgto : null,
     recorrente:   isDespesa ? document.getElementById('f-recorrente').checked : false,
     custoTipo:    isDespesa ? custoTipo : null,
-    at:           new Date().toISOString()
+    at:           new Date().toISOString(),
+    updatedAt:    new Date().toISOString()
   };
 
   if (isParcelado && numParcelas > 1) {
@@ -2778,8 +2848,10 @@ function confirmarDelete() {
   // If deleting a transfer, also delete the linked transaction
   const tx = S.transactions.find(t => t.id === deleteId);
   if (tx && tx.isTransfer && tx.transferId) {
+    S.transactions.filter(t => t.transferId === tx.transferId).forEach(t => S.deletedIds.push({id: t.id, collection: 'transactions', deletedAt: new Date().toISOString()}));
     S.transactions = S.transactions.filter(t => t.transferId !== tx.transferId);
   } else {
+    S.deletedIds.push({ id: deleteId, collection: 'transactions', deletedAt: new Date().toISOString() });
     S.transactions = S.transactions.filter(t => t.id !== deleteId);
   }
   save(); closeModal(); renderHistorico();
@@ -2915,6 +2987,7 @@ function salvarEdicao() {
     pago:       isDespesa ? document.getElementById('ed-pago').checked : true,
     formaPgto:  isDespesa ? editFormaPgto : null,
     custoTipo:  isDespesa ? editCustoTipo : null,
+    updatedAt:  new Date().toISOString(),
   };
 
   save();
@@ -3890,6 +3963,7 @@ function toggleSelectAll() {
 function bulkDelete() {
   if (!selectedTxIds.size) return;
   if (!confirm(`Excluir ${selectedTxIds.size} transações selecionadas?`)) return;
+  selectedTxIds.forEach(id => S.deletedIds.push({id, collection: 'transactions', deletedAt: new Date().toISOString()}));
   S.transactions = S.transactions.filter(t => !selectedTxIds.has(t.id));
   selectedTxIds.clear();
   save();
@@ -4003,7 +4077,8 @@ function pagarFatura() {
       accountId: instId,
       formaPgto: 'debito',
       pago: true,
-      at: new Date().toISOString()
+      at: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
     });
   }
 
@@ -4117,7 +4192,8 @@ function parseCSV(text) {
       user: acc?.owner || document.getElementById('imp-titular').value || S.settings.u1,
       accountId: contaId,
       formaPgto: isCartao ? 'credito' : (tipoDefault === 'despesa' ? 'debito' : null),
-      pago: true
+      pago: true,
+      updatedAt: new Date().toISOString()
     });
   }
 
@@ -4603,15 +4679,397 @@ function initChat() {
   addBubble('ai', 'Olá! Sou seu assistente financeiro. Posso responder perguntas sobre seus gastos, saldos, faturas, investimentos e muito mais. Também posso <b>importar faturas</b> de cartão a partir de texto colado. Como posso ajudar?');
 }
 
-function sendChat() {
+// ─── AI INTEGRATION ──────────────────────────────────────────────────────────
+
+async function callAI(messages, tools) {
+  const key = S.settings.apiKey;
+  const provider = S.settings.apiProvider || 'openai';
+  if (!key) return null;
+
+  try {
+    if (provider === 'anthropic') {
+      const systemMsg = messages.find(m => m.role === 'system');
+      const chatMsgs = messages.filter(m => m.role !== 'system');
+      const anthropicTools = tools ? tools.map(t => ({
+        name: t.function.name,
+        description: t.function.description,
+        input_schema: t.function.parameters
+      })) : undefined;
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': key,
+          'anthropic-version': '2023-06-01',
+          'anthropic-dangerous-direct-browser-access': 'true'
+        },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 2048,
+          system: systemMsg?.content || '',
+          messages: chatMsgs,
+          tools: anthropicTools
+        })
+      });
+      if (!res.ok) throw new Error(`Anthropic API error: ${res.status}`);
+      const data = await res.json();
+      const textBlocks = data.content.filter(b => b.type === 'text').map(b => b.text).join('\n');
+      const toolUses = data.content.filter(b => b.type === 'tool_use');
+      return { text: textBlocks, toolCalls: toolUses.map(t => ({ name: t.name, arguments: t.input, id: t.id })) };
+    } else {
+      const res = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + key },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          messages,
+          tools: tools || undefined,
+          temperature: 0.3
+        })
+      });
+      if (!res.ok) throw new Error(`OpenAI API error: ${res.status}`);
+      const data = await res.json();
+      const msg = data.choices[0].message;
+      const toolCalls = (msg.tool_calls || []).map(tc => ({
+        name: tc.function.name,
+        arguments: JSON.parse(tc.function.arguments),
+        id: tc.id
+      }));
+      return { text: msg.content || '', toolCalls };
+    }
+  } catch(e) {
+    console.error('AI API error:', e);
+    return { text: `Erro na API: ${e.message}. Verifique sua chave de API nas Configurações.`, toolCalls: [] };
+  }
+}
+
+function buildSystemPrompt() {
+  const now = new Date();
+  const curMonth = now.getMonth();
+  const curYear = now.getFullYear();
+
+  // Account balances
+  const accInfo = S.accounts.map(a => {
+    const txs = S.transactions.filter(t => t.accountId === a.id);
+    const rec = txs.filter(t => t.type === 'receita').reduce((s, t) => s + amountBrl(t), 0);
+    const desp = txs.filter(t => t.type === 'despesa').reduce((s, t) => s + amountBrl(t), 0);
+    const bal = rec - desp;
+    return `- ${a.label} (id: ${a.id}, tipo: ${a.accountType}): saldo ${brl(bal)}${a.accountType === 'cartao' && a.limit ? ', limite ' + brl(a.limit) : ''}`;
+  }).join('\n');
+
+  // Month summary
+  const mTx = S.transactions.filter(t => {
+    const d = new Date(t.date + 'T12:00:00');
+    return d.getMonth() === curMonth && d.getFullYear() === curYear;
+  });
+  const totalRec = mTx.filter(t => t.type === 'receita').reduce((s, t) => s + amountBrl(t), 0);
+  const totalDesp = mTx.filter(t => t.type === 'despesa').reduce((s, t) => s + amountBrl(t), 0);
+
+  // Debts
+  const debtsInfo = S.debts.length ? S.debts.map(d => `- ${d.desc}: ${brl(d.remaining || d.total)}`).join('\n') : 'Nenhuma';
+
+  // Investments
+  const invInfo = S.investments.length ? S.investments.map(i => `- ${i.desc}: ${brl(i.currentValue || i.amount)}`).join('\n') : 'Nenhum';
+
+  // Categories
+  const despCats = getDespesaCats().map(c => typeof c === 'string' ? c : c.name).join(', ');
+  const recCats = getReceitaCats().map(c => typeof c === 'string' ? c : c.name).join(', ');
+
+  return `Você é Salem, assistente financeiro de um casal brasileiro. Responda SEMPRE em PT-BR.
+Data atual: ${now.toISOString().slice(0,10)}. Usuários: ${S.settings.u1} e ${S.settings.u2}.
+
+CONTAS:
+${accInfo}
+
+MÊS ATUAL (${MESES_FULL[curMonth]} ${curYear}):
+- Receitas: ${brl(totalRec)}
+- Despesas: ${brl(totalDesp)}
+- ${mTx.length} transações
+
+DÍVIDAS:
+${debtsInfo}
+
+INVESTIMENTOS:
+${invInfo}
+
+CATEGORIAS DESPESA: ${despCats}
+CATEGORIAS RECEITA: ${recCats}
+
+REGRAS:
+- Formate valores como R$ X.XXX,XX
+- Seja conciso e direto
+- Use as ferramentas para adicionar, buscar, importar ou excluir transações
+- Ao adicionar transações, use IDs de conta válidos listados acima
+- Para datas sem ano, use ${curYear}`;
+}
+
+const AI_TOOLS = [
+  {
+    type: 'function',
+    function: {
+      name: 'add_transaction',
+      description: 'Add a new financial transaction (income, expense, or investment)',
+      parameters: {
+        type: 'object',
+        properties: {
+          type: { type: 'string', enum: ['receita', 'despesa', 'investimento'], description: 'Transaction type' },
+          desc: { type: 'string', description: 'Description' },
+          amount: { type: 'number', description: 'Amount in BRL' },
+          date: { type: 'string', description: 'Date in YYYY-MM-DD format' },
+          category: { type: 'string', description: 'Category name' },
+          subcategory: { type: 'string', description: 'Subcategory (optional)' },
+          accountId: { type: 'string', description: 'Account ID' },
+          user: { type: 'string', description: 'Owner name (Paulo or Thayse)' },
+          formaPgto: { type: 'string', enum: ['debito', 'credito', 'pix'], description: 'Payment method (for expenses)' }
+        },
+        required: ['type', 'desc', 'amount', 'date', 'category', 'accountId', 'user']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'search_transactions',
+      description: 'Search transactions by description, category, month, or account',
+      parameters: {
+        type: 'object',
+        properties: {
+          query: { type: 'string', description: 'Search text (optional)' },
+          month: { type: 'number', description: '1-12 month filter (optional)' },
+          year: { type: 'number', description: 'Year filter (optional)' },
+          category: { type: 'string', description: 'Category filter (optional)' },
+          accountId: { type: 'string', description: 'Account filter (optional)' },
+          type: { type: 'string', enum: ['receita', 'despesa', 'investimento'], description: 'Type filter (optional)' },
+          limit: { type: 'number', description: 'Max results (default 20)' }
+        }
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'import_fatura_text',
+      description: 'Import invoice/fatura text. Parses bank statement text and creates multiple transactions.',
+      parameters: {
+        type: 'object',
+        properties: {
+          text: { type: 'string', description: 'Raw fatura/statement text to parse' },
+          accountId: { type: 'string', description: 'Account/card ID for the transactions' },
+          month: { type: 'number', description: 'Reference month (1-12)' },
+          year: { type: 'number', description: 'Reference year' },
+          user: { type: 'string', description: 'Owner name' },
+          type: { type: 'string', enum: ['receita', 'despesa'], description: 'Transaction type (default: despesa)' }
+        },
+        required: ['text', 'accountId', 'month', 'year', 'user']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'delete_transaction',
+      description: 'Delete a transaction by ID',
+      parameters: {
+        type: 'object',
+        properties: {
+          id: { type: 'string', description: 'Transaction ID to delete' }
+        },
+        required: ['id']
+      }
+    }
+  }
+];
+
+function executeAITool(name, args) {
+  if (name === 'add_transaction') {
+    const tx = {
+      id: 'ai_' + Date.now() + '_' + Math.random().toString(36).slice(2,6),
+      type: args.type || 'despesa',
+      desc: args.desc,
+      amount: args.amount,
+      currency: 'BRL',
+      accountId: args.accountId,
+      category: args.category || 'Outros',
+      subcategory: args.subcategory || '',
+      date: args.date,
+      user: args.user || S.settings.u1,
+      notes: '',
+      pago: true,
+      formaPgto: args.formaPgto || (args.type === 'despesa' ? 'debito' : null),
+      custoTipo: null,
+      at: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    S.transactions.push(tx);
+    save();
+    return `Transação adicionada: ${args.desc} - R$ ${args.amount.toFixed(2)}`;
+  }
+
+  if (name === 'search_transactions') {
+    let txs = [...S.transactions];
+    if (args.query) txs = txs.filter(t => t.desc.toLowerCase().includes(args.query.toLowerCase()) || (t.category||'').toLowerCase().includes(args.query.toLowerCase()));
+    if (args.month && args.year) { const ym = `${args.year}-${String(args.month).padStart(2,'0')}`; txs = txs.filter(t => t.date.startsWith(ym)); }
+    else if (args.year) txs = txs.filter(t => t.date.startsWith(String(args.year)));
+    if (args.category) txs = txs.filter(t => t.category === args.category);
+    if (args.accountId) txs = txs.filter(t => t.accountId === args.accountId);
+    if (args.type) txs = txs.filter(t => t.type === args.type);
+    txs.sort((a,b) => b.date.localeCompare(a.date));
+    txs = txs.slice(0, args.limit || 20);
+    if (!txs.length) return 'Nenhuma transação encontrada.';
+    return txs.map(t => `${t.date} | ${t.desc} | ${t.type} | ${t.category} | R$ ${t.amount.toFixed(2)} | ${t.user}`).join('\n');
+  }
+
+  if (name === 'import_fatura_text') {
+    const parsed = parseFaturaText(args.text, args.month, args.year);
+    if (!parsed || !parsed.length) return 'Não consegui extrair transações do texto fornecido.';
+    const acc = S.accounts.find(a => a.id === args.accountId);
+    const isCartao = acc && acc.accountType === 'cartao';
+    const tipo = args.type || 'despesa';
+    let count = 0;
+    for (const p of parsed) {
+      S.transactions.push({
+        id: 'ai_imp_' + Date.now() + '_' + (count++),
+        type: tipo,
+        desc: p.desc,
+        amount: p.amount,
+        currency: 'BRL',
+        accountId: args.accountId,
+        category: p.category || 'Outros',
+        subcategory: p.subcategory || '',
+        date: p.date,
+        user: args.user || S.settings.u1,
+        notes: '',
+        pago: true,
+        formaPgto: isCartao ? 'credito' : 'debito',
+        custoTipo: p.custoTipo || null,
+        faturaRef: args.year + '-' + String(args.month).padStart(2,'0'),
+        at: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      });
+    }
+    save();
+    return `Importadas ${count} transações da fatura para ${acc ? acc.label : args.accountId}.`;
+  }
+
+  if (name === 'delete_transaction') {
+    const idx = S.transactions.findIndex(t => t.id === args.id);
+    if (idx < 0) return 'Transação não encontrada.';
+    const tx = S.transactions[idx];
+    S.deletedIds.push({ id: args.id, collection: 'transactions', deletedAt: new Date().toISOString() });
+    if (tx.isTransfer && tx.transferId) {
+      S.transactions.filter(t => t.transferId === tx.transferId).forEach(t => {
+        S.deletedIds.push({ id: t.id, collection: 'transactions', deletedAt: new Date().toISOString() });
+      });
+      S.transactions = S.transactions.filter(t => t.transferId !== tx.transferId);
+    } else {
+      S.transactions.splice(idx, 1);
+    }
+    save();
+    return `Transação excluída: ${tx.desc}`;
+  }
+
+  return 'Ferramenta desconhecida: ' + name;
+}
+
+function updateAIStatus() {
+  const el = document.getElementById('ai-status');
+  if (!el) return;
+  if (S.settings.apiKey) {
+    const provider = S.settings.apiProvider === 'anthropic' ? 'Claude' : 'GPT';
+    el.innerHTML = `<span style="color:#22c55e;">●</span> IA ativa (${provider})`;
+  } else {
+    el.innerHTML = '<span style="color:#94a3b8;">●</span> Modo offline';
+  }
+}
+
+async function sendChat() {
   const input = document.getElementById('chat-input');
   const msg = input.value.trim();
   if (!msg) return;
   input.value = '';
   addBubble('user', msg);
-  // Hide suggestions after first message
   const sugg = document.getElementById('chat-suggestions');
   if (sugg) sugg.style.display = 'none';
+
+  // AI path: use real API if key is configured
+  if (S.settings.apiKey && !chatImportMode) {
+    const sendBtn = document.getElementById('chat-send');
+    sendBtn.disabled = true;
+    sendBtn.textContent = '...';
+    const typId = addTyping();
+
+    try {
+      // Build messages: system + recent history + current
+      const systemPrompt = buildSystemPrompt();
+      const history = (S.chatHistory || []).slice(-20).map(h => ({ role: h.role === 'ai' ? 'assistant' : h.role, content: h.text }));
+      const messages = [
+        { role: 'system', content: systemPrompt },
+        ...history,
+        { role: 'user', content: msg }
+      ];
+
+      let result = await callAI(messages, AI_TOOLS);
+      if (!result) {
+        // Fallback if callAI returns null (no key)
+        removeTyping(typId);
+        addBubble('ai', processChat(msg));
+        sendBtn.disabled = false;
+        sendBtn.textContent = 'Enviar';
+        return;
+      }
+
+      // Process tool calls if any
+      if (result.toolCalls && result.toolCalls.length > 0) {
+        const toolResults = [];
+        for (const tc of result.toolCalls) {
+          const toolResult = executeAITool(tc.name, tc.arguments);
+          toolResults.push({ id: tc.id, name: tc.name, result: toolResult });
+        }
+
+        // Send tool results back for final response
+        const provider = S.settings.apiProvider || 'openai';
+        if (provider === 'anthropic') {
+          const followUp = [
+            ...messages.filter(m => m.role !== 'system'),
+            { role: 'assistant', content: result.toolCalls.map(tc => ({ type: 'tool_use', id: tc.id, name: tc.name, input: tc.arguments })).concat(result.text ? [{ type: 'text', text: result.text }] : []) },
+            { role: 'user', content: toolResults.map(tr => ({ type: 'tool_result', tool_use_id: tr.id, content: tr.result })) }
+          ];
+          const finalMessages = [{ role: 'system', content: systemPrompt }, ...followUp];
+          const finalResult = await callAI(finalMessages, AI_TOOLS);
+          if (finalResult) result = finalResult;
+        } else {
+          // OpenAI: append assistant message with tool_calls, then tool results
+          const assistantMsg = { role: 'assistant', content: result.text || null, tool_calls: result.toolCalls.map(tc => ({ id: tc.id, type: 'function', function: { name: tc.name, arguments: JSON.stringify(tc.arguments) } })) };
+          const toolMsgs = toolResults.map(tr => ({ role: 'tool', tool_call_id: tr.id, content: tr.result }));
+          const finalMessages = [...messages, assistantMsg, ...toolMsgs];
+          const finalResult = await callAI(finalMessages, AI_TOOLS);
+          if (finalResult) result = finalResult;
+        }
+      }
+
+      removeTyping(typId);
+      const reply = result.text || 'Pronto!';
+      addBubble('ai', reply.replace(/\n/g, '<br>'));
+
+      // Save to chat history
+      S.chatHistory.push({ role: 'user', text: msg, at: new Date().toISOString() });
+      S.chatHistory.push({ role: 'ai', text: reply, at: new Date().toISOString() });
+      if (S.chatHistory.length > 100) S.chatHistory = S.chatHistory.slice(-100);
+      save();
+
+    } catch(e) {
+      removeTyping(typId);
+      console.error('Chat AI error:', e);
+      addBubble('ai', `Erro ao consultar IA: ${e.message}. Usando modo offline.`);
+      addBubble('ai', processChat(msg));
+    }
+
+    sendBtn.disabled = false;
+    sendBtn.textContent = 'Enviar';
+    return;
+  }
+
+  // Offline fallback path
   const typId = addTyping();
   setTimeout(() => {
     removeTyping(typId);
@@ -5078,7 +5536,8 @@ Digite <b>confirmar</b> para importar ou <b>cancelar</b> para desistir.`;
           parcela: t.parcela || null,
           currency: 'BRL',
           isNegative: false,
-          at: new Date().toISOString()
+          at: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
         });
       });
       save();
@@ -5262,34 +5721,59 @@ function salvarConfig() {
   save();
   document.getElementById('header-users').textContent=`${S.settings.u1} & ${S.settings.u2}`;
   refreshUserSelects();
+  updateAIStatus();
   toast('✅ Configurações salvas!');
 }
 
 function exportarDados() {
-  const blob=new Blob([JSON.stringify({transactions:S.transactions},null,2)],{type:'application/json'});
-  const a=document.createElement('a');
-  a.href=URL.createObjectURL(blob);
-  a.download=`financas_casal_${new Date().toISOString().slice(0,10)}.json`;
+  const exportData = {
+    version: 2,
+    exportedAt: new Date().toISOString(),
+    transactions: S.transactions,
+    accounts: S.accounts,
+    debts: S.debts,
+    investments: S.investments,
+    budget: S.budget,
+    chatHistory: S.chatHistory,
+    customCats: S.customCats,
+    customBanks: S.customBanks,
+    deletedIds: S.deletedIds,
+    settings: { u1: S.settings.u1, u2: S.settings.u2 }
+  };
+  const blob = new Blob([JSON.stringify(exportData, null, 2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `financas_casal_backup_${new Date().toISOString().slice(0,10)}.json`;
   a.click();
   URL.revokeObjectURL(a.href);
-  toast('📤 Dados exportados com sucesso!');
+  toast('📤 Backup completo exportado!');
 }
 
 function importarDados(e) {
-  const file=e.target.files[0];
-  if(!file)return;
-  const r=new FileReader();
-  r.onload=ev=>{
+  const file = e.target.files[0];
+  if (!file) return;
+  const r = new FileReader();
+  r.onload = ev => {
     try {
-      const d=JSON.parse(ev.target.result);
-      if(d.transactions) S.transactions=d.transactions;
+      const d = JSON.parse(ev.target.result);
+      const tombstones = mergeTombstones(S.deletedIds, d.deletedIds || []);
+      // Merge inteligente por ID (não substitui, combina)
+      if (d.transactions) S.transactions = mergeArrayById(S.transactions, d.transactions, tombstones);
+      if (d.accounts)     S.accounts     = mergeArrayById(S.accounts, d.accounts, tombstones);
+      if (d.debts)        S.debts        = mergeArrayById(S.debts, d.debts, tombstones);
+      if (d.investments)  S.investments  = mergeArrayById(S.investments, d.investments, tombstones);
+      if (d.deletedIds)   S.deletedIds   = tombstones;
+      if (d.budget)       S.budget       = { ...(S.budget || {}), ...d.budget };
+      if (d.customCats && !S.customCats) S.customCats = d.customCats;
+      if (d.customBanks)  { S.customBanks = { ...(S.customBanks||{}), ...d.customBanks }; Object.assign(BANKS, d.customBanks); }
+      if (d.settings)     S.settings     = { ...S.settings, ...d.settings };
       save();
-      toast('📥 Dados importados com sucesso!');
+      toast('📥 Backup importado com sucesso!');
       goto('dashboard');
     } catch { toast('❌ Arquivo inválido'); }
   };
   r.readAsText(file);
-  e.target.value='';
+  e.target.value = '';
 }
 
 function apagarTudo() {
@@ -5304,12 +5788,13 @@ function apagarTudo() {
 
 // ─── INIT ─────────────────────────────────────────────────────────────────────
 function seedAccounts() {
+  const _now = new Date().toISOString();
   const defaults = [
-    { id: 'nubank_conta',  bank:'nubank',  label:'Conta Nubank',   owner: S.settings.u1, accountType:'conta', tipoConta:'corrente' },
-    { id: 'sicredi_conta', bank:'sicredi', label:'Conta Sicredi',  owner: S.settings.u1, accountType:'conta', tipoConta:'corrente' },
-    { id: 'card_nubank',   bank:'nubank',  label:'Cartão Nubank',  owner: S.settings.u1, accountType:'cartao', tipoConta:null, limite:'17500', fecha:'2', vence:'10' },
-    { id: 'card_sicredi',  bank:'sicredi', label:'Cartão Sicredi', owner: S.settings.u1, accountType:'cartao', tipoConta:null, limite:'13000', fecha:'2', vence:'15' },
-    { id: 'binance_conta', bank:'binance', label:'Conta Binance',  owner: S.settings.u1, accountType:'conta', tipoConta:'corrente' },
+    { id: 'nubank_conta',  bank:'nubank',  label:'Conta Nubank',   owner: S.settings.u1, accountType:'conta', tipoConta:'corrente', updatedAt: _now },
+    { id: 'sicredi_conta', bank:'sicredi', label:'Conta Sicredi',  owner: S.settings.u1, accountType:'conta', tipoConta:'corrente', updatedAt: _now },
+    { id: 'card_nubank',   bank:'nubank',  label:'Cartão Nubank',  owner: S.settings.u1, accountType:'cartao', tipoConta:null, limite:'17500', fecha:'2', vence:'10', updatedAt: _now },
+    { id: 'card_sicredi',  bank:'sicredi', label:'Cartão Sicredi', owner: S.settings.u1, accountType:'cartao', tipoConta:null, limite:'13000', fecha:'2', vence:'15', updatedAt: _now },
+    { id: 'binance_conta', bank:'binance', label:'Conta Binance',  owner: S.settings.u1, accountType:'conta', tipoConta:'corrente', updatedAt: _now },
   ];
   let changed = false;
   // Only add missing accounts, NEVER remove or deduplicate existing ones
@@ -5676,6 +6161,7 @@ function salvarDivida() {
     const d = S.debts.find(x => x.id === editId);
     if (d) {
       Object.assign(d, debtData);
+      d.updatedAt = new Date().toISOString();
     }
   } else {
     S.debts.push({
@@ -5683,7 +6169,8 @@ function salvarDivida() {
       ...debtData,
       pagamentos: [],
       amortizacoesExtra: [],
-      at: new Date().toISOString()
+      at: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
     });
   }
 
@@ -5699,6 +6186,7 @@ function editarDivida(id) {
 
 function deletarDivida(id) {
   if (!confirm('Tem certeza que deseja excluir esta dívida?')) return;
+  S.deletedIds.push({ id, collection: 'debts', deletedAt: new Date().toISOString() });
   S.debts = S.debts.filter(d => d.id !== id);
   save();
   renderDividas();
@@ -5815,6 +6303,7 @@ function confirmarPagarAmortizacao() {
   // Record amortization
   d.amortizacoesExtra = d.amortizacoesExtra || [];
   d.amortizacoesExtra.push({ date: data, amount: valor, modo: modo });
+  d.updatedAt = new Date().toISOString();
 
   const novoSaldo = saldoAtual - valor;
 
@@ -5875,7 +6364,8 @@ function confirmarPagarAmortizacao() {
     pago: true,
     custoTipo: 'fixo',
     notas: `Amortização extra (${modo === 'prazo' ? 'reduzir prazo' : 'reduzir parcela'}): ${d.desc} (${BANKS[d.bank]?.name || d.bank})`,
-    at: new Date().toISOString()
+    at: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
   });
 
   save();
@@ -5906,6 +6396,7 @@ function confirmarPagarParcela() {
   d.parcelasPagas = (d.parcelasPagas || 0) + 1;
   d.pagamentos = d.pagamentos || [];
   d.pagamentos.push({ date: data, amount: valor, parcela: d.parcelasPagas });
+  d.updatedAt = new Date().toISOString();
 
   if (d.parcelasPagas >= d.totalParcelas) {
     d.status = 'paga';
@@ -5926,7 +6417,8 @@ function confirmarPagarParcela() {
     pago: true,
     custoTipo: 'fixo',
     notas: `Pagamento de dívida: ${d.desc} (${BANKS[d.bank]?.name || d.bank})`,
-    at: new Date().toISOString()
+    at: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
   });
 
   save();
@@ -6600,13 +7092,14 @@ function salvarInvest() {
 
   if (editId) {
     const inv = S.investments.find(x => x.id === editId);
-    if (inv) Object.assign(inv, data);
+    if (inv) { Object.assign(inv, data); inv.updatedAt = new Date().toISOString(); }
   } else {
     S.investments.push({
       id: 'inv_' + Date.now(),
       ...data,
       rendimentos: [],
-      at: new Date().toISOString()
+      at: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
     });
   }
 
@@ -6622,6 +7115,7 @@ function editarInvest(id) {
 
 function deletarInvest(id) {
   if (!confirm('Tem certeza que deseja excluir este investimento?')) return;
+  S.deletedIds.push({ id, collection: 'investments', deletedAt: new Date().toISOString() });
   S.investments = S.investments.filter(i => i.id !== id);
   save();
   renderInvestimentos();
@@ -6668,7 +7162,8 @@ function confirmarRendimento() {
   if (!inv) return;
 
   inv.rendimentos = inv.rendimentos || [];
-  inv.rendimentos.push({ valor, moeda, data, pct, obs, at: new Date().toISOString() });
+  inv.rendimentos.push({ valor, moeda, data, pct, obs, at: new Date().toISOString(), updatedAt: new Date().toISOString() });
+  inv.updatedAt = new Date().toISOString();
 
   // Atualizar valor atual para renda fixa
   if (inv.tipo === 'renda_fixa' && pct > 0) {
@@ -6862,6 +7357,9 @@ function initSalemBot() {
 
 function init() {
   load();
+  // Cleanup tombstones older than 30 days
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+  S.deletedIds = (S.deletedIds || []).filter(t => t.deletedAt > thirtyDaysAgo);
   // Limpeza: remover conta Caixa automática que foi criada por erro
   const caixaIdx = S.accounts.findIndex(a => a.id === 'caixa_conta');
   if (caixaIdx >= 0) {
@@ -6878,6 +7376,7 @@ function init() {
   fetchUsdRate();
   initDashPeriod();
   initSalemBot();
+  updateAIStatus();
   checkAuth();
   if (sessionStorage.getItem('fincasal_auth')) goto('dashboard');
 }
