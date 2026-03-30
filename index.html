@@ -1030,7 +1030,13 @@
     <!-- Input -->
     <div style="padding:14px;border-top:1px solid #f1f5f9;">
       <div id="ai-status" style="font-size:11px;color:#94a3b8;padding:0 2px 6px;"><span style="color:#94a3b8;">●</span> Modo offline</div>
-      <div style="display:flex;gap:10px;">
+      <div id="chat-file-preview" style="display:none;padding:6px 10px;margin-bottom:6px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;font-size:12px;color:#475569;">
+        <span id="chat-file-name"></span>
+        <button onclick="clearChatFile()" style="background:none;border:none;color:#e11d48;cursor:pointer;margin-left:8px;font-size:11px;">✕ Remover</button>
+      </div>
+      <div style="display:flex;gap:10px;align-items:center;">
+        <input type="file" id="chat-file" accept=".txt,.csv,.pdf,image/*" style="display:none;" onchange="onChatFileSelect(this)">
+        <button onclick="document.getElementById('chat-file').click()" title="Anexar arquivo (fatura, extrato)" style="padding:10px;background:#f1f5f9;border:1.5px solid #e2e8f0;border-radius:10px;cursor:pointer;font-size:18px;line-height:1;flex-shrink:0;">📎</button>
         <input class="finput" type="text" id="chat-input" placeholder="Pergunte algo sobre suas finanças..." onkeydown="if(event.key==='Enter')sendChat()" style="flex:1;">
         <button onclick="sendChat()" id="chat-send" style="padding:12px 20px;background:#4f46e5;color:white;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;">Enviar</button>
       </div>
@@ -4982,12 +4988,84 @@ function updateAIStatus() {
   }
 }
 
+let _chatFileContent = null;
+let _chatFileName = null;
+
+function onChatFileSelect(input) {
+  const file = input.files[0];
+  if (!file) return;
+  _chatFileName = file.name;
+  const ext = file.name.split('.').pop().toLowerCase();
+
+  if (ext === 'pdf') {
+    // PDF: tentar extrair texto com FileReader
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      try {
+        // Extrair texto simples do PDF (sem lib externa — pega strings legíveis)
+        const bytes = new Uint8Array(e.target.result);
+        let text = '';
+        // Decode as latin1 for basic text extraction
+        for (let i = 0; i < bytes.length; i++) text += String.fromCharCode(bytes[i]);
+        // Extract text between parentheses (PDF text objects) and BT/ET blocks
+        const matches = text.match(/\(([^)]+)\)/g);
+        if (matches) {
+          _chatFileContent = matches.map(m => m.slice(1, -1)).join(' ').replace(/\\n/g, '\n');
+        } else {
+          _chatFileContent = '[PDF sem texto extraível — copie e cole o conteúdo manualmente]';
+        }
+        showChatFilePreview();
+      } catch { _chatFileContent = '[Erro ao ler PDF]'; showChatFilePreview(); }
+    };
+    reader.readAsArrayBuffer(file);
+  } else if (file.type.startsWith('image/')) {
+    // Imagem: converter pra base64 pra enviar como vision (se API suportar)
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      _chatFileContent = { type: 'image', base64: e.target.result, mimeType: file.type };
+      showChatFilePreview();
+    };
+    reader.readAsDataURL(file);
+  } else {
+    // TXT/CSV: ler como texto
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      _chatFileContent = e.target.result;
+      showChatFilePreview();
+    };
+    reader.readAsText(file, 'UTF-8');
+  }
+  input.value = '';
+}
+
+function showChatFilePreview() {
+  const preview = document.getElementById('chat-file-preview');
+  const nameEl = document.getElementById('chat-file-name');
+  if (_chatFileName) {
+    const isImage = _chatFileContent && _chatFileContent.type === 'image';
+    nameEl.textContent = `📎 ${_chatFileName}` + (isImage ? ' (imagem)' : '');
+    preview.style.display = 'block';
+  }
+}
+
+function clearChatFile() {
+  _chatFileContent = null;
+  _chatFileName = null;
+  document.getElementById('chat-file-preview').style.display = 'none';
+}
+
 async function sendChat() {
   const input = document.getElementById('chat-input');
   const msg = input.value.trim();
-  if (!msg) return;
+  const hasFile = !!_chatFileContent;
+  if (!msg && !hasFile) return;
   input.value = '';
-  addBubble('user', msg);
+  const fileContent = _chatFileContent;
+  const fileName = _chatFileName;
+  clearChatFile();
+
+  const displayMsg = msg + (fileName ? ` 📎 ${fileName}` : '');
+  addBubble('user', displayMsg);
   const sugg = document.getElementById('chat-suggestions');
   if (sugg) sugg.style.display = 'none';
 
@@ -5002,10 +5080,36 @@ async function sendChat() {
       // Build messages: system + recent history + current
       const systemPrompt = buildSystemPrompt();
       const history = (S.chatHistory || []).slice(-20).map(h => ({ role: h.role === 'ai' ? 'assistant' : h.role, content: h.text }));
+
+      // Build user message content (text + optional file)
+      let userContent = msg || '';
+      if (fileContent) {
+        if (typeof fileContent === 'string') {
+          // Text file / PDF extracted text
+          userContent = (msg ? msg + '\n\n' : 'Analise e importe este conteúdo:\n\n') + '--- CONTEÚDO DO ARQUIVO (' + fileName + ') ---\n' + fileContent;
+        } else if (fileContent.type === 'image') {
+          // Image: use vision API (multimodal)
+          const provider = S.settings.apiProvider || 'openai';
+          if (provider === 'anthropic') {
+            const base64Data = fileContent.base64.split(',')[1];
+            const mediaType = fileContent.mimeType;
+            userContent = [
+              { type: 'text', text: msg || 'Analise esta imagem de fatura/extrato e importe as transações.' },
+              { type: 'image', source: { type: 'base64', media_type: mediaType, data: base64Data } }
+            ];
+          } else {
+            userContent = [
+              { type: 'text', text: msg || 'Analise esta imagem de fatura/extrato e importe as transações.' },
+              { type: 'image_url', image_url: { url: fileContent.base64 } }
+            ];
+          }
+        }
+      }
+
       const messages = [
         { role: 'system', content: systemPrompt },
         ...history,
-        { role: 'user', content: msg }
+        { role: 'user', content: userContent }
       ];
 
       let result = await callAI(messages, AI_TOOLS);
@@ -5052,7 +5156,7 @@ async function sendChat() {
       addBubble('ai', reply.replace(/\n/g, '<br>'));
 
       // Save to chat history
-      S.chatHistory.push({ role: 'user', text: msg, at: new Date().toISOString() });
+      S.chatHistory.push({ role: 'user', text: displayMsg, at: new Date().toISOString() });
       S.chatHistory.push({ role: 'ai', text: reply, at: new Date().toISOString() });
       if (S.chatHistory.length > 100) S.chatHistory = S.chatHistory.slice(-100);
       save();
