@@ -688,6 +688,11 @@
         <option value="fixo">📌 Fixo</option>
         <option value="variavel">📊 Variável</option>
       </select>
+      <select class="finput" id="fil-status" onchange="renderHistorico()" style="width:140px;padding:8px 10px;font-size:13px;">
+        <option value="">Status</option>
+        <option value="pendente">⏳ Pendente</option>
+        <option value="pago">✅ Pago</option>
+      </select>
       <select class="finput" id="fil-titular" onchange="onHistTitularChange()" style="width:140px;padding:8px 10px;font-size:13px;">
         <option value="">Todos Titulares</option>
       </select>
@@ -3920,6 +3925,9 @@ function getFilteredTxs() {
   if (pagamento) txs = txs.filter(t => t.formaPgto === pagamento);
   if (conta)     txs = txs.filter(t => t.accountId === conta);
   if (custo)     txs = txs.filter(t => (t.custoTipo || autoCustoTipo(t.category)) === custo);
+  const status   = document.getElementById('fil-status')?.value || '';
+  if (status === 'pendente') txs = txs.filter(t => t.pago === false);
+  if (status === 'pago')     txs = txs.filter(t => t.pago !== false);
   if (titular)   txs = txs.filter(t => t.user === titular);
 
   txs.sort((a,b) => new Date(b.date) - new Date(a.date));
@@ -4044,7 +4052,7 @@ function bulkDelete() {
 }
 
 function clearFiltros() {
-  ['fil-search','fil-tipo','fil-pagamento','fil-conta','fil-custo'].forEach(id => { const el=document.getElementById(id); if(el)el.value=''; });
+  ['fil-search','fil-tipo','fil-pagamento','fil-conta','fil-custo','fil-status'].forEach(id => { const el=document.getElementById(id); if(el)el.value=''; });
   histMesSel = null;
   renderHistorico();
 }
