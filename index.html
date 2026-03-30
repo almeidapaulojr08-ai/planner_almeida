@@ -1425,6 +1425,14 @@
         </label>
       </div>
 
+      <!-- Recorrente (só despesa) -->
+      <div id="ed-row-recorrente" style="display:none;margin-bottom:16px;">
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:14px;color:#334155;font-weight:500;">
+          <input type="checkbox" id="ed-recorrente" style="width:16px;height:16px;accent-color:#4f46e5;">
+          Transação Recorrente <span style="font-size:12px;color:#94a3b8;font-weight:400;">(mesmo valor todo mês)</span>
+        </label>
+      </div>
+
       <!-- Observações -->
       <div style="margin-bottom:20px;">
         <label class="flabel">Observações <span style="color:#94a3b8;font-weight:400;">(opcional)</span></label>
@@ -2971,6 +2979,7 @@ function abrirEditModal(id) {
     if (t.subcategory) document.getElementById('ed-subcategory').value = t.subcategory;
   }
   if (t.type === 'despesa') document.getElementById('ed-pago').checked = t.pago !== false;
+  if (t.type === 'despesa') document.getElementById('ed-recorrente').checked = t.recorrente === true;
   if (t.type === 'despesa') {
     setEditCustoTipo(t.custoTipo || autoCustoTipo(t.category));
   }
@@ -2989,6 +2998,7 @@ function onEditTypeChange() {
 
   document.getElementById('ed-row-pagamento').style.display = isDespesa ? 'block' : 'none';
   document.getElementById('ed-row-pago').style.display = isDespesa ? 'block' : 'none';
+  document.getElementById('ed-row-recorrente').style.display = isDespesa ? 'block' : 'none';
   document.getElementById('ed-row-custo-tipo').style.display = isDespesa ? 'block' : 'none';
 
   // Populate conta select
@@ -3066,6 +3076,7 @@ function salvarEdicao() {
     subcategory: isDespesa ? (document.getElementById('ed-subcategory').value || '') : '',
     notes:      document.getElementById('ed-notes').value.trim(),
     pago:       isDespesa ? document.getElementById('ed-pago').checked : true,
+    recorrente: isDespesa ? document.getElementById('ed-recorrente').checked : false,
     formaPgto:  isDespesa ? editFormaPgto : null,
     custoTipo:  isDespesa ? editCustoTipo : null,
     updatedAt:  new Date().toISOString(),
