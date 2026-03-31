@@ -3323,35 +3323,36 @@ function renderDashConta(ym, ymPrev) {
   const mTx = txByTitular(allMTx);
   const pTx = txByTitular(S.transactions.filter(t => t.date.startsWith(ymPrev)));
 
-  // Despesas = débito (por data) + crédito pago (por faturaRef) - excluindo Pagamento Fatura
   const isPgtoFatura = t => t.desc && t.desc.startsWith('Pagamento Fatura');
   const allTitTx = txByTitular(S.transactions);
 
-  // Crédito pago cuja faturaRef bate com o mês selecionado
+  // SALDO = receitas - débitos pagos (o que realmente entrou/saiu da conta bancária)
+  const rec   = mTx.filter(t=>t.type==='receita' && !t.isTransfer).reduce((s,t)=>s+amountBrl(t),0);
+  const despDebito = mTx.filter(t=>t.type==='despesa' && t.formaPgto !== 'credito' && !t.isTransfer && t.pago !== false).reduce((s,t)=>s+amountBrl(t),0);
+  const saldo = rec - despDebito;
+
+  // DESPESAS = débito pago (excl Pgto Fatura) + crédito pago (por faturaRef)
+  const debitoYM = mTx.filter(t =>
+    t.type === 'despesa' && t.formaPgto !== 'credito' && !t.isTransfer && !isPgtoFatura(t) && t.pago !== false
+  );
   const creditPagoYM = allTitTx.filter(t =>
     t.type === 'despesa' && t.formaPgto === 'credito' && t.pago === true &&
     getTxFaturaRef(t) === ym
   );
-  // Débito PAGO do mês (por data), excluindo Pagamento Fatura, transferências e pendentes
-  const debitoYM = mTx.filter(t =>
+  const desp = debitoYM.reduce((s,t)=>s+amountBrl(t),0) + creditPagoYM.reduce((s,t)=>s+amountBrl(t),0);
+
+  // Mês anterior
+  const pRec   = pTx.filter(t=>t.type==='receita' && !t.isTransfer).reduce((s,t)=>s+amountBrl(t),0);
+  const pDespDebito = pTx.filter(t=>t.type==='despesa' && t.formaPgto !== 'credito' && !t.isTransfer && t.pago !== false).reduce((s,t)=>s+amountBrl(t),0);
+  const pSaldo = pRec - pDespDebito;
+  const debitoPrev = pTx.filter(t =>
     t.type === 'despesa' && t.formaPgto !== 'credito' && !t.isTransfer && !isPgtoFatura(t) && t.pago !== false
   );
-
-  const rec   = mTx.filter(t=>t.type==='receita' && !t.isTransfer).reduce((s,t)=>s+amountBrl(t),0);
-  const desp  = debitoYM.reduce((s,t)=>s+amountBrl(t),0) + creditPagoYM.reduce((s,t)=>s+amountBrl(t),0);
-  const saldo = rec - desp;
-
-  // Mesmo cálculo pro mês anterior (comparação percentual)
   const creditPagoPrev = allTitTx.filter(t =>
     t.type === 'despesa' && t.formaPgto === 'credito' && t.pago === true &&
     getTxFaturaRef(t) === ymPrev
   );
-  const debitoPrev = pTx.filter(t =>
-    t.type === 'despesa' && t.formaPgto !== 'credito' && !t.isTransfer && !isPgtoFatura(t) && t.pago !== false
-  );
-  const pRec   = pTx.filter(t=>t.type==='receita' && !t.isTransfer).reduce((s,t)=>s+amountBrl(t),0);
-  const pDesp  = debitoPrev.reduce((s,t)=>s+amountBrl(t),0) + creditPagoPrev.reduce((s,t)=>s+amountBrl(t),0);
-  const pSaldo = pRec - pDesp;
+  const pDesp = debitoPrev.reduce((s,t)=>s+amountBrl(t),0) + creditPagoPrev.reduce((s,t)=>s+amountBrl(t),0);
 
   const cs = document.getElementById('c-saldo');
   cs.textContent = brl(saldo);
@@ -3367,11 +3368,10 @@ function renderDashConta(ym, ymPrev) {
     document.getElementById('c-saldo-pct').textContent = '';
   }
 
-  // Saldo total: receitas - (débito excl pgto fatura + crédito pago)
+  // Saldo total: receitas - débitos pagos (saldo real das contas bancárias)
   const totalRec  = allTitTx.filter(t=>t.type==='receita').reduce((s,t)=>s+amountBrl(t),0);
-  const totalDespDebito = allTitTx.filter(t=>t.type==='despesa' && t.formaPgto !== 'credito' && !isPgtoFatura(t) && t.pago !== false).reduce((s,t)=>s+amountBrl(t),0);
-  const totalDespCredPago = allTitTx.filter(t=>t.type==='despesa' && t.formaPgto === 'credito' && t.pago === true).reduce((s,t)=>s+amountBrl(t),0);
-  document.getElementById('c-saldo-sub').textContent = `Saldo Total: ${brl(totalRec - totalDespDebito - totalDespCredPago)}`;
+  const totalDespDebito = allTitTx.filter(t=>t.type==='despesa' && t.formaPgto !== 'credito' && !t.isTransfer && t.pago !== false).reduce((s,t)=>s+amountBrl(t),0);
+  document.getElementById('c-saldo-sub').textContent = `Saldo Total: ${brl(totalRec - totalDespDebito)}`;
   document.getElementById('c-saldo-sub').style.color = '#94a3b8';
 
   // Receitas with percentage change
