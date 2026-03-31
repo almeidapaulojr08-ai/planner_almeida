@@ -3354,11 +3354,17 @@ function renderDashConta(ym, ymPrev) {
   );
   const pDesp = debitoPrev.reduce((s,t)=>s+amountBrl(t),0) + creditPagoPrev.reduce((s,t)=>s+amountBrl(t),0);
 
-  const cs = document.getElementById('c-saldo');
-  cs.textContent = brl(saldo);
-  cs.style.color = saldo >= 0 ? '#059669' : '#e11d48';
+  // Saldo acumulado até o mês selecionado (o que realmente tem na conta)
+  const acumTx = allTitTx.filter(t => t.date <= ym + '-31');
+  const acumRec  = acumTx.filter(t=>t.type==='receita').reduce((s,t)=>s+amountBrl(t),0);
+  const acumDesp = acumTx.filter(t=>t.type==='despesa' && t.formaPgto !== 'credito' && !t.isTransfer && t.pago !== false).reduce((s,t)=>s+amountBrl(t),0);
+  const saldoAcumulado = acumRec - acumDesp;
 
-  // Percentage change
+  const cs = document.getElementById('c-saldo');
+  cs.textContent = brl(saldoAcumulado);
+  cs.style.color = saldoAcumulado >= 0 ? '#059669' : '#e11d48';
+
+  // Percentage change (compara saldo do mês atual vs anterior)
   if (pSaldo !== 0) {
     const pct = ((saldo - pSaldo) / Math.abs(pSaldo)) * 100;
     document.getElementById('c-saldo-pct').textContent = `${pct >= 0 ? '+' : ''}${pct.toFixed(1)}%`;
@@ -3368,11 +3374,10 @@ function renderDashConta(ym, ymPrev) {
     document.getElementById('c-saldo-pct').textContent = '';
   }
 
-  // Saldo total: receitas - débitos pagos (saldo real das contas bancárias)
-  const totalRec  = allTitTx.filter(t=>t.type==='receita').reduce((s,t)=>s+amountBrl(t),0);
-  const totalDespDebito = allTitTx.filter(t=>t.type==='despesa' && t.formaPgto !== 'credito' && !t.isTransfer && t.pago !== false).reduce((s,t)=>s+amountBrl(t),0);
-  document.getElementById('c-saldo-sub').textContent = `Saldo Total: ${brl(totalRec - totalDespDebito)}`;
-  document.getElementById('c-saldo-sub').style.color = '#94a3b8';
+  // Subtexto: saldo do mês isolado
+  const saldoMesLabel = saldo >= 0 ? `+${brl(saldo)}` : `-${brl(Math.abs(saldo))}`;
+  document.getElementById('c-saldo-sub').textContent = `No mês: ${saldoMesLabel}`;
+  document.getElementById('c-saldo-sub').style.color = saldo >= 0 ? '#059669' : '#e11d48';
 
   // Receitas with percentage change
   document.getElementById('c-receitas').textContent = brl(rec);
@@ -3459,12 +3464,14 @@ function renderCardBreakdowns(mTx) {
     </div>`;
   }
 
-  // Saldo breakdown — usa mTx (período selecionado: mês ou ano)
+  // Saldo breakdown — acumulado até o mês selecionado
+  const isAno = dashPeriodMode === 'ano';
+  const ymLimit = isAno ? `${dashYear}-12-31` : `${dashYear}-${String(dashMonth+1).padStart(2,'0')}-31`;
   let saldoHtml = '';
   accToShow.forEach(a => {
-    const accTx = mTx.filter(t => t.accountId === a.id);
-    const rec  = accTx.filter(t=>t.type==='receita').reduce((s,t)=>s+amountRaw(t),0);
-    const desp = accTx.filter(t=>t.type==='despesa' && t.formaPgto !== 'credito').reduce((s,t)=>s+amountRaw(t),0);
+    const accTxAcum = txByTitular(S.transactions).filter(t => t.accountId === a.id && t.date <= ymLimit);
+    const rec  = accTxAcum.filter(t=>t.type==='receita').reduce((s,t)=>s+amountRaw(t),0);
+    const desp = accTxAcum.filter(t=>t.type==='despesa' && t.formaPgto !== 'credito' && t.pago !== false).reduce((s,t)=>s+amountRaw(t),0);
     const bal = rec - desp;
     const isUSD = BANKS[a.bank].currency === 'USD';
     const balBrl = isUSD ? usdToBrl(bal) : bal;
