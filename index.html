@@ -3355,8 +3355,11 @@ function renderDashConta(ym, ymPrev) {
   const pDesp = debitoPrev.reduce((s,t)=>s+amountBrl(t),0) + creditPagoPrev.reduce((s,t)=>s+amountBrl(t),0);
 
   // Saldo acumulado até o mês selecionado (o que realmente tem na conta)
+  // Transferências: excluir de ambos os lados (se cancelam no total)
+  // Crédito: não afeta conta bancária diretamente
+  // Pendentes: ainda não saíram da conta
   const acumTx = allTitTx.filter(t => t.date <= ym + '-31');
-  const acumRec  = acumTx.filter(t=>t.type==='receita').reduce((s,t)=>s+amountBrl(t),0);
+  const acumRec  = acumTx.filter(t=>t.type==='receita' && !t.isTransfer).reduce((s,t)=>s+amountBrl(t),0);
   const acumDesp = acumTx.filter(t=>t.type==='despesa' && t.formaPgto !== 'credito' && !t.isTransfer && t.pago !== false).reduce((s,t)=>s+amountBrl(t),0);
   const saldoAcumulado = acumRec - acumDesp;
 
@@ -3364,9 +3367,15 @@ function renderDashConta(ym, ymPrev) {
   cs.textContent = brl(saldoAcumulado);
   cs.style.color = saldoAcumulado >= 0 ? '#059669' : '#e11d48';
 
-  // Percentage change (compara saldo do mês atual vs anterior)
-  if (pSaldo !== 0) {
-    const pct = ((saldo - pSaldo) / Math.abs(pSaldo)) * 100;
+  // Saldo acumulado do mês anterior
+  const acumTxPrev = allTitTx.filter(t => t.date <= ymPrev + '-31');
+  const acumRecPrev  = acumTxPrev.filter(t=>t.type==='receita' && !t.isTransfer).reduce((s,t)=>s+amountBrl(t),0);
+  const acumDespPrev = acumTxPrev.filter(t=>t.type==='despesa' && t.formaPgto !== 'credito' && !t.isTransfer && t.pago !== false).reduce((s,t)=>s+amountBrl(t),0);
+  const saldoAcumPrev = acumRecPrev - acumDespPrev;
+
+  // Percentage change (compara saldo acumulado atual vs anterior)
+  if (saldoAcumPrev !== 0) {
+    const pct = ((saldoAcumulado - saldoAcumPrev) / Math.abs(saldoAcumPrev)) * 100;
     document.getElementById('c-saldo-pct').textContent = `${pct >= 0 ? '+' : ''}${pct.toFixed(1)}%`;
     document.getElementById('c-saldo-pct').style.background = pct >= 0 ? '#ecfdf5' : '#fff1f2';
     document.getElementById('c-saldo-pct').style.color = pct >= 0 ? '#065f46' : '#9f1239';
