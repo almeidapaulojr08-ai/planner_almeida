@@ -3354,13 +3354,12 @@ function renderDashConta(ym, ymPrev) {
   );
   const pDesp = debitoPrev.reduce((s,t)=>s+amountBrl(t),0) + creditPagoPrev.reduce((s,t)=>s+amountBrl(t),0);
 
-  // Saldo acumulado até o mês selecionado (o que realmente tem na conta)
-  // Transferências: excluir de ambos os lados (se cancelam no total)
-  // Crédito: não afeta conta bancária diretamente
-  // Pendentes: ainda não saíram da conta
+  // Saldo acumulado até o mês selecionado (saldo real nas contas)
+  // Inclui transferências (se cancelam no total, mas mantém consistência com breakdown por conta)
+  // Exclui crédito (não afeta conta bancária) e pendentes (ainda não saíram)
   const acumTx = allTitTx.filter(t => t.date <= ym + '-31');
-  const acumRec  = acumTx.filter(t=>t.type==='receita' && !t.isTransfer).reduce((s,t)=>s+amountBrl(t),0);
-  const acumDesp = acumTx.filter(t=>t.type==='despesa' && t.formaPgto !== 'credito' && !t.isTransfer && t.pago !== false).reduce((s,t)=>s+amountBrl(t),0);
+  const acumRec  = acumTx.filter(t=>t.type==='receita').reduce((s,t)=>s+amountBrl(t),0);
+  const acumDesp = acumTx.filter(t=>t.type==='despesa' && t.formaPgto !== 'credito' && t.pago !== false).reduce((s,t)=>s+amountBrl(t),0);
   const saldoAcumulado = acumRec - acumDesp;
 
   const cs = document.getElementById('c-saldo');
@@ -3369,8 +3368,8 @@ function renderDashConta(ym, ymPrev) {
 
   // Saldo acumulado do mês anterior
   const acumTxPrev = allTitTx.filter(t => t.date <= ymPrev + '-31');
-  const acumRecPrev  = acumTxPrev.filter(t=>t.type==='receita' && !t.isTransfer).reduce((s,t)=>s+amountBrl(t),0);
-  const acumDespPrev = acumTxPrev.filter(t=>t.type==='despesa' && t.formaPgto !== 'credito' && !t.isTransfer && t.pago !== false).reduce((s,t)=>s+amountBrl(t),0);
+  const acumRecPrev  = acumTxPrev.filter(t=>t.type==='receita').reduce((s,t)=>s+amountBrl(t),0);
+  const acumDespPrev = acumTxPrev.filter(t=>t.type==='despesa' && t.formaPgto !== 'credito' && t.pago !== false).reduce((s,t)=>s+amountBrl(t),0);
   const saldoAcumPrev = acumRecPrev - acumDespPrev;
 
   // Percentage change (compara saldo acumulado atual vs anterior)
