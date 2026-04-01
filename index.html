@@ -1277,13 +1277,16 @@
     <textarea id="msg-texto" rows="4" placeholder="Escreva sua mensagem de amor aqui..."
       style="width:100%;border:1.5px solid #e2e8f0;border-radius:12px;padding:14px;font-size:14px;line-height:1.7;resize:vertical;font-family:inherit;box-sizing:border-box;"></textarea>
 
-    <!-- Emoji picker -->
-    <div style="margin-top:10px;">
-      <p style="font-size:12px;color:#94a3b8;margin-bottom:6px;">Escolha um emoji para a mensagem:</p>
-      <div id="emoji-picker" style="display:flex;flex-wrap:wrap;gap:6px;">
+    <!-- Emoji picker inline -->
+    <div style="margin-top:8px;position:relative;">
+      <button type="button" onclick="toggleEmojiPicker()" style="background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:10px;padding:6px 14px;font-size:14px;cursor:pointer;display:flex;align-items:center;gap:6px;">
+        <span style="font-size:18px;">😊</span> <span style="font-size:12px;color:#64748b;">Inserir emoji</span>
+      </button>
+      <div id="emoji-picker" style="display:none;position:absolute;left:0;top:40px;z-index:50;background:#fff;border:1.5px solid #e2e8f0;border-radius:14px;padding:12px;box-shadow:0 8px 30px rgba(0,0,0,0.12);max-width:320px;">
+        <div style="display:flex;flex-wrap:wrap;gap:4px;">
+        </div>
       </div>
     </div>
-    <input type="hidden" id="msg-emoji" value="💕">
 
     <!-- Validade -->
     <div style="margin-top:16px;display:flex;gap:12px;flex-wrap:wrap;align-items:end;">
@@ -3327,18 +3330,33 @@ function updateLeiaAquiVisibility() {
   }
 }
 
+function toggleEmojiPicker() {
+  const picker = document.getElementById('emoji-picker');
+  picker.style.display = picker.style.display === 'none' ? 'block' : 'none';
+}
+
 function renderEmojiPicker() {
   const container = document.getElementById('emoji-picker');
   if (!container) return;
-  const selected = document.getElementById('msg-emoji').value || '💕';
-  container.innerHTML = LOVE_EMOJIS.map(e =>
-    `<span onclick="selectEmoji('${e}')" style="font-size:24px;cursor:pointer;padding:4px 6px;border-radius:8px;border:2px solid ${e === selected ? '#e11d48' : 'transparent'};background:${e === selected ? '#fff0f3' : 'transparent'};transition:all .15s;">${e}</span>`
+  const inner = container.querySelector('div');
+  if (!inner) return;
+  inner.innerHTML = LOVE_EMOJIS.map(e =>
+    `<span onclick="insertEmoji('${e}')" style="font-size:22px;cursor:pointer;padding:5px 6px;border-radius:8px;transition:background .15s;" onmouseover="this.style.background='#fff0f3'" onmouseout="this.style.background='transparent'">${e}</span>`
   ).join('');
 }
 
-function selectEmoji(emoji) {
-  document.getElementById('msg-emoji').value = emoji;
-  renderEmojiPicker();
+function insertEmoji(emoji) {
+  const ta = document.getElementById('msg-texto');
+  const start = ta.selectionStart;
+  const end = ta.selectionEnd;
+  const text = ta.value;
+  ta.value = text.substring(0, start) + emoji + text.substring(end);
+  // Posiciona cursor depois do emoji
+  const newPos = start + emoji.length;
+  ta.setSelectionRange(newPos, newPos);
+  ta.focus();
+  // Fecha o picker
+  document.getElementById('emoji-picker').style.display = 'none';
 }
 
 function renderMensagensPanel() {
@@ -3373,7 +3391,6 @@ function toLocalDatetime(d) {
 
 function enviarMensagem() {
   const texto = document.getElementById('msg-texto').value.trim();
-  const emoji = document.getElementById('msg-emoji').value || '💕';
   const inicio = document.getElementById('msg-inicio').value;
   const expira = document.getElementById('msg-expira').value;
 
@@ -3389,7 +3406,6 @@ function enviarMensagem() {
     de: loggedUser,
     para: destKey,
     texto: texto,
-    emoji: emoji,
     inicio: inicio,
     expira: expira,
     criadoEm: new Date().toISOString()
@@ -3401,11 +3417,9 @@ function enviarMensagem() {
 
   // Limpar form
   document.getElementById('msg-texto').value = '';
-  document.getElementById('msg-emoji').value = '💕';
   const now = new Date();
   document.getElementById('msg-inicio').value = toLocalDatetime(now);
   document.getElementById('msg-expira').value = toLocalDatetime(new Date(now.getTime() + 7*24*60*60*1000));
-  renderEmojiPicker();
 
   toast('Mensagem enviada com amor! 💌');
   renderMensagensEnviadas(loggedUser, destKey);
@@ -3442,12 +3456,9 @@ function renderMensagensEnviadas(senderKey, destKey) {
     }
 
     return `<div class="card" style="padding:20px;border:1.5px solid #fecdd3;background:linear-gradient(135deg,#fff0f3,#ffffff);${now > expira ? 'opacity:0.6;' : ''}">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-        <span style="font-size:24px;">${m.emoji}</span>
-        <div style="display:flex;align-items:center;gap:8px;">
-          <span style="font-size:11px;padding:3px 10px;border-radius:20px;background:${statusBg};color:${statusColor};font-weight:600;">${status}</span>
-          <button onclick="deletarMensagem('${m.id}')" style="background:none;border:none;cursor:pointer;font-size:16px;padding:2px;" title="Excluir">🗑️</button>
-        </div>
+      <div style="display:flex;justify-content:flex-end;align-items:center;margin-bottom:10px;gap:8px;">
+        <span style="font-size:11px;padding:3px 10px;border-radius:20px;background:${statusBg};color:${statusColor};font-weight:600;">${status}</span>
+        <button onclick="deletarMensagem('${m.id}')" style="background:none;border:none;cursor:pointer;font-size:16px;padding:2px;" title="Excluir">🗑️</button>
       </div>
       <p style="font-size:14px;line-height:1.7;color:#4a1d2e;white-space:pre-wrap;">${escapeHtml(m.texto)}</p>
       <div style="display:flex;justify-content:space-between;margin-top:12px;font-size:11px;color:#94a3b8;">
@@ -3485,7 +3496,6 @@ function renderLeiaAqui() {
     const bg = i % 2 === 0 ? '#fff0f3' : '#fdf2f8';
     return `<div class="card" style="padding:28px;border:1.5px solid #fecdd3;background:linear-gradient(135deg,${bg},#ffffff);animation:fadeInUp 0.5s ease ${i*0.1}s both;">
       <p style="font-size:15px;line-height:1.8;color:#4a1d2e;white-space:pre-wrap;">${escapeHtml(m.texto)}</p>
-      <p style="text-align:right;margin-top:14px;font-size:24px;">${m.emoji}</p>
     </div>`;
   }).join('') + `
     <div style="text-align:center;padding:20px;">
