@@ -4607,12 +4607,16 @@ function renderFaturaDetail() {
     const val = amountBrl(t);
     const parcelaTag = t.parcela ? `<span style="color:#4f46e5;font-weight:600;"> · 🔄 ${t.parcela}</span>` : '';
     const custoTag = t.custoTipo ? ` · ${t.custoTipo==='fixo'?'📌 Fixo':'📊 Var'}` : '';
-    return `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-bottom:1px solid #f8fafc;">
-      <div>
+    return `<div style="display:flex;align-items:center;padding:10px 14px;border-bottom:1px solid #f8fafc;gap:10px;">
+      <div style="flex:1;min-width:0;">
         <p style="font-size:13px;font-weight:600;color:#0f172a;">${t.desc}</p>
         <p style="font-size:11px;color:#94a3b8;">${fmtDate(t.date)} · ${t.category}${t.subcategory?' › '+t.subcategory:''}${parcelaTag}${custoTag} · ${t.pago===false?'<span style="color:#f59e0b;">Pendente</span>':'<span style="color:#10b981;">Pago</span>'}</p>
       </div>
-      <p style="font-size:14px;font-weight:700;color:${val < 0 ? '#059669' : '#e11d48'};">${val < 0 ? '+' : ''}${brl(Math.abs(val))}</p>
+      <p style="font-size:14px;font-weight:700;color:${val < 0 ? '#059669' : '#e11d48'};flex-shrink:0;">${val < 0 ? '+' : ''}${brl(Math.abs(val))}</p>
+      <div style="display:flex;gap:2px;flex-shrink:0;">
+        <button onclick="fecharFaturaModal();abrirEditModal('${t.id}')" style="background:none;border:none;cursor:pointer;padding:4px;border-radius:6px;font-size:13px;" title="Editar">✏️</button>
+        <button onclick="del('${t.id}');renderFaturaDetail()" style="background:none;border:none;cursor:pointer;padding:4px;border-radius:6px;font-size:13px;" title="Excluir">🗑️</button>
+      </div>
     </div>`;
   }).join('');
 }
