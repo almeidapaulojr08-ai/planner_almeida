@@ -198,7 +198,7 @@
       </div>
       <div>
         <div style="font-weight:800;font-size:16px;color:#0f172a;">Almeida & Wosniak DRE</div>
-        <div id="header-users" style="font-size:12px;color:#94a3b8;margin-top:1px;">Paulo & Esposa</div>
+        <div id="header-users" style="font-size:12px;color:#94a3b8;margin-top:1px;">Carregando...</div>
         <span id="sync-status" style="font-size:11px;color:#94a3b8;" title="Firebase sync">☁️</span>
       </div>
     </div>
@@ -2220,7 +2220,7 @@ let S = {
   loveMessages: [],
   customCats: null,
   settings: {
-    u1: 'Paulo', u2: 'Esposa',
+    u1: '', u2: '',
     apiKey: '', apiProvider: 'openai',
     password: '',
     usdRate: null, usdRateAt: null
@@ -6419,8 +6419,8 @@ function setProvider(p) {
 }
 
 function salvarConfig() {
-  S.settings.u1=document.getElementById('cfg-u1').value.trim()||'Paulo';
-  S.settings.u2=document.getElementById('cfg-u2').value.trim()||'Esposa';
+  S.settings.u1=document.getElementById('cfg-u1').value.trim()||S.settings.u1;
+  S.settings.u2=document.getElementById('cfg-u2').value.trim()||S.settings.u2;
   S.settings.apiKey=document.getElementById('cfg-apikey').value.trim();
   const p1=document.getElementById('cfg-password').value;
   const p2=document.getElementById('cfg-password2').value;
