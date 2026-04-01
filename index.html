@@ -4595,6 +4595,16 @@ function filtrarCartoesFatura() {
   const prev = sel.value;
   sel.innerHTML = filtered.map(c => `<option value="${c.id}">${BANKS[c.bank].name} Cartão — ${c.label}</option>`).join('');
   if (prev && filtered.some(c => c.id === prev)) sel.value = prev;
+
+  // Filtrar inst. financeira pelo titular também
+  const instSel = document.getElementById('fat-inst');
+  const contas = S.accounts.filter(a => a.accountType !== 'cartao');
+  const contasFiltradas = titular ? contas.filter(a => a.owner === titular) : contas;
+  const prevInst = instSel.value;
+  instSel.innerHTML = '<option value="">Selecione a instituição</option>' +
+    contasFiltradas.map(a => `<option value="${a.id}">${BANKS[a.bank].name} — ${a.label}</option>`).join('');
+  if (prevInst && contasFiltradas.some(a => a.id === prevInst)) instSel.value = prevInst;
+
   renderFaturaDetail();
 }
 
