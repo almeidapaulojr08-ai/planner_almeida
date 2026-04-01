@@ -3559,7 +3559,7 @@ function renderMensagensEnviadas(senderKey, destKey) {
           </div>
         </div>
         <div style="display:flex;gap:10px;margin-top:14px;">
-          <button onclick="salvarEdicao('${m.id}')" style="flex:1;padding:10px;background:linear-gradient(135deg,#10b981,#059669);color:#fff;border:none;border-radius:10px;font-weight:700;font-size:14px;cursor:pointer;">Salvar</button>
+          <button onclick="salvarEdicaoMsg('${m.id}')" style="flex:1;padding:10px;background:linear-gradient(135deg,#10b981,#059669);color:#fff;border:none;border-radius:10px;font-weight:700;font-size:14px;cursor:pointer;">Salvar</button>
           <button onclick="cancelarEdicao('${m.id}')" style="flex:1;padding:10px;background:#f1f5f9;color:#64748b;border:none;border-radius:10px;font-weight:700;font-size:14px;cursor:pointer;">Cancelar</button>
         </div>
       </div>
@@ -3585,7 +3585,7 @@ function cancelarEdicao(id) {
   document.getElementById('msg-edit-' + id).style.display = 'none';
 }
 
-function salvarEdicao(id) {
+function salvarEdicaoMsg(id) {
   const texto = document.getElementById('edit-texto-' + id).value.trim();
   const inicio = document.getElementById('edit-inicio-' + id).value;
   const expira = document.getElementById('edit-expira-' + id).value;
