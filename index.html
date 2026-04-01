@@ -3530,14 +3530,100 @@ function renderMensagensEnviadas(senderKey, destKey) {
     return `<div class="card" style="padding:20px;border:1.5px solid #fecdd3;background:linear-gradient(135deg,#fff0f3,#ffffff);${now > expira ? 'opacity:0.6;' : ''}">
       <div style="display:flex;justify-content:flex-end;align-items:center;margin-bottom:10px;gap:8px;">
         <span style="font-size:11px;padding:3px 10px;border-radius:20px;background:${statusBg};color:${statusColor};font-weight:600;">${status}</span>
+        <button onclick="editarMensagem('${m.id}')" style="background:none;border:none;cursor:pointer;font-size:16px;padding:2px;" title="Editar">✏️</button>
         <button onclick="deletarMensagem('${m.id}')" style="background:none;border:none;cursor:pointer;font-size:16px;padding:2px;" title="Excluir">🗑️</button>
       </div>
-      <p style="font-size:14px;line-height:1.7;color:#4a1d2e;white-space:pre-wrap;">${escapeHtml(m.texto)}</p>
-      <div style="display:flex;justify-content:space-between;margin-top:12px;font-size:11px;color:#94a3b8;">
-        <span>De ${fmtDatetime(m.inicio)} até ${fmtDatetime(m.expira)}</span>
+      <div id="msg-view-${m.id}">
+        <p style="font-size:14px;line-height:1.7;color:#4a1d2e;white-space:pre-wrap;">${escapeHtml(m.texto)}</p>
+        <div style="display:flex;justify-content:space-between;margin-top:12px;font-size:11px;color:#94a3b8;">
+          <span>De ${fmtDatetime(m.inicio)} até ${fmtDatetime(m.expira)}</span>
+        </div>
+      </div>
+      <div id="msg-edit-${m.id}" style="display:none;">
+        <textarea id="edit-texto-${m.id}" rows="4" style="width:100%;border:1.5px solid #e2e8f0;border-radius:10px;padding:12px;font-size:14px;line-height:1.7;resize:vertical;font-family:inherit;box-sizing:border-box;">${escapeHtml(m.texto)}</textarea>
+        <div style="margin-top:8px;position:relative;">
+          <button type="button" onclick="toggleEditEmojiPicker('${m.id}')" style="background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:10px;padding:6px 14px;font-size:14px;cursor:pointer;display:flex;align-items:center;gap:6px;">
+            <span style="font-size:18px;">😊</span> <span style="font-size:12px;color:#64748b;">Inserir emoji</span>
+          </button>
+          <div id="edit-emoji-picker-${m.id}" style="display:none;position:absolute;left:0;top:40px;z-index:50;background:#fff;border:1.5px solid #e2e8f0;border-radius:14px;padding:12px;box-shadow:0 8px 30px rgba(0,0,0,0.12);max-width:320px;">
+            <div style="display:flex;flex-wrap:wrap;gap:4px;"></div>
+          </div>
+        </div>
+        <div style="margin-top:12px;display:flex;gap:12px;flex-wrap:wrap;align-items:end;">
+          <div style="flex:1;min-width:130px;">
+            <label style="font-size:12px;color:#64748b;display:block;margin-bottom:4px;">Início:</label>
+            <input type="datetime-local" id="edit-inicio-${m.id}" value="${m.inicio}" style="width:100%;border:1.5px solid #e2e8f0;border-radius:10px;padding:8px 10px;font-size:13px;box-sizing:border-box;">
+          </div>
+          <div style="flex:1;min-width:130px;">
+            <label style="font-size:12px;color:#64748b;display:block;margin-bottom:4px;">Expirar:</label>
+            <input type="datetime-local" id="edit-expira-${m.id}" value="${m.expira}" style="width:100%;border:1.5px solid #e2e8f0;border-radius:10px;padding:8px 10px;font-size:13px;box-sizing:border-box;">
+          </div>
+        </div>
+        <div style="display:flex;gap:10px;margin-top:14px;">
+          <button onclick="salvarEdicao('${m.id}')" style="flex:1;padding:10px;background:linear-gradient(135deg,#10b981,#059669);color:#fff;border:none;border-radius:10px;font-weight:700;font-size:14px;cursor:pointer;">Salvar</button>
+          <button onclick="cancelarEdicao('${m.id}')" style="flex:1;padding:10px;background:#f1f5f9;color:#64748b;border:none;border-radius:10px;font-weight:700;font-size:14px;cursor:pointer;">Cancelar</button>
+        </div>
       </div>
     </div>`;
   }).join('');
+}
+
+function editarMensagem(id) {
+  // Esconder view, mostrar edit
+  document.getElementById('msg-view-' + id).style.display = 'none';
+  document.getElementById('msg-edit-' + id).style.display = 'block';
+  // Renderizar emoji picker da edição
+  const pickerInner = document.querySelector('#edit-emoji-picker-' + id + ' > div');
+  if (pickerInner) {
+    pickerInner.innerHTML = LOVE_EMOJIS.map(e =>
+      `<span onclick="insertEditEmoji('${id}','${e}')" style="font-size:22px;cursor:pointer;padding:5px 6px;border-radius:8px;transition:background .15s;" onmouseover="this.style.background='#fff0f3'" onmouseout="this.style.background='transparent'">${e}</span>`
+    ).join('');
+  }
+}
+
+function cancelarEdicao(id) {
+  document.getElementById('msg-view-' + id).style.display = 'block';
+  document.getElementById('msg-edit-' + id).style.display = 'none';
+}
+
+function salvarEdicao(id) {
+  const texto = document.getElementById('edit-texto-' + id).value.trim();
+  const inicio = document.getElementById('edit-inicio-' + id).value;
+  const expira = document.getElementById('edit-expira-' + id).value;
+
+  if (!texto) { toast('A mensagem não pode ficar vazia!'); return; }
+  if (!inicio || !expira) { toast('Defina as datas!'); return; }
+  if (new Date(expira) <= new Date(inicio)) { toast('Expiração deve ser depois do início!'); return; }
+
+  const msg = (S.loveMessages || []).find(m => m.id === id);
+  if (msg) {
+    msg.texto = texto;
+    msg.inicio = inicio;
+    msg.expira = expira;
+    save();
+    const loggedUser = getLoggedUserKey();
+    const destKey = loggedUser === 'u2' ? 'u1' : 'u2';
+    renderMensagensEnviadas(loggedUser, destKey);
+    updateLeiaAquiVisibility();
+    toast('Mensagem atualizada! 💌');
+  }
+}
+
+function toggleEditEmojiPicker(id) {
+  const picker = document.getElementById('edit-emoji-picker-' + id);
+  picker.style.display = picker.style.display === 'none' ? 'block' : 'none';
+}
+
+function insertEditEmoji(id, emoji) {
+  const ta = document.getElementById('edit-texto-' + id);
+  const start = ta.selectionStart;
+  const end = ta.selectionEnd;
+  const text = ta.value;
+  ta.value = text.substring(0, start) + emoji + text.substring(end);
+  const newPos = start + emoji.length;
+  ta.setSelectionRange(newPos, newPos);
+  ta.focus();
+  document.getElementById('edit-emoji-picker-' + id).style.display = 'none';
 }
 
 function deletarMensagem(id) {
