@@ -611,6 +611,12 @@
         </div>
       </div>
 
+      <!-- Titular -->
+      <div style="margin-bottom:18px;">
+        <label class="flabel">Titular</label>
+        <select class="finput" id="f-usuario" onchange="onTitularChange()"></select>
+      </div>
+
       <!-- Conta -->
       <div style="margin-bottom:18px;">
         <label class="flabel" id="f-label-conta">Conta</label>
@@ -621,12 +627,6 @@
       <div id="f-row-conta-destino" style="display:none;margin-bottom:18px;">
         <label class="flabel">Conta Destino</label>
         <select class="finput" id="f-conta-destino"></select>
-      </div>
-
-      <!-- Titular -->
-      <div style="margin-bottom:18px;">
-        <label class="flabel">Titular</label>
-        <select class="finput" id="f-usuario"></select>
       </div>
 
       <!-- Categoria + Subcategoria -->
@@ -2712,8 +2712,12 @@ function refreshContaSelect(filterType = 'all') {
   const sel = document.getElementById('f-conta');
   if (!sel) return;
   let accounts = S.accounts;
-  if (filterType === 'conta')  accounts = S.accounts.filter(a => a.accountType !== 'cartao');
-  if (filterType === 'cartao') accounts = S.accounts.filter(a => a.accountType === 'cartao');
+  if (filterType === 'conta')  accounts = accounts.filter(a => a.accountType !== 'cartao');
+  if (filterType === 'cartao') accounts = accounts.filter(a => a.accountType === 'cartao');
+
+  // Filtrar por titular selecionado
+  const titular = document.getElementById('f-usuario')?.value;
+  if (titular) accounts = accounts.filter(a => a.owner === titular);
 
   if (!accounts.length) {
     const msg = filterType === 'cartao' ? '— Nenhum cartão cadastrado —' : '— Nenhuma conta cadastrada —';
@@ -2723,9 +2727,25 @@ function refreshContaSelect(filterType = 'all') {
   sel.innerHTML = accounts.map(a => {
     const b = BANKS[a.bank];
     const cur = b.currency === 'USD' ? ' (USD)' : '';
-    return `<option value="${a.id}">${b.name} — ${a.label} [${a.owner}]${cur}</option>`;
+    return `<option value="${a.id}">${b.name} — ${a.label}${cur}</option>`;
   }).join('');
   onContaChange();
+}
+
+function onTitularChange() {
+  // Recarregar contas filtradas pelo titular selecionado
+  if (currentType === 'despesa') {
+    setFormaPgto(formaPgto);
+  } else {
+    refreshContaSelect('conta');
+  }
+  if (currentType === 'transferencia') {
+    const titular = document.getElementById('f-usuario')?.value;
+    const destSel = document.getElementById('f-conta-destino');
+    let destAccounts = S.accounts.filter(a => a.accountType === 'conta');
+    if (titular) destAccounts = destAccounts.filter(a => a.owner === titular);
+    destSel.innerHTML = destAccounts.map(a => `<option value="${a.id}">${BANKS[a.bank]?.name || a.bank} — ${a.label}</option>`).join('');
+  }
 }
 
 function onContaChange() {
@@ -2735,9 +2755,6 @@ function onContaChange() {
   const isUSD = acc && BANKS[acc.bank]?.currency === 'USD';
   const prefix = document.getElementById('f-currency-prefix');
   if (prefix) prefix.textContent = isUSD ? '$' : 'R$';
-  // Auto-select titular
-  const uSel = document.getElementById('f-usuario');
-  if (uSel && acc) uSel.value = acc.owner;
 }
 
 function refreshTitularSelect() {
@@ -2786,12 +2803,12 @@ function setType(t) {
   else refreshContaSelect('conta');
 
   if (isTransf) {
-    // Populate destination account select (only bank accounts)
+    // Populate destination account select (only bank accounts, filtered by titular)
+    const titular = document.getElementById('f-usuario')?.value;
     const destSel = document.getElementById('f-conta-destino');
-    destSel.innerHTML = S.accounts
-      .filter(a => a.accountType === 'conta')
-      .map(a => `<option value="${a.id}">${BANKS[a.bank]?.name || a.bank} — ${a.label}</option>`)
-      .join('');
+    let destAccounts = S.accounts.filter(a => a.accountType === 'conta');
+    if (titular) destAccounts = destAccounts.filter(a => a.owner === titular);
+    destSel.innerHTML = destAccounts.map(a => `<option value="${a.id}">${BANKS[a.bank]?.name || a.bank} — ${a.label}</option>`).join('');
   }
 }
 
