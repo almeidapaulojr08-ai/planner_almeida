@@ -104,6 +104,53 @@
     .tx-card { background:white;border-radius:12px;border:1px solid #f1f5f9;padding:16px 20px;
       display:flex;align-items:center;gap:14px;transition:box-shadow 0.15s; }
     .tx-card:hover { box-shadow:0 2px 8px rgba(0,0,0,0.06); }
+
+    /* Hamburger button - hidden on desktop */
+    #hamburger-btn { display:none;position:fixed;top:12px;left:12px;z-index:1001;background:#4f46e5;color:white;
+      border:none;border-radius:12px;width:44px;height:44px;font-size:22px;cursor:pointer;
+      box-shadow:0 4px 12px rgba(79,70,229,0.3);align-items:center;justify-content:center; }
+
+    /* Sidebar overlay backdrop - hidden on desktop */
+    #sidebar-overlay { display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:998; }
+
+    /* ─── MOBILE ─── */
+    @media (max-width: 768px) {
+      #hamburger-btn { display:flex; }
+
+      /* Sidebar: hidden by default, slides in from left */
+      aside#app-sidebar {
+        position:fixed !important; left:-260px; top:0; bottom:0;
+        width:240px !important; min-width:240px !important;
+        z-index:999 !important; transition:left 0.3s ease;
+        box-shadow:none;
+      }
+      aside#app-sidebar.sidebar-open {
+        left:0; box-shadow:4px 0 20px rgba(0,0,0,0.15);
+      }
+
+      /* Main content full-width */
+      main#app-main {
+        padding:16px !important; padding-top:64px !important;
+      }
+
+      /* Login screen adjustments */
+      #login-screen > div { padding:28px 20px !important; margin:0 16px; }
+
+      /* Cards smaller padding */
+      .card { padding:16px; }
+
+      /* Dashboard grid adjustments */
+      .grid { gap:12px !important; }
+
+      /* Tables scroll horizontally */
+      table { font-size:12px; }
+
+      /* Emoji picker wider on mobile */
+      #emoji-picker { max-width:280px !important; left:0 !important; right:0 !important; }
+
+      /* Modal responsiveness */
+      #modal-backdrop > div { margin:0 12px; max-height:85vh !important; }
+    }
   </style>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
@@ -137,8 +184,12 @@
   </div>
 </div>
 
+<!-- ============================================================ HAMBURGER (mobile) -->
+<button id="hamburger-btn" onclick="toggleSidebar()">☰</button>
+<div id="sidebar-overlay" onclick="closeSidebar()"></div>
+
 <!-- ============================================================ SIDEBAR -->
-<aside style="width:240px;min-width:240px;background:white;border-right:1px solid #f1f5f9;display:flex;flex-direction:column;z-index:10;height:100vh;overflow-y:auto;">
+<aside id="app-sidebar" style="width:240px;min-width:240px;background:white;border-right:1px solid #f1f5f9;display:flex;flex-direction:column;z-index:10;height:100vh;overflow-y:auto;">
   <!-- Logo -->
   <div style="padding:20px 20px 16px;border-bottom:1px solid #f1f5f9;">
     <div style="display:flex;align-items:center;gap:12px;">
@@ -204,7 +255,7 @@
 </aside>
 
 <!-- ============================================================ MAIN -->
-<main style="flex:1;overflow-y:auto;padding:32px;">
+<main id="app-main" style="flex:1;overflow-y:auto;padding:32px;">
 
 <!-- ==================== DASHBOARD ==================== -->
 <section id="page-dashboard" style="display:none;max-width:1100px;">
@@ -2577,8 +2628,29 @@ function logout() {
   updateLeiaAquiVisibility();
 }
 
+// ─── MOBILE SIDEBAR ──────────────────────────────────────────────────────────
+function toggleSidebar() {
+  const sidebar = document.getElementById('app-sidebar');
+  const overlay = document.getElementById('sidebar-overlay');
+  const isOpen = sidebar.classList.contains('sidebar-open');
+  if (isOpen) {
+    closeSidebar();
+  } else {
+    sidebar.classList.add('sidebar-open');
+    overlay.style.display = 'block';
+  }
+}
+
+function closeSidebar() {
+  const sidebar = document.getElementById('app-sidebar');
+  const overlay = document.getElementById('sidebar-overlay');
+  sidebar.classList.remove('sidebar-open');
+  overlay.style.display = 'none';
+}
+
 // ─── NAVIGATION ───────────────────────────────────────────────────────────────
 function goto(page) {
+  closeSidebar();
   document.querySelectorAll('[id^="page-"]').forEach(el => el.style.display = 'none');
   const el = document.getElementById('page-' + page);
   if (el) el.style.display = (page === 'chat') ? 'flex' : 'block';
