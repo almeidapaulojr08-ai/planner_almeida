@@ -52,6 +52,7 @@
     .dot:nth-child(2) { animation-delay: 0.2s; }
     .dot:nth-child(3) { animation-delay: 0.4s; }
     @keyframes blink { 0%,80%,100% { transform:scale(0); } 40% { transform:scale(1); } }
+    @keyframes fadeInUp { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
 
     /* Toast */
     #toast { position: fixed; bottom: 24px; right: 24px; background: #1e293b; color: white;
@@ -190,8 +191,11 @@
     <a class="nav-item" data-page="config" onclick="goto('config')">
       <span style="font-size:18px;">⚙️</span> Configurações
     </a>
+    <a class="nav-item" data-page="mensagens" onclick="goto('mensagens')" id="nav-mensagens" style="display:none;">
+      <span style="font-size:18px;">✏️</span> Enviar Mensagem
+    </a>
     <a class="nav-item" data-page="leiaaqui" onclick="goto('leiaaqui')" id="nav-leiaaqui" style="display:none;">
-      <span style="font-size:18px;">💌</span> Leia aqui
+      <span style="font-size:18px;">💌</span> Leia aqui <span id="badge-leiaaqui" style="display:none;background:#e11d48;color:#fff;font-size:10px;padding:1px 6px;border-radius:10px;margin-left:4px;">0</span>
     </a>
     <a class="nav-item" onclick="logout()" style="color:#e11d48;">
       <span style="font-size:18px;">🚪</span> Sair
@@ -1258,67 +1262,68 @@
   </div>
 </section>
 
-<!-- ==================== LEIA AQUI (página especial) ==================== -->
+<!-- ==================== PAINEL DE MENSAGENS (enviar) ==================== -->
+<section id="page-mensagens" style="display:none;max-width:700px;">
+  <div style="text-align:center;padding:20px 0 16px;">
+    <p style="font-size:40px;margin-bottom:8px;">✏️💌</p>
+    <h1 style="font-size:24px;font-weight:800;color:#be123c;">Painel de Mensagens</h1>
+    <p style="font-size:14px;color:#94a3b8;margin-top:6px;" id="msg-subtitle">Envie mensagens de amor</p>
+  </div>
+
+  <!-- Formulário de nova mensagem -->
+  <div class="card" style="padding:24px;border:1.5px solid #fecdd3;margin-bottom:24px;">
+    <p style="font-weight:700;font-size:15px;color:#9f1239;margin-bottom:14px;">Nova Mensagem</p>
+
+    <textarea id="msg-texto" rows="4" placeholder="Escreva sua mensagem de amor aqui..."
+      style="width:100%;border:1.5px solid #e2e8f0;border-radius:12px;padding:14px;font-size:14px;line-height:1.7;resize:vertical;font-family:inherit;box-sizing:border-box;"></textarea>
+
+    <!-- Emoji picker -->
+    <div style="margin-top:10px;">
+      <p style="font-size:12px;color:#94a3b8;margin-bottom:6px;">Escolha um emoji para a mensagem:</p>
+      <div id="emoji-picker" style="display:flex;flex-wrap:wrap;gap:6px;">
+      </div>
+    </div>
+    <input type="hidden" id="msg-emoji" value="💕">
+
+    <!-- Validade -->
+    <div style="margin-top:16px;display:flex;gap:12px;flex-wrap:wrap;align-items:end;">
+      <div style="flex:1;min-width:140px;">
+        <label style="font-size:12px;color:#64748b;display:block;margin-bottom:4px;">Mostrar a partir de:</label>
+        <input type="datetime-local" id="msg-inicio" class="inp"
+          style="width:100%;border:1.5px solid #e2e8f0;border-radius:10px;padding:8px 12px;font-size:13px;box-sizing:border-box;">
+      </div>
+      <div style="flex:1;min-width:140px;">
+        <label style="font-size:12px;color:#64748b;display:block;margin-bottom:4px;">Expirar em:</label>
+        <input type="datetime-local" id="msg-expira" class="inp"
+          style="width:100%;border:1.5px solid #e2e8f0;border-radius:10px;padding:8px 12px;font-size:13px;box-sizing:border-box;">
+      </div>
+    </div>
+
+    <button onclick="enviarMensagem()" style="margin-top:18px;width:100%;padding:12px;background:linear-gradient(135deg,#e11d48,#be123c);color:#fff;border:none;border-radius:12px;font-weight:700;font-size:15px;cursor:pointer;">
+      Enviar Mensagem 💌
+    </button>
+  </div>
+
+  <!-- Lista de mensagens enviadas -->
+  <div style="margin-bottom:12px;">
+    <p style="font-weight:700;font-size:15px;color:#334155;">Mensagens Enviadas</p>
+    <p style="font-size:12px;color:#94a3b8;">Suas mensagens para <span id="msg-dest-nome">...</span></p>
+  </div>
+  <div id="msg-enviadas-list" style="display:flex;flex-direction:column;gap:14px;padding-bottom:40px;">
+    <p style="color:#94a3b8;font-size:14px;text-align:center;padding:20px;">Nenhuma mensagem enviada ainda</p>
+  </div>
+</section>
+
+<!-- ==================== LEIA AQUI (página dinâmica) ==================== -->
 <section id="page-leiaaqui" style="display:none;max-width:700px;">
   <div style="text-align:center;padding:20px 0 30px;">
     <p style="font-size:40px;margin-bottom:8px;">💕</p>
     <h1 style="font-size:26px;font-weight:800;color:#be123c;">Para Você, Meu Amor</h1>
-    <p style="font-size:14px;color:#94a3b8;margin-top:6px;">Algumas palavras que preciso te dizer...</p>
+    <p style="font-size:14px;color:#94a3b8;margin-top:6px;">Mensagens especiais de quem te ama</p>
   </div>
 
   <div id="cartas-amor" style="display:flex;flex-direction:column;gap:20px;padding-bottom:40px;">
-
-    <div class="card" style="padding:28px;border:1.5px solid #fecdd3;background:linear-gradient(135deg,#fff0f3,#ffffff);">
-      <p style="font-size:15px;line-height:1.8;color:#4a1d2e;">
-        Meu amor, eu quero que você saiba que cada dia ao seu lado é um presente. Você transforma
-        os dias mais comuns em momentos especiais, só com o seu sorriso. Obrigado por ser exatamente
-        quem você é.
-      </p>
-      <p style="text-align:right;margin-top:14px;font-size:20px;">🌹</p>
-    </div>
-
-    <div class="card" style="padding:28px;border:1.5px solid #fecdd3;background:linear-gradient(135deg,#fdf2f8,#ffffff);">
-      <p style="font-size:15px;line-height:1.8;color:#4a1d2e;">
-        Às vezes eu não sei expressar tudo que sinto, mas saiba que meu coração é todinho seu.
-        Quando eu penso no futuro, é o seu rosto que eu vejo ao meu lado. Você é minha pessoa,
-        minha companheira, minha paz.
-      </p>
-      <p style="text-align:right;margin-top:14px;font-size:20px;">💗</p>
-    </div>
-
-    <div class="card" style="padding:28px;border:1.5px solid #fecdd3;background:linear-gradient(135deg,#fff0f3,#ffffff);">
-      <p style="font-size:15px;line-height:1.8;color:#4a1d2e;">
-        Obrigado por construir essa vida comigo. Por cuidar das nossas finanças juntos, por planejar
-        o futuro do nosso lado. Cada planilha, cada meta, cada sonho — tudo fica mais bonito
-        porque é com você.
-      </p>
-      <p style="text-align:right;margin-top:14px;font-size:20px;">✨</p>
-    </div>
-
-    <div class="card" style="padding:28px;border:1.5px solid #fecdd3;background:linear-gradient(135deg,#fdf2f8,#ffffff);">
-      <p style="font-size:15px;line-height:1.8;color:#4a1d2e;">
-        Eu te escolho todos os dias. Nos dias fáceis e nos difíceis. Nos dias de conta paga e nos
-        de apertar o cinto. Porque com você, tudo vale a pena. Te amo mais do que palavras
-        conseguem dizer.
-      </p>
-      <p style="text-align:right;margin-top:14px;font-size:20px;">💍</p>
-    </div>
-
-    <div class="card" style="padding:28px;border:1.5px solid #fecdd3;background:linear-gradient(135deg,#fff0f3,#ffffff);">
-      <p style="font-size:15px;line-height:1.8;color:#4a1d2e;">
-        Prometo sempre ser seu parceiro. Na vida, no amor e até nas finanças. Vamos continuar
-        construindo juntos, passo a passo, dia a dia. Nosso melhor capítulo ainda está
-        por vir.
-      </p>
-      <p style="text-align:right;margin-top:14px;font-size:20px;">🏠💕</p>
-    </div>
-
-    <div style="text-align:center;padding:20px;">
-      <p style="font-size:16px;font-weight:700;color:#be123c;">Com todo meu amor,</p>
-      <p style="font-size:18px;font-weight:800;color:#9f1239;margin-top:4px;" id="leia-assinatura">Paulo</p>
-      <p style="font-size:28px;margin-top:8px;">❤️</p>
-    </div>
-
+    <p id="sem-mensagens" style="color:#94a3b8;font-size:14px;text-align:center;padding:30px;">Nenhuma mensagem no momento</p>
   </div>
 </section>
 
@@ -2103,6 +2108,7 @@ function initFirebaseSync() {
     if (fbData.chatHistory) S.chatHistory = fbToArray(fbData.chatHistory);
     if (fbData.customCats && !S.customCats) S.customCats = fbData.customCats;
     if (fbData.customBanks && !S.customBanks) { S.customBanks = fbData.customBanks; Object.assign(BANKS, fbData.customBanks); }
+    if (fbData.loveMessages) S.loveMessages = fbData.loveMessages ? mergeArrayById(S.loveMessages || [], fbToArray(fbData.loveMessages), allTombstones) : (S.loveMessages || []);
 
     localStorage.setItem('fincasal_v2', JSON.stringify(S));
 
@@ -2119,7 +2125,8 @@ function initFirebaseSync() {
         budget: S.budget || {},
         chatHistory: S.chatHistory || [],
         customCats: S.customCats || null,
-        customBanks: S.customBanks || null
+        customBanks: S.customBanks || null,
+        loveMessages: S.loveMessages || []
       }).then(() => { _isSyncing = false; updateSyncStatus('ok'); })
         .catch(() => { _isSyncing = false; updateSyncStatus('error'); });
     }
@@ -2133,7 +2140,10 @@ function initFirebaseSync() {
         else if (page === 'historico') renderHistorico();
         else if (page === 'dividas') renderDividas();
         else if (page === 'investimentos') renderInvestimentos();
+        else if (page === 'leiaaqui') renderLeiaAqui();
+        else if (page === 'mensagens') renderMensagensPanel();
       }
+      updateLeiaAquiVisibility();
     }
 
     firebaseReady = true;
@@ -2153,6 +2163,7 @@ let S = {
   debts: [],
   investments: [],
   deletedIds: [],
+  loveMessages: [],
   customCats: null,
   settings: {
     u1: 'Paulo', u2: 'Esposa',
@@ -2239,6 +2250,7 @@ function load() {
     if (d.debts)        S.debts        = d.debts;
     if (d.investments)  S.investments  = d.investments;
     if (d.deletedIds)   S.deletedIds   = d.deletedIds;
+    if (d.loveMessages) S.loveMessages = d.loveMessages;
     if (d.customCats)   S.customCats   = d.customCats;
     if (d.customBanks)  { S.customBanks = d.customBanks; Object.assign(BANKS, d.customBanks); }
     if (d.settings)     S.settings     = { ...S.settings, ...d.settings };
@@ -2260,7 +2272,8 @@ function save() {
       budget: S.budget || {},
       chatHistory: S.chatHistory || [],
       customCats: S.customCats || null,
-      customBanks: S.customBanks || null
+      customBanks: S.customBanks || null,
+      loveMessages: S.loveMessages || []
     }).then(() => {
       _isSyncing = false;
       updateSyncStatus('ok');
@@ -2582,7 +2595,8 @@ function goto(page) {
   if (page === 'categorias') renderCategorias();
   if (page === 'dividas')    renderDividas();
   if (page === 'investimentos') renderInvestimentos();
-  if (page === 'leiaaqui') { document.getElementById('leia-assinatura').textContent = S.settings.u1; }
+  if (page === 'mensagens') renderMensagensPanel();
+  if (page === 'leiaaqui') renderLeiaAqui();
 }
 
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
@@ -3258,11 +3272,12 @@ function updateTempoJuntos() {
   if (el) el.textContent = calcTempoJuntos();
 }
 
-// ─── LEIA AQUI - VISIBILIDADE BASEADA NO LOGIN ──────────────────────────────
-function updateLeiaAquiVisibility() {
-  const nav = document.getElementById('nav-leiaaqui');
+// ─── MENSAGENS DE AMOR - SISTEMA BIDIRECIONAL ──────────────────────────────
+
+const LOVE_EMOJIS = ['💕','❤️','💗','💖','🥰','😍','💌','🌹','✨','💍','🏠','💋','🫶','😘','💝','🦋','🌙','⭐','🔥','💐','🍫','☕','🎵','🌈','💎'];
+
+function getLoggedUserKey() {
   let loggedUser = sessionStorage.getItem('fincasal_logged_user');
-  // Fallback: se não tem o valor salvo mas está autenticado, tenta detectar pelo campo de login
   if (!loggedUser && sessionStorage.getItem('fincasal_auth')) {
     const loginField = document.getElementById('login-user');
     if (loginField && loginField.value.trim()) {
@@ -3271,12 +3286,226 @@ function updateLeiaAquiVisibility() {
       sessionStorage.setItem('fincasal_logged_user', loggedUser);
     }
   }
-  if (nav) {
-    nav.style.display = (loggedUser === 'u2') ? 'flex' : 'none';
+  return loggedUser || 'u1';
+}
+
+function getReceivedMessages() {
+  const me = getLoggedUserKey();
+  const now = new Date();
+  return (S.loveMessages || []).filter(m => {
+    if (m.para !== me) return false;
+    const inicio = new Date(m.inicio);
+    const expira = new Date(m.expira);
+    return now >= inicio && now <= expira;
+  });
+}
+
+function updateLeiaAquiVisibility() {
+  const navLeia = document.getElementById('nav-leiaaqui');
+  const navMsg = document.getElementById('nav-mensagens');
+  const badge = document.getElementById('badge-leiaaqui');
+  const loggedUser = getLoggedUserKey();
+  const isLoggedIn = sessionStorage.getItem('fincasal_auth');
+
+  // "Enviar Mensagem" aparece para quem está logado (u1 ou u2)
+  if (navMsg) {
+    navMsg.style.display = (isLoggedIn && (loggedUser === 'u1' || loggedUser === 'u2')) ? 'flex' : 'none';
   }
-  // Assinatura dinâmica
-  const assinatura = document.getElementById('leia-assinatura');
-  if (assinatura) assinatura.textContent = S.settings.u1;
+
+  // "Leia aqui" aparece se tem mensagens ativas para o usuário logado
+  const received = getReceivedMessages();
+  if (navLeia) {
+    navLeia.style.display = (isLoggedIn && received.length > 0) ? 'flex' : 'none';
+  }
+  if (badge) {
+    if (received.length > 0) {
+      badge.style.display = 'inline';
+      badge.textContent = received.length;
+    } else {
+      badge.style.display = 'none';
+    }
+  }
+}
+
+function renderEmojiPicker() {
+  const container = document.getElementById('emoji-picker');
+  if (!container) return;
+  const selected = document.getElementById('msg-emoji').value || '💕';
+  container.innerHTML = LOVE_EMOJIS.map(e =>
+    `<span onclick="selectEmoji('${e}')" style="font-size:24px;cursor:pointer;padding:4px 6px;border-radius:8px;border:2px solid ${e === selected ? '#e11d48' : 'transparent'};background:${e === selected ? '#fff0f3' : 'transparent'};transition:all .15s;">${e}</span>`
+  ).join('');
+}
+
+function selectEmoji(emoji) {
+  document.getElementById('msg-emoji').value = emoji;
+  renderEmojiPicker();
+}
+
+function renderMensagensPanel() {
+  const loggedUser = getLoggedUserKey();
+  const senderName = loggedUser === 'u2' ? S.settings.u2 : S.settings.u1;
+  const destName = loggedUser === 'u2' ? S.settings.u1 : S.settings.u2;
+  const destKey = loggedUser === 'u2' ? 'u1' : 'u2';
+
+  document.getElementById('msg-subtitle').textContent = `Envie mensagens de amor para ${destName}`;
+  document.getElementById('msg-dest-nome').textContent = destName;
+
+  // Set defaults para datas
+  const now = new Date();
+  const inicioEl = document.getElementById('msg-inicio');
+  const expiraEl = document.getElementById('msg-expira');
+  if (inicioEl && !inicioEl.value) {
+    inicioEl.value = toLocalDatetime(now);
+  }
+  if (expiraEl && !expiraEl.value) {
+    const exp = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000); // 7 dias default
+    expiraEl.value = toLocalDatetime(exp);
+  }
+
+  renderEmojiPicker();
+  renderMensagensEnviadas(loggedUser, destKey);
+}
+
+function toLocalDatetime(d) {
+  const pad = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function enviarMensagem() {
+  const texto = document.getElementById('msg-texto').value.trim();
+  const emoji = document.getElementById('msg-emoji').value || '💕';
+  const inicio = document.getElementById('msg-inicio').value;
+  const expira = document.getElementById('msg-expira').value;
+
+  if (!texto) { toast('Escreva uma mensagem!'); return; }
+  if (!inicio || !expira) { toast('Defina as datas de início e expiração!'); return; }
+  if (new Date(expira) <= new Date(inicio)) { toast('A data de expiração deve ser depois do início!'); return; }
+
+  const loggedUser = getLoggedUserKey();
+  const destKey = loggedUser === 'u2' ? 'u1' : 'u2';
+
+  const msg = {
+    id: 'love_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6),
+    de: loggedUser,
+    para: destKey,
+    texto: texto,
+    emoji: emoji,
+    inicio: inicio,
+    expira: expira,
+    criadoEm: new Date().toISOString()
+  };
+
+  if (!S.loveMessages) S.loveMessages = [];
+  S.loveMessages.push(msg);
+  save();
+
+  // Limpar form
+  document.getElementById('msg-texto').value = '';
+  document.getElementById('msg-emoji').value = '💕';
+  const now = new Date();
+  document.getElementById('msg-inicio').value = toLocalDatetime(now);
+  document.getElementById('msg-expira').value = toLocalDatetime(new Date(now.getTime() + 7*24*60*60*1000));
+  renderEmojiPicker();
+
+  toast('Mensagem enviada com amor! 💌');
+  renderMensagensEnviadas(loggedUser, destKey);
+  updateLeiaAquiVisibility();
+}
+
+function renderMensagensEnviadas(senderKey, destKey) {
+  const container = document.getElementById('msg-enviadas-list');
+  const msgs = (S.loveMessages || []).filter(m => m.de === senderKey && m.para === destKey)
+    .sort((a, b) => new Date(b.criadoEm) - new Date(a.criadoEm));
+
+  if (msgs.length === 0) {
+    container.innerHTML = '<p style="color:#94a3b8;font-size:14px;text-align:center;padding:20px;">Nenhuma mensagem enviada ainda</p>';
+    return;
+  }
+
+  const now = new Date();
+  container.innerHTML = msgs.map(m => {
+    const inicio = new Date(m.inicio);
+    const expira = new Date(m.expira);
+    let status, statusColor, statusBg;
+    if (now < inicio) {
+      status = 'Agendada';
+      statusColor = '#f59e0b';
+      statusBg = '#fffbeb';
+    } else if (now > expira) {
+      status = 'Expirada';
+      statusColor = '#94a3b8';
+      statusBg = '#f8fafc';
+    } else {
+      status = 'Ativa';
+      statusColor = '#10b981';
+      statusBg = '#ecfdf5';
+    }
+
+    return `<div class="card" style="padding:20px;border:1.5px solid #fecdd3;background:linear-gradient(135deg,#fff0f3,#ffffff);${now > expira ? 'opacity:0.6;' : ''}">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+        <span style="font-size:24px;">${m.emoji}</span>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="font-size:11px;padding:3px 10px;border-radius:20px;background:${statusBg};color:${statusColor};font-weight:600;">${status}</span>
+          <button onclick="deletarMensagem('${m.id}')" style="background:none;border:none;cursor:pointer;font-size:16px;padding:2px;" title="Excluir">🗑️</button>
+        </div>
+      </div>
+      <p style="font-size:14px;line-height:1.7;color:#4a1d2e;white-space:pre-wrap;">${escapeHtml(m.texto)}</p>
+      <div style="display:flex;justify-content:space-between;margin-top:12px;font-size:11px;color:#94a3b8;">
+        <span>De ${fmtDatetime(m.inicio)} até ${fmtDatetime(m.expira)}</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function deletarMensagem(id) {
+  if (!confirm('Deseja excluir esta mensagem?')) return;
+  S.loveMessages = (S.loveMessages || []).filter(m => m.id !== id);
+  save();
+  const loggedUser = getLoggedUserKey();
+  const destKey = loggedUser === 'u2' ? 'u1' : 'u2';
+  renderMensagensEnviadas(loggedUser, destKey);
+  updateLeiaAquiVisibility();
+  toast('Mensagem excluída');
+}
+
+function renderLeiaAqui() {
+  const container = document.getElementById('cartas-amor');
+  const semMsg = document.getElementById('sem-mensagens');
+  const received = getReceivedMessages();
+
+  if (received.length === 0) {
+    container.innerHTML = '<p id="sem-mensagens" style="color:#94a3b8;font-size:14px;text-align:center;padding:30px;">Nenhuma mensagem no momento</p>';
+    return;
+  }
+
+  const sorted = received.sort((a, b) => new Date(b.criadoEm) - new Date(a.criadoEm));
+  const senderName = sorted[0].de === 'u1' ? S.settings.u1 : S.settings.u2;
+
+  container.innerHTML = sorted.map((m, i) => {
+    const bg = i % 2 === 0 ? '#fff0f3' : '#fdf2f8';
+    return `<div class="card" style="padding:28px;border:1.5px solid #fecdd3;background:linear-gradient(135deg,${bg},#ffffff);animation:fadeInUp 0.5s ease ${i*0.1}s both;">
+      <p style="font-size:15px;line-height:1.8;color:#4a1d2e;white-space:pre-wrap;">${escapeHtml(m.texto)}</p>
+      <p style="text-align:right;margin-top:14px;font-size:24px;">${m.emoji}</p>
+    </div>`;
+  }).join('') + `
+    <div style="text-align:center;padding:20px;">
+      <p style="font-size:16px;font-weight:700;color:#be123c;">Com todo meu amor,</p>
+      <p style="font-size:18px;font-weight:800;color:#9f1239;margin-top:4px;">${escapeHtml(senderName)}</p>
+      <p style="font-size:28px;margin-top:8px;">❤️</p>
+    </div>`;
+}
+
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+function fmtDatetime(dt) {
+  if (!dt) return '';
+  const d = new Date(dt);
+  const pad = n => String(n).padStart(2, '0');
+  return `${pad(d.getDate())}/${pad(d.getMonth()+1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
 function getLoggedUserName() {
