@@ -2222,7 +2222,7 @@ let S = {
   settings: {
     u1: 'Paulo', u2: 'Esposa',
     apiKey: '', apiProvider: 'openai',
-    password: '140226',
+    password: '',
     usdRate: null, usdRateAt: null
   }
 };
@@ -2591,19 +2591,18 @@ function doLogin() {
   const pass = document.getElementById('login-pass').value;
   const err = document.getElementById('login-err');
 
-  // If Firebase hasn't loaded yet and localStorage is empty, wait for it
-  if (!firebaseReady && !localStorage.getItem('fincasal_v2')) {
+  // If settings haven't loaded yet (no password), wait for Firebase/localStorage
+  if (!S.settings.password) {
     err.textContent = '⏳ Carregando dados, tente novamente em instantes...';
     err.style.display = 'block';
     err.style.color = '#f59e0b';
-    // Retry after 2 seconds
     setTimeout(() => { err.style.display = 'none'; }, 2000);
     return;
   }
 
   const { u1, u2, password } = S.settings;
   const validUser = user === u1.toLowerCase() || user === u2.toLowerCase() || user === 'casal';
-  if (validUser && pass === (password || '140226')) {
+  if (validUser && pass === password) {
     sessionStorage.setItem('fincasal_auth', '1');
     sessionStorage.setItem('fincasal_logged_user', (user === u2.toLowerCase()) ? 'u2' : (user === u1.toLowerCase() ? 'u1' : 'casal'));
     document.getElementById('login-screen').style.display = 'none';
