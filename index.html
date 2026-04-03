@@ -1849,6 +1849,10 @@
         <input class="finput" type="date" id="pp-data">
       </div>
       <div style="margin-bottom:14px;">
+        <label class="flabel">Quem vai pagar? *</label>
+        <select class="finput" id="pp-titular" onchange="filtrarContasPgto('pp')"></select>
+      </div>
+      <div style="margin-bottom:14px;">
         <label class="flabel">Debitar da conta *</label>
         <select class="finput" id="pp-conta"></select>
       </div>
@@ -1904,6 +1908,10 @@
       <div style="margin-bottom:14px;">
         <label class="flabel">Data do pagamento *</label>
         <input class="finput" type="date" id="pa-data">
+      </div>
+      <div style="margin-bottom:14px;">
+        <label class="flabel">Quem vai pagar? *</label>
+        <select class="finput" id="pa-titular" onchange="filtrarContasPgto('pa')"></select>
       </div>
       <div style="margin-bottom:14px;">
         <label class="flabel">Debitar da conta *</label>
@@ -7066,12 +7074,26 @@ function pagarParcelaDivida(id) {
   document.getElementById('pp-valor').value = d.parcelaAmount;
   document.getElementById('pp-data').value = new Date().toISOString().slice(0,10);
 
-  // Populate accounts (only bank accounts, not cards)
-  const contaSel = document.getElementById('pp-conta');
-  contaSel.innerHTML = S.accounts
-    .filter(a => a.accountType === 'conta')
-    .map(a => `<option value="${a.id}">${a.label || BANKS[a.bank]?.name || a.bank}</option>`)
-    .join('');
+  // Populate titular select and default to debt's titular
+  popularTitularPgto('pp', d.titular);
+}
+
+// Shared: populate titular select for payment modals
+function popularTitularPgto(prefix, defaultTitular) {
+  const sel = document.getElementById(prefix + '-titular');
+  sel.innerHTML = `<option value="${S.settings.u1}">${S.settings.u1}</option><option value="${S.settings.u2}">${S.settings.u2}</option>`;
+  if (defaultTitular) sel.value = defaultTitular;
+  filtrarContasPgto(prefix);
+}
+
+// Shared: filter accounts by selected titular
+function filtrarContasPgto(prefix) {
+  const titular = document.getElementById(prefix + '-titular').value;
+  const contaSel = document.getElementById(prefix + '-conta');
+  const contas = S.accounts.filter(a => a.accountType === 'conta' && a.owner === titular);
+  contaSel.innerHTML = contas.length
+    ? contas.map(a => `<option value="${a.id}">${BANKS[a.bank]?.name || a.bank} — ${a.label}</option>`).join('')
+    : `<option value="">Nenhuma conta para ${titular}</option>`;
 }
 
 function fecharPagarParcelaModal() {
@@ -7121,11 +7143,8 @@ function abrirPagarAmortModal(id) {
   document.getElementById('pa-modo').value = 'prazo';
   setPaAmortModo('prazo');
 
-  const contaSel = document.getElementById('pa-conta');
-  contaSel.innerHTML = S.accounts
-    .filter(a => a.accountType === 'conta')
-    .map(a => `<option value="${a.id}">${a.label || BANKS[a.bank]?.name || a.bank}</option>`)
-    .join('');
+  // Populate titular select and filter accounts
+  popularTitularPgto('pa', d.titular);
 }
 
 function fecharPagarAmortModal() {
@@ -7143,6 +7162,7 @@ function confirmarPagarAmortizacao() {
   const valor = parseFloat(document.getElementById('pa-valor').value) || 0;
   const data = document.getElementById('pa-data').value;
   const contaId = document.getElementById('pa-conta').value;
+  const titularPgto = document.getElementById('pa-titular').value;
   const modo = document.getElementById('pa-modo').value;
 
   if (valor <= 0 || !data || !contaId) {
@@ -7209,7 +7229,7 @@ function confirmarPagarAmortizacao() {
     }
   }
 
-  // Create transaction
+  // Create transaction (user = who is actually paying)
   S.transactions.push({
     id: 'tx_' + Date.now(),
     type: 'despesa',
@@ -7219,7 +7239,7 @@ function confirmarPagarAmortizacao() {
     category: 'Outros',
     subcategory: '',
     accountId: contaId,
-    user: d.titular,
+    user: titularPgto,
     formaPgto: 'debito',
     pago: true,
     custoTipo: 'fixo',
@@ -7244,6 +7264,7 @@ function confirmarPagarParcela() {
   const valor = parseFloat(document.getElementById('pp-valor').value) || 0;
   const data = document.getElementById('pp-data').value;
   const contaId = document.getElementById('pp-conta').value;
+  const titularPgto = document.getElementById('pp-titular').value;
 
   if (valor <= 0 || !data || !contaId) {
     toast('Preencha todos os campos');
@@ -7262,7 +7283,7 @@ function confirmarPagarParcela() {
     d.status = 'paga';
   }
 
-  // Create a despesa transaction
+  // Create a despesa transaction (user = who is actually paying)
   S.transactions.push({
     id: 'tx_' + Date.now(),
     type: 'despesa',
@@ -7272,7 +7293,7 @@ function confirmarPagarParcela() {
     category: 'Outros',
     subcategory: '',
     accountId: contaId,
-    user: d.titular,
+    user: titularPgto,
     formaPgto: 'debito',
     pago: true,
     custoTipo: 'fixo',
