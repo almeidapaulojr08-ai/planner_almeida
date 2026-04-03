@@ -2089,6 +2089,30 @@
           </div>
         </div>
       </div>
+      <!-- Campos Cripto -->
+      <div id="inv-cripto-fields" style="display:none;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
+          <div>
+            <label class="flabel">Valor investido (USD) *</label>
+            <input class="finput" type="number" id="inv-cripto-usd" step="0.01" min="0.01" placeholder="300.00" oninput="calcCriptoBRL()">
+          </div>
+          <div>
+            <label class="flabel">Tokens recebidos *</label>
+            <input class="finput" type="number" id="inv-cripto-tokens" step="0.000001" min="0.000001" placeholder="1198.51">
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
+          <div>
+            <label class="flabel">PTAX na compra (R$/US$)</label>
+            <input class="finput" type="number" id="inv-cripto-ptax" step="0.01" min="0.01" placeholder="5.16" oninput="calcCriptoBRL()">
+          </div>
+          <div>
+            <label class="flabel">Preço atual do token (USD)</label>
+            <input class="finput" type="number" id="inv-cripto-preco-atual" step="0.000001" min="0" placeholder="0.6898">
+          </div>
+        </div>
+        <div id="inv-cripto-resumo" style="padding:10px 14px;background:#f0fdf4;border-radius:10px;margin-bottom:14px;font-size:13px;color:#065f46;display:none;"></div>
+      </div>
       <!-- Campos Renda Fixa -->
       <div id="inv-renda-fixa-fields" style="display:none;">
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
@@ -7872,6 +7896,60 @@ function renderInvestimentos() {
         </div>`;
     }
 
+    // Cripto details
+    if (inv.tipo === 'cripto' && inv.criptoTokens) {
+      const dolarAtual = S.settings.usdRate || inv.criptoPtaxCompra || 5.0;
+      const precoAtual = inv.criptoPrecoAtual || 0;
+      const valorAtualUSD = inv.criptoTokens * precoAtual;
+      const valorAtualBRL = valorAtualUSD * dolarAtual;
+      const custoTotalBRL = inv.valorInvestido;
+      const lucroBRL = valorAtualBRL - custoTotalBRL;
+      const lucroPct = custoTotalBRL > 0 ? ((lucroBRL / custoTotalBRL) * 100) : 0;
+      const precoCompra = inv.criptoUSD / inv.criptoTokens;
+
+      breakEvenHtml = `
+        <div style="margin-top:14px;padding:14px;background:#f8fafc;border-radius:10px;">
+          <div style="display:flex;justify-content:space-between;margin-bottom:10px;">
+            <span style="font-size:12px;font-weight:700;color:#475569;">Detalhes Cripto</span>
+            <span style="font-size:12px;font-weight:800;color:${lucroBRL >= 0 ? '#059669' : '#e11d48'};">${lucroBRL >= 0 ? '📈 Valorizando' : '📉 Desvalorizando'}</span>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px;">
+            <div>
+              <p style="font-size:11px;color:#94a3b8;">Investido</p>
+              <p style="font-size:13px;font-weight:700;color:#0f172a;">US$ ${inv.criptoUSD.toFixed(2)}</p>
+              <p style="font-size:11px;color:#64748b;">PTAX: R$ ${(inv.criptoPtaxCompra||0).toFixed(2)}</p>
+            </div>
+            <div>
+              <p style="font-size:11px;color:#94a3b8;">Tokens</p>
+              <p style="font-size:13px;font-weight:700;color:#0f172a;">${inv.criptoTokens.toLocaleString('pt-BR', {maximumFractionDigits:6})}</p>
+              <p style="font-size:11px;color:#64748b;">Preço compra: US$ ${precoCompra.toFixed(6)}</p>
+            </div>
+            <div>
+              <p style="font-size:11px;color:#94a3b8;">Preço Atual</p>
+              <p style="font-size:13px;font-weight:700;color:#2563eb;">US$ ${precoAtual.toFixed(6)}</p>
+              <p style="font-size:11px;color:#64748b;">
+                <a href="#" onclick="editarPrecoAtualCripto('${inv.id}');return false;" style="color:#2563eb;text-decoration:underline;">Atualizar</a>
+              </p>
+            </div>
+          </div>
+          <div style="border-top:1px solid #e2e8f0;padding-top:10px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;">
+            <div>
+              <p style="font-size:11px;color:#94a3b8;">Valor Atual (USD)</p>
+              <p style="font-size:13px;font-weight:700;color:#0f172a;">US$ ${valorAtualUSD.toFixed(2)}</p>
+            </div>
+            <div>
+              <p style="font-size:11px;color:#94a3b8;">Valor Atual (BRL)</p>
+              <p style="font-size:13px;font-weight:700;color:#2563eb;">${brl(valorAtualBRL)}</p>
+            </div>
+            <div>
+              <p style="font-size:11px;color:#94a3b8;">Lucro / Prejuízo</p>
+              <p style="font-size:13px;font-weight:700;color:${lucroBRL >= 0 ? '#059669' : '#e11d48'};">${lucroBRL >= 0 ? '+' : ''}${brl(lucroBRL)} (${lucroPct >= 0 ? '+' : ''}${lucroPct.toFixed(1)}%)</p>
+            </div>
+          </div>
+          <p style="font-size:11px;color:#94a3b8;margin-top:8px;">Dólar atual: R$ ${dolarAtual.toFixed(2)} · Investido em BRL: ${brl(custoTotalBRL)}</p>
+        </div>`;
+    }
+
     // Objetivo
     let objHtml = inv.objetivo ? `<span style="font-size:11px;font-weight:600;padding:2px 10px;border-radius:20px;background:#fef3c7;color:#92400e;">🎯 ${inv.objetivo}</span>` : '';
 
@@ -7925,6 +8003,10 @@ function renderInvestimentos() {
 }
 
 function calcValorAtual(inv) {
+  if (inv.tipo === 'cripto' && inv.criptoTokens && inv.criptoPrecoAtual) {
+    const dolarAtual = S.settings.usdRate || inv.criptoPtaxCompra || 5.0;
+    return inv.criptoTokens * inv.criptoPrecoAtual * dolarAtual;
+  }
   return inv.valorAtual || inv.valorInvestido || 0;
 }
 
@@ -7943,6 +8025,29 @@ function toggleInvestFields() {
   const tipo = document.getElementById('inv-tipo').value;
   document.getElementById('inv-negocio-fields').style.display = (tipo === 'negocio') ? 'block' : 'none';
   document.getElementById('inv-renda-fixa-fields').style.display = (tipo === 'renda_fixa') ? 'block' : 'none';
+  document.getElementById('inv-cripto-fields').style.display = (tipo === 'cripto') ? 'block' : 'none';
+  // Quando é cripto, esconder "Valor Investido" e "Valor Atual" normais (são calculados)
+  const valorRow = document.getElementById('inv-valor').closest('div').parentElement;
+  if (tipo === 'cripto') {
+    document.getElementById('inv-valor').closest('div').style.display = 'none';
+    document.getElementById('inv-valor-atual').closest('div').style.display = 'none';
+  } else {
+    document.getElementById('inv-valor').closest('div').style.display = '';
+    document.getElementById('inv-valor-atual').closest('div').style.display = '';
+  }
+}
+
+function calcCriptoBRL() {
+  const usd = parseFloat(document.getElementById('inv-cripto-usd').value) || 0;
+  const ptax = parseFloat(document.getElementById('inv-cripto-ptax').value) || 0;
+  const resumo = document.getElementById('inv-cripto-resumo');
+  if (usd > 0 && ptax > 0) {
+    const brlVal = usd * ptax;
+    resumo.innerHTML = `Valor investido em BRL: <strong>R$ ${brlVal.toFixed(2)}</strong> (US$ ${usd.toFixed(2)} × R$ ${ptax.toFixed(2)})`;
+    resumo.style.display = 'block';
+  } else {
+    resumo.style.display = 'none';
+  }
 }
 
 function calcIRAliquota(dataInicio) {
@@ -7991,6 +8096,12 @@ function abrirNovoInvestModal(editId) {
       document.getElementById('inv-data-inicio').value = inv.dataInicio || '';
       document.getElementById('inv-titular').value = inv.titular || S.settings.u1;
       document.getElementById('inv-notas').value = inv.notas || '';
+      // Cripto fields
+      document.getElementById('inv-cripto-usd').value = inv.criptoUSD || '';
+      document.getElementById('inv-cripto-tokens').value = inv.criptoTokens || '';
+      document.getElementById('inv-cripto-ptax').value = inv.criptoPtaxCompra || '';
+      document.getElementById('inv-cripto-preco-atual').value = inv.criptoPrecoAtual || '';
+      if (inv.tipo === 'cripto') calcCriptoBRL();
     }
   } else {
     document.getElementById('inv-tipo').value = 'reserva';
@@ -8004,6 +8115,12 @@ function abrirNovoInvestModal(editId) {
     document.getElementById('inv-objetivo').value = '';
     document.getElementById('inv-data-inicio').value = new Date().toISOString().slice(0,10);
     document.getElementById('inv-notas').value = '';
+    // Cripto fields
+    document.getElementById('inv-cripto-usd').value = '';
+    document.getElementById('inv-cripto-tokens').value = '';
+    document.getElementById('inv-cripto-ptax').value = '';
+    document.getElementById('inv-cripto-preco-atual').value = '';
+    document.getElementById('inv-cripto-resumo').style.display = 'none';
   }
   toggleInvestFields();
 }
@@ -8026,7 +8143,33 @@ function salvarInvest() {
   const notas = document.getElementById('inv-notas').value.trim();
   const editId = document.getElementById('inv-edit-id').value;
 
-  if (!desc || valorInvestido <= 0) {
+  // Cripto: calcular valorInvestido e valorAtual a partir dos campos específicos
+  let finalValorInvestido = valorInvestido;
+  let finalValorAtual = valorAtual;
+  let criptoData = {};
+
+  if (tipo === 'cripto') {
+    const criptoUSD = parseFloat(document.getElementById('inv-cripto-usd').value) || 0;
+    const criptoTokens = parseFloat(document.getElementById('inv-cripto-tokens').value) || 0;
+    const criptoPtax = parseFloat(document.getElementById('inv-cripto-ptax').value) || 0;
+    const criptoPrecoAtual = parseFloat(document.getElementById('inv-cripto-preco-atual').value) || 0;
+
+    if (!desc || criptoUSD <= 0 || criptoTokens <= 0) {
+      toast('Preencha descrição, valor em USD e tokens');
+      return;
+    }
+
+    finalValorInvestido = criptoUSD * (criptoPtax || 1);
+    const dolarAtual = S.settings.usdRate || criptoPtax || 5.0;
+    finalValorAtual = criptoTokens * criptoPrecoAtual * dolarAtual;
+
+    criptoData = {
+      criptoUSD: criptoUSD,
+      criptoTokens: criptoTokens,
+      criptoPtaxCompra: criptoPtax,
+      criptoPrecoAtual: criptoPrecoAtual
+    };
+  } else if (!desc || valorInvestido <= 0) {
     toast('Preencha descrição e valor investido');
     return;
   }
@@ -8037,10 +8180,11 @@ function salvarInvest() {
   const indice = document.getElementById('inv-indice')?.value || 'cdi';
 
   const data = {
-    tipo, bank: banco, desc, valorInvestido,
-    valorAtual: valorAtual || valorInvestido,
+    tipo, bank: banco, desc, valorInvestido: finalValorInvestido,
+    valorAtual: finalValorAtual || finalValorInvestido,
     retornoMensal, rendimentoPct, moedaRetorno, indice,
-    objetivo, dataInicio, titular, notas
+    objetivo, dataInicio, titular, notas,
+    ...criptoData
   };
 
   if (editId) {
@@ -8064,6 +8208,22 @@ function salvarInvest() {
 
 function editarInvest(id) {
   abrirNovoInvestModal(id);
+}
+
+function editarPrecoAtualCripto(id) {
+  const inv = S.investments.find(x => x.id === id);
+  if (!inv) return;
+  const novo = prompt('Preço atual do token em USD:', inv.criptoPrecoAtual || '');
+  if (novo === null) return;
+  const val = parseFloat(novo);
+  if (isNaN(val) || val < 0) { toast('Valor inválido'); return; }
+  inv.criptoPrecoAtual = val;
+  const dolarAtual = S.settings.usdRate || inv.criptoPtaxCompra || 5.0;
+  inv.valorAtual = inv.criptoTokens * val * dolarAtual;
+  inv.updatedAt = new Date().toISOString();
+  save();
+  renderInvestimentos();
+  toast('Preço atualizado!');
 }
 
 function deletarInvest(id) {
