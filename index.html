@@ -2280,7 +2280,7 @@ function updateSyncStatus(status) {
   const el = document.getElementById('sync-status');
   if (!el) return;
   if (status === 'ok') { el.textContent = '☁️'; el.title = 'Firebase synced'; }
-  else if (status === 'error') { el.textContent = '⚠️'; el.title = 'Firebase sync error'; }
+  else if (status === 'error') { el.textContent = '⚠️'; el.title = 'Firebase sync error'; console.error('SYNC ERROR from:', new Error().stack); }
   else if (status === 'syncing') { el.textContent = '🔄'; el.title = 'Syncing...'; }
 }
 
@@ -2325,8 +2325,10 @@ function initFirebaseSync() {
   });
 
   // Iniciar login anônimo
-  firebase.auth().signInAnonymously().catch(e => {
-    console.warn('Firebase anonymous auth failed:', e);
+  firebase.auth().signInAnonymously().then(() => {
+    console.log('Firebase anonymous auth OK');
+  }).catch(e => {
+    console.error('Firebase anonymous auth FAILED:', e.code, e.message);
     updateSyncStatus('error');
   });
 }
@@ -2409,7 +2411,7 @@ function _startFirebaseListener() {
     firebaseReady = true;
     updateSyncStatus('ok');
   }, (error) => {
-    console.warn('Firebase listen error:', error);
+    console.error('Firebase listen error:', error.code, error.message);
     updateSyncStatus('error');
   });
 }
