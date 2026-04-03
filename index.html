@@ -128,19 +128,113 @@
         left:0; box-shadow:4px 0 20px rgba(0,0,0,0.15);
       }
 
-      /* Main content full-width */
+      /* Main content full-width with breathing room */
       main#app-main {
-        padding:16px !important; padding-top:64px !important;
+        padding:12px !important; padding-top:64px !important;
       }
 
       /* Login screen adjustments */
       #login-screen > div { padding:28px 20px !important; margin:0 16px; }
 
       /* Cards smaller padding */
-      .card { padding:16px; }
+      .card { padding:14px; border-radius:12px; }
 
-      /* Dashboard grid adjustments */
-      .grid { gap:12px !important; }
+      /* ── Dashboard header: stack filter buttons ── */
+      #page-dashboard > div:first-child {
+        flex-direction:column; align-items:stretch !important; gap:10px !important; margin-bottom:16px !important;
+      }
+      #page-dashboard > div:first-child > div:last-child {
+        display:flex; flex-wrap:wrap; gap:6px !important; justify-content:flex-start;
+      }
+      #page-dashboard h1 { font-size:20px !important; }
+
+      /* ── Dashboard summary cards: 2 columns ── */
+      #dash-view-conta > div:first-child,
+      #dash-view-credito > div:first-child,
+      #page-historico > div:first-child,
+      #dividas-summary,
+      #invest-summary {
+        grid-template-columns:1fr 1fr !important; gap:10px !important; margin-bottom:16px !important;
+      }
+
+      /* Smaller values on cards */
+      #dash-view-conta .card p[style*="font-size:22px"],
+      #dash-view-credito .card p[style*="font-size:22px"],
+      #page-historico .card p[style*="font-size:20px"] {
+        font-size:17px !important;
+      }
+
+      /* ── Charts & 2-col grids: stack vertically ── */
+      #dash-view-conta > div[style*="grid-template-columns"],
+      #dash-view-credito > div[style*="grid-template-columns"]:not(:first-child) {
+        grid-template-columns:1fr !important; gap:12px !important;
+      }
+      /* Re-apply 2-col for summary cards */
+      #dash-view-conta > div:first-child,
+      #dash-view-credito > div:first-child {
+        grid-template-columns:1fr 1fr !important;
+      }
+
+      /* Análise por Categoria chart */
+      #dash-view-conta > .card canvas,
+      #dash-view-credito .card canvas {
+        max-height:180px !important;
+      }
+
+      /* ── Tempo juntos card ── */
+      #tempo-juntos-card {
+        padding:12px 16px !important; gap:10px !important; margin-bottom:14px !important;
+      }
+      #tempo-juntos-card span[style*="font-size:28px"] { font-size:22px !important; }
+      #tempo-juntos-card p[style*="font-size:20px"] { font-size:16px !important; }
+
+      /* ── Salem bot mascote: smaller on mobile ── */
+      #salem-bot { width:50px !important; height:50px !important; top:70px !important; right:5px !important; }
+
+      /* ── Histórico filters: full width selects ── */
+      #page-historico .card > div {
+        gap:8px !important;
+      }
+      #page-historico select.finput {
+        width:100% !important; min-width:0 !important; flex:1 1 calc(50% - 4px);
+      }
+      #page-historico input.finput[type="text"] {
+        min-width:0 !important; width:100% !important;
+      }
+      #page-historico input.finput[type="date"] {
+        width:calc(50% - 20px) !important; flex:1;
+      }
+      #page-historico h1 { font-size:20px !important; }
+
+      /* Transaction cards: tighter on mobile */
+      .tx-card { padding:12px 14px !important; gap:10px !important; }
+
+      /* ── Orçamento: stack sidebar + table ── */
+      #page-orcamento > div[style*="grid-template-columns:220px"] {
+        grid-template-columns:1fr !important; gap:14px !important;
+      }
+      #page-orcamento table { font-size:11px !important; }
+      #page-orcamento th, #page-orcamento td { padding:8px 10px !important; }
+
+      /* ── Nova Transação ── */
+      #page-nova h1 { font-size:20px !important; }
+      .type-btn { padding:10px 12px !important; font-size:13px !important; }
+      .provider-btn { padding:8px 12px !important; font-size:12px !important; }
+
+      /* ── Gráficos page: stack charts ── */
+      #page-graficos h1 { font-size:20px !important; }
+      #page-graficos div[style*="grid-template-columns"] {
+        grid-template-columns:1fr !important; gap:12px !important;
+      }
+      #page-graficos canvas { max-height:200px !important; }
+
+      /* ── Config page ── */
+      #page-config div[style*="grid-template-columns"] {
+        grid-template-columns:1fr !important; gap:10px !important;
+      }
+
+      /* ── Generic grid fix ── */
+      .grid { gap:10px !important; }
 
       /* Tables scroll horizontally */
       table { font-size:12px; }
@@ -149,7 +243,27 @@
       #emoji-picker { max-width:280px !important; left:0 !important; right:0 !important; }
 
       /* Modal responsiveness */
-      #modal-backdrop > div { margin:0 12px; max-height:85vh !important; }
+      #modal-backdrop > div { margin:0 10px; max-height:88vh !important; padding:20px !important; }
+
+      /* ── Section titles consistency ── */
+      section h1 { font-size:20px !important; }
+      section > div:first-child p[style*="font-size:14px"] { font-size:13px !important; }
+
+      /* ── Contas / Dívidas / Investimentos ── */
+      #page-contas h1, #page-dividas h1, #page-investimentos h1 { font-size:20px !important; }
+
+      /* ── Chat / Assistente IA ── */
+      #page-chat { height:calc(100vh - 80px) !important; }
+      .bubble-user, .bubble-ai { max-width:85% !important; font-size:13px !important; padding:10px 14px !important; }
+
+      /* ── Mensagens ── */
+      #page-mensagens h1 { font-size:20px !important; }
+
+      /* ── Toast position mobile ── */
+      #toast { bottom:12px !important; right:12px !important; left:12px !important; font-size:13px !important; }
+
+      /* ── tf-btn (titular/filter toggles) smaller on mobile ── */
+      .tf-btn { padding:6px 10px !important; font-size:12px !important; }
     }
   </style>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
