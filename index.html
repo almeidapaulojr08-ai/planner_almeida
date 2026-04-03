@@ -3078,15 +3078,14 @@ function saveTransacao(e) {
     const day = d.getDate();
     let startMonth, startYear;
     if (day > fechaDia) {
-      // After closing → goes to month+2
-      const tmp = new Date(d.getFullYear(), d.getMonth() + 2, 1);
-      startMonth = tmp.getMonth();
-      startYear = tmp.getFullYear();
-    } else {
-      // Before closing → goes to month+1
+      // After closing → goes to next month's fatura
       const tmp = new Date(d.getFullYear(), d.getMonth() + 1, 1);
       startMonth = tmp.getMonth();
       startYear = tmp.getFullYear();
+    } else {
+      // On or before closing → goes to current month's fatura
+      startMonth = d.getMonth();
+      startYear = d.getFullYear();
     }
 
     for (let i = 0; i < numParcelas; i++) {
@@ -3329,12 +3328,14 @@ function getTxFaturaRef(tx) {
   const fechaDia = parseInt(card.fecha);
   const d = new Date(tx.date + 'T12:00:00');
   const day = d.getDate();
-  // If purchase is after closing day, it goes to next month's bill
+  // If purchase is after closing day, it falls into next month's fatura
+  // e.g. March 28, fecha=2 → cycle Mar 3–Apr 2 → fatura de Abril (month+1)
+  // If purchase is on or before closing day, it falls into current month's fatura
+  // e.g. April 1, fecha=2 → cycle Mar 3–Apr 2 → fatura de Abril (same month)
   if (day > fechaDia) {
-    d.setMonth(d.getMonth() + 2);
-  } else {
     d.setMonth(d.getMonth() + 1);
   }
+  // else: same month, no change
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
 }
 
@@ -3351,28 +3352,15 @@ function getCreditTxByFatura(faturaYM, cardId) {
 // Today is in the billing cycle that closes on fecha day of this/next month.
 function getCurrentFaturaYM() {
   const now = new Date();
-  // Use the earliest closing day among all cards, or default to next month
   const cartoes = S.accounts.filter(a => a.accountType === 'cartao');
-  // Current fatura = the one being accumulated now = closes next
-  // If today is March 27 and fecha=2, the current cycle closes April 2 → fatura de Abril (2026-04)
   const minFecha = Math.min(...cartoes.map(c => parseInt(c.fecha) || 1));
   const day = now.getDate();
   let m = now.getMonth(); // 0-based
   let y = now.getFullYear();
+  // e.g. fecha=2, today Apr 3 (after closing) → cycle Apr 3–May 2 → fatura de Maio (m+1)
+  // e.g. fecha=2, today Apr 1 (before closing) → cycle Mar 3–Apr 2 → fatura de Abril (m)
   if (day > minFecha) {
-    m += 2; // after closing → bill is month+2 (e.g., Mar 27 > fecha 2 → April+1=May? No...)
-  } else {
     m += 1;
-  }
-  // Actually let's simplify: the fatura month = the month after the closing date period
-  // If fecha=2, and today is March 27 (after day 2), we are in the cycle Mar 3 - Apr 2 = fatura de Abril
-  if (day > minFecha) {
-    // We passed this month's closing, so current cycle ends next month → fatura = next month + 1? No.
-    // Mar 27, fecha=2: cycle started Mar 3, closes Apr 2 → this is the APRIL bill
-    m = now.getMonth() + 1; // April (0-based: 3)
-  } else {
-    // Jan 1, fecha=2: cycle started Dec 3, closes Jan 2 → this is the JANUARY bill
-    m = now.getMonth(); // January (0-based: 0)
   }
   if (m > 11) { m -= 12; y++; }
   return `${y}-${String(m + 1).padStart(2, '0')}`;
@@ -8222,6 +8210,26 @@ function init() {
     save(); // salva no localStorage E no Firebase pra não voltar
   }
   seedAccounts();
+  // One-time fix: recalculate faturaRef for credit transactions (bug had +1 month extra)
+  if (!S.settings._faturaRefFixedV2) {
+    let fixed = 0;
+    S.transactions.forEach(tx => {
+      if (tx.type === 'despesa' && tx.formaPgto === 'credito' && tx.faturaRef && !tx.id.startsWith('imp_')) {
+        const card = S.accounts.find(a => a.id === tx.accountId && a.accountType === 'cartao');
+        if (card && card.fecha) {
+          const fechaDia = parseInt(card.fecha);
+          const d = new Date(tx.date + 'T12:00:00');
+          const day = d.getDate();
+          if (day > fechaDia) { d.setMonth(d.getMonth() + 1); }
+          const correct = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+          if (tx.faturaRef !== correct) { tx.faturaRef = correct; fixed++; }
+        }
+      }
+    });
+    S.settings._faturaRefFixedV2 = true;
+    if (fixed > 0) save();
+    else { localStorage.setItem('fincasal', JSON.stringify(S)); }
+  }
   importExcelData();
   initFirebaseSync();
   setType('receita');
