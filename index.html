@@ -2274,6 +2274,7 @@ function fbToArray(obj) {
 }
 
 let firebaseReady = false;
+let firebaseAuthReady = false;
 
 function updateSyncStatus(status) {
   const el = document.getElementById('sync-status');
@@ -2315,10 +2316,16 @@ function mergeTombstones(local, remote) {
 function initFirebaseSync() {
   if (!db) return;
 
-  // Login anônimo no Firebase e só escutar o banco após autenticação
-  firebase.auth().signInAnonymously().then(() => {
-    _startFirebaseListener();
-  }).catch(e => {
+  // Escutar mudanças de auth — quando autenticado, iniciar listener
+  firebase.auth().onAuthStateChanged(user => {
+    if (user && !firebaseAuthReady) {
+      firebaseAuthReady = true;
+      _startFirebaseListener();
+    }
+  });
+
+  // Iniciar login anônimo
+  firebase.auth().signInAnonymously().catch(e => {
     console.warn('Firebase anonymous auth failed:', e);
     updateSyncStatus('error');
   });
@@ -2512,7 +2519,7 @@ function load() {
 
 function save() {
   localStorage.setItem('fincasal_v2', JSON.stringify(S));
-  if (db && firebase.auth().currentUser) {
+  if (db && firebaseAuthReady) {
     updateSyncStatus('syncing');
     _isSyncing = true;
     db.ref('data').set({
