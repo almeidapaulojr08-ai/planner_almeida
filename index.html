@@ -2730,7 +2730,27 @@ function doLogin() {
   const pass = document.getElementById('login-pass').value;
   const err = document.getElementById('login-err');
 
-  // If settings haven't loaded yet (no password), wait for Firebase/localStorage
+  // Se Firebase ainda não sincronizou, esperar antes de validar senha
+  if (!firebaseReady && db) {
+    err.textContent = '⏳ Sincronizando dados, aguarde...';
+    err.style.display = 'block';
+    err.style.color = '#f59e0b';
+    // Tentar novamente quando Firebase sincronizar (máx 5s)
+    const start = Date.now();
+    const waitSync = setInterval(() => {
+      if (firebaseReady || (Date.now() - start) > 5000) {
+        clearInterval(waitSync);
+        err.style.display = 'none';
+        _doLoginCheck(user, pass, err);
+      }
+    }, 200);
+    return;
+  }
+
+  _doLoginCheck(user, pass, err);
+}
+
+function _doLoginCheck(user, pass, err) {
   if (!S.settings.password) {
     err.textContent = '⏳ Carregando dados, tente novamente em instantes...';
     err.style.display = 'block';
