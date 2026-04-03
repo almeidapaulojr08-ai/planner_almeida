@@ -8247,6 +8247,34 @@ function init() {
     if (fixed > 0) save();
     else { localStorage.setItem('fincasal', JSON.stringify(S)); }
   }
+  // One-time: add Unimed Curitiba 3/3 (Paulo pediu em 03/04/2026)
+  if (!S.settings._unimed3Added) {
+    const exists = S.transactions.find(t => t.id === 'manual_unimed_3_3');
+    if (!exists) {
+      S.transactions.push({
+        id: 'manual_unimed_3_3',
+        type: 'despesa',
+        desc: 'UNIMED CURITIBA 3/3',
+        amount: 280,
+        date: '2026-02-09',
+        faturaRef: '2026-05',
+        category: 'Saúde',
+        subcategory: 'Médico',
+        accountId: 'card_sicredi',
+        user: S.settings.u1,
+        formaPgto: 'credito',
+        custoTipo: 'fixo',
+        parcela: '3/3',
+        pago: false,
+        currency: 'BRL',
+        isNegative: false,
+        at: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      });
+    }
+    S.settings._unimed3Added = true;
+    save();
+  }
   importExcelData();
   initFirebaseSync();
   setType('receita');
