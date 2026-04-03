@@ -1948,7 +1948,7 @@
       <!-- Tabela -->
       <div style="overflow-x:auto;">
         <table id="amort-tabela" style="width:100%;border-collapse:collapse;font-size:13px;">
-          <thead>
+          <thead id="amort-thead">
             <tr style="background:#f8fafc;border-bottom:2px solid #e2e8f0;">
               <th style="padding:10px 12px;text-align:center;color:#64748b;font-weight:700;font-size:12px;">Nº</th>
               <th style="padding:10px 12px;text-align:center;color:#64748b;font-weight:700;font-size:12px;">Vencimento</th>
@@ -2199,6 +2199,48 @@
       <div style="display:flex;gap:10px;margin-top:4px;">
         <button onclick="fecharRendimentoModal()" style="flex:1;padding:12px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:14px;font-weight:600;color:#64748b;background:white;cursor:pointer;">Cancelar</button>
         <button onclick="confirmarRendimento()" style="flex:1;padding:12px;background:#2563eb;color:white;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;">Registrar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ COMPRA CRIPTO MODAL -->
+<div id="compra-cripto-modal" style="display:none;">
+  <div id="modal-backdrop" onclick="fecharCompraCriptoModal()">
+    <div onclick="event.stopPropagation()" style="background:white;border-radius:18px;padding:28px;max-width:420px;width:95%;box-shadow:0 20px 60px rgba(0,0,0,0.15);max-height:90vh;overflow-y:auto;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+        <p style="font-weight:800;font-size:17px;color:#0f172a;">Nova Compra</p>
+        <button onclick="fecharCompraCriptoModal()" style="background:none;border:none;font-size:20px;cursor:pointer;color:#94a3b8;">✕</button>
+      </div>
+      <div id="compra-cripto-info" style="border:2px solid #eff6ff;border-radius:12px;padding:14px 18px;margin-bottom:18px;"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
+        <div>
+          <label class="flabel">Valor investido (USD) *</label>
+          <input class="finput" type="number" id="cc-usd" step="0.01" min="0.01" placeholder="100.00">
+        </div>
+        <div>
+          <label class="flabel">Tokens recebidos *</label>
+          <input class="finput" type="number" id="cc-tokens" step="0.000001" min="0.000001" placeholder="450.00">
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
+        <div>
+          <label class="flabel">PTAX no dia (R$/US$) *</label>
+          <input class="finput" type="number" id="cc-ptax" step="0.01" min="0.01" placeholder="5.20">
+        </div>
+        <div>
+          <label class="flabel">Data da compra *</label>
+          <input class="finput" type="date" id="cc-data">
+        </div>
+      </div>
+      <div style="margin-bottom:14px;">
+        <label class="flabel">Observação</label>
+        <input class="finput" type="text" id="cc-obs" placeholder="Ex: Segunda compra, aproveitando queda">
+      </div>
+      <input type="hidden" id="cc-invest-id" value="">
+      <div style="display:flex;gap:10px;margin-top:4px;">
+        <button onclick="fecharCompraCriptoModal()" style="flex:1;padding:12px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:14px;font-weight:600;color:#64748b;background:white;cursor:pointer;">Cancelar</button>
+        <button onclick="confirmarCompraCripto()" style="flex:1;padding:12px;background:#2563eb;color:white;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;">Registrar Compra</button>
       </div>
     </div>
   </div>
@@ -7905,24 +7947,26 @@ function renderInvestimentos() {
       const custoTotalBRL = inv.valorInvestido;
       const lucroBRL = valorAtualBRL - custoTotalBRL;
       const lucroPct = custoTotalBRL > 0 ? ((lucroBRL / custoTotalBRL) * 100) : 0;
-      const precoCompra = inv.criptoUSD / inv.criptoTokens;
+      const precoMedio = inv.criptoTokens > 0 ? (inv.criptoUSD / inv.criptoTokens) : 0;
+      const nCompras = (inv.compras || []).length;
+      const comprasLabel = nCompras > 1 ? `${nCompras} compras` : (nCompras === 1 ? '1 compra' : '');
 
       breakEvenHtml = `
         <div style="margin-top:14px;padding:14px;background:#f8fafc;border-radius:10px;">
           <div style="display:flex;justify-content:space-between;margin-bottom:10px;">
-            <span style="font-size:12px;font-weight:700;color:#475569;">Detalhes Cripto</span>
+            <span style="font-size:12px;font-weight:700;color:#475569;">Detalhes Cripto${comprasLabel ? ' · ' + comprasLabel : ''}</span>
             <span style="font-size:12px;font-weight:800;color:${lucroBRL >= 0 ? '#059669' : '#e11d48'};">${lucroBRL >= 0 ? '📈 Valorizando' : '📉 Desvalorizando'}</span>
           </div>
           <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px;">
             <div>
               <p style="font-size:11px;color:#94a3b8;">Investido</p>
               <p style="font-size:13px;font-weight:700;color:#0f172a;">US$ ${inv.criptoUSD.toFixed(2)}</p>
-              <p style="font-size:11px;color:#64748b;">PTAX: R$ ${(inv.criptoPtaxCompra||0).toFixed(2)}</p>
+              <p style="font-size:11px;color:#64748b;">PTAX médio: R$ ${(inv.criptoPtaxCompra||0).toFixed(2)}</p>
             </div>
             <div>
               <p style="font-size:11px;color:#94a3b8;">Tokens</p>
               <p style="font-size:13px;font-weight:700;color:#0f172a;">${inv.criptoTokens.toLocaleString('pt-BR', {maximumFractionDigits:6})}</p>
-              <p style="font-size:11px;color:#64748b;">Preço compra: US$ ${precoCompra.toFixed(6)}</p>
+              <p style="font-size:11px;color:#64748b;">PM: US$ ${precoMedio.toFixed(6)}</p>
             </div>
             <div>
               <p style="font-size:11px;color:#94a3b8;">Preço Atual</p>
@@ -7993,8 +8037,13 @@ function renderInvestimentos() {
       </div>
       ${breakEvenHtml}
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;">
+        ${inv.tipo === 'cripto' ? `
+        <button onclick="abrirCompraCriptoModal('${inv.id}')" style="padding:8px 16px;background:#f59e0b;color:white;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;">+ Nova Compra</button>
+        <button onclick="verComprasCripto('${inv.id}')" style="padding:8px 16px;background:#fef3c7;color:#92400e;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;">Compras</button>
+        ` : `
         <button onclick="abrirRendimentoModal('${inv.id}')" style="padding:8px 16px;background:#059669;color:white;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;">+ Rendimento</button>
         <button onclick="verRendimentos('${inv.id}')" style="padding:8px 16px;background:#eff6ff;color:#2563eb;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;">Histórico</button>
+        `}
         <button onclick="editarInvest('${inv.id}')" style="padding:8px 16px;background:#eef2ff;color:#4f46e5;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;">Editar</button>
         <button onclick="deletarInvest('${inv.id}')" style="padding:8px 16px;background:#fff1f2;color:#e11d48;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;">Excluir</button>
       </div>
@@ -8097,11 +8146,24 @@ function abrirNovoInvestModal(editId) {
       document.getElementById('inv-titular').value = inv.titular || S.settings.u1;
       document.getElementById('inv-notas').value = inv.notas || '';
       // Cripto fields
+      const temCompras = inv.compras && inv.compras.length > 0;
       document.getElementById('inv-cripto-usd').value = inv.criptoUSD || '';
       document.getElementById('inv-cripto-tokens').value = inv.criptoTokens || '';
       document.getElementById('inv-cripto-ptax').value = inv.criptoPtaxCompra || '';
       document.getElementById('inv-cripto-preco-atual').value = inv.criptoPrecoAtual || '';
-      if (inv.tipo === 'cripto') calcCriptoBRL();
+      // Se já tem compras, desabilitar campos que são controlados pelo histórico
+      document.getElementById('inv-cripto-usd').disabled = temCompras;
+      document.getElementById('inv-cripto-tokens').disabled = temCompras;
+      document.getElementById('inv-cripto-ptax').disabled = temCompras;
+      if (inv.tipo === 'cripto') {
+        calcCriptoBRL();
+        if (temCompras) {
+          document.getElementById('inv-cripto-resumo').innerHTML = `Valores controlados pelo histórico de compras (${inv.compras.length} compra${inv.compras.length!==1?'s':''}). Use <strong>"+ Nova Compra"</strong> para adicionar.`;
+          document.getElementById('inv-cripto-resumo').style.display = 'block';
+          document.getElementById('inv-cripto-resumo').style.background = '#eff6ff';
+          document.getElementById('inv-cripto-resumo').style.color = '#1e40af';
+        }
+      }
     }
   } else {
     document.getElementById('inv-tipo').value = 'reserva';
@@ -8120,7 +8182,12 @@ function abrirNovoInvestModal(editId) {
     document.getElementById('inv-cripto-tokens').value = '';
     document.getElementById('inv-cripto-ptax').value = '';
     document.getElementById('inv-cripto-preco-atual').value = '';
+    document.getElementById('inv-cripto-usd').disabled = false;
+    document.getElementById('inv-cripto-tokens').disabled = false;
+    document.getElementById('inv-cripto-ptax').disabled = false;
     document.getElementById('inv-cripto-resumo').style.display = 'none';
+    document.getElementById('inv-cripto-resumo').style.background = '#f0fdf4';
+    document.getElementById('inv-cripto-resumo').style.color = '#065f46';
   }
   toggleInvestFields();
 }
@@ -8154,21 +8221,39 @@ function salvarInvest() {
     const criptoPtax = parseFloat(document.getElementById('inv-cripto-ptax').value) || 0;
     const criptoPrecoAtual = parseFloat(document.getElementById('inv-cripto-preco-atual').value) || 0;
 
-    if (!desc || criptoUSD <= 0 || criptoTokens <= 0) {
-      toast('Preencha descrição, valor em USD e tokens');
-      return;
+    // Se editando e já tem compras, só atualiza preço atual e dados gerais
+    const existingInv = editId ? S.investments.find(x => x.id === editId) : null;
+    if (existingInv && existingInv.compras && existingInv.compras.length > 0) {
+      if (!desc) { toast('Preencha a descrição'); return; }
+      criptoData = { criptoPrecoAtual: criptoPrecoAtual };
+      // Manter totais das compras existentes
+      finalValorInvestido = existingInv.valorInvestido;
+      const dolarAtual = S.settings.usdRate || existingInv.criptoPtaxCompra || 5.0;
+      finalValorAtual = existingInv.criptoTokens * criptoPrecoAtual * dolarAtual;
+    } else {
+      if (!desc || criptoUSD <= 0 || criptoTokens <= 0) {
+        toast('Preencha descrição, valor em USD e tokens');
+        return;
+      }
+      finalValorInvestido = criptoUSD * (criptoPtax || 1);
+      const dolarAtual = S.settings.usdRate || criptoPtax || 5.0;
+      finalValorAtual = criptoTokens * criptoPrecoAtual * dolarAtual;
+
+      criptoData = {
+        criptoUSD: criptoUSD,
+        criptoTokens: criptoTokens,
+        criptoPtaxCompra: criptoPtax,
+        criptoPrecoAtual: criptoPrecoAtual,
+        compras: [{
+          id: 'cc_' + Date.now(),
+          data: dataInicio || new Date().toISOString().slice(0,10),
+          usd: criptoUSD,
+          tokens: criptoTokens,
+          ptax: criptoPtax || 5.0,
+          obs: 'Compra inicial'
+        }]
+      };
     }
-
-    finalValorInvestido = criptoUSD * (criptoPtax || 1);
-    const dolarAtual = S.settings.usdRate || criptoPtax || 5.0;
-    finalValorAtual = criptoTokens * criptoPrecoAtual * dolarAtual;
-
-    criptoData = {
-      criptoUSD: criptoUSD,
-      criptoTokens: criptoTokens,
-      criptoPtaxCompra: criptoPtax,
-      criptoPrecoAtual: criptoPrecoAtual
-    };
   } else if (!desc || valorInvestido <= 0) {
     toast('Preencha descrição e valor investido');
     return;
@@ -8224,6 +8309,182 @@ function editarPrecoAtualCripto(id) {
   save();
   renderInvestimentos();
   toast('Preço atualizado!');
+}
+
+// ─── COMPRAS CRIPTO (múltiplas compras) ──────────────────────────────────────
+
+// Migra cripto antiga (campos avulsos) para o array compras[]
+function migrarCriptoCompras(inv) {
+  if (inv.tipo !== 'cripto' || inv.compras) return;
+  if (inv.criptoUSD && inv.criptoTokens) {
+    inv.compras = [{
+      id: 'cc_' + Date.now(),
+      data: inv.dataInicio || new Date().toISOString().slice(0,10),
+      usd: inv.criptoUSD,
+      tokens: inv.criptoTokens,
+      ptax: inv.criptoPtaxCompra || 5.0,
+      obs: 'Compra inicial'
+    }];
+  } else {
+    inv.compras = [];
+  }
+}
+
+// Recalcula totais do cripto a partir das compras
+function recalcCriptoTotais(inv) {
+  if (inv.tipo !== 'cripto' || !inv.compras) return;
+  const compras = inv.compras;
+  inv.criptoUSD = compras.reduce((s, c) => s + (c.usd || 0), 0);
+  inv.criptoTokens = compras.reduce((s, c) => s + (c.tokens || 0), 0);
+  // Média ponderada da PTAX
+  const totalBRL = compras.reduce((s, c) => s + (c.usd || 0) * (c.ptax || 5), 0);
+  inv.criptoPtaxCompra = inv.criptoUSD > 0 ? totalBRL / inv.criptoUSD : 5.0;
+  inv.valorInvestido = totalBRL;
+  const dolarAtual = S.settings.usdRate || inv.criptoPtaxCompra || 5.0;
+  inv.valorAtual = inv.criptoTokens * (inv.criptoPrecoAtual || 0) * dolarAtual;
+}
+
+function abrirCompraCriptoModal(id) {
+  const inv = S.investments.find(x => x.id === id);
+  if (!inv) return;
+  migrarCriptoCompras(inv);
+
+  document.getElementById('compra-cripto-modal').style.display = 'block';
+  document.getElementById('cc-invest-id').value = id;
+  document.getElementById('cc-usd').value = '';
+  document.getElementById('cc-tokens').value = '';
+  document.getElementById('cc-ptax').value = S.settings.usdRate ? S.settings.usdRate.toFixed(2) : '';
+  document.getElementById('cc-data').value = new Date().toISOString().slice(0,10);
+  document.getElementById('cc-obs').value = '';
+
+  const nCompras = (inv.compras || []).length;
+  document.getElementById('compra-cripto-info').innerHTML = `
+    <p style="font-size:14px;font-weight:700;color:#0f172a;">${inv.desc}</p>
+    <p style="font-size:12px;color:#64748b;margin-top:4px;">Total: US$ ${inv.criptoUSD.toFixed(2)} · ${inv.criptoTokens.toLocaleString('pt-BR',{maximumFractionDigits:6})} tokens · ${nCompras} compra${nCompras!==1?'s':''}</p>
+  `;
+}
+
+function fecharCompraCriptoModal() {
+  document.getElementById('compra-cripto-modal').style.display = 'none';
+}
+
+function confirmarCompraCripto() {
+  const id = document.getElementById('cc-invest-id').value;
+  const usd = parseFloat(document.getElementById('cc-usd').value) || 0;
+  const tokens = parseFloat(document.getElementById('cc-tokens').value) || 0;
+  const ptax = parseFloat(document.getElementById('cc-ptax').value) || 0;
+  const data = document.getElementById('cc-data').value;
+  const obs = document.getElementById('cc-obs').value.trim();
+
+  if (usd <= 0 || tokens <= 0 || ptax <= 0 || !data) {
+    toast('Preencha valor USD, tokens, PTAX e data');
+    return;
+  }
+
+  const inv = S.investments.find(x => x.id === id);
+  if (!inv) return;
+
+  migrarCriptoCompras(inv);
+
+  inv.compras.push({
+    id: 'cc_' + Date.now(),
+    data, usd, tokens, ptax, obs
+  });
+
+  recalcCriptoTotais(inv);
+  inv.updatedAt = new Date().toISOString();
+  save();
+  fecharCompraCriptoModal();
+  renderInvestimentos();
+  toast('Compra registrada!');
+}
+
+function verComprasCripto(id) {
+  const inv = S.investments.find(x => x.id === id);
+  if (!inv) return;
+  migrarCriptoCompras(inv);
+
+  if (!(inv.compras || []).length) {
+    toast('Nenhuma compra registrada');
+    return;
+  }
+
+  const compras = [...inv.compras].sort((a,b) => new Date(a.data) - new Date(b.data));
+  const rows = compras.map((c, i) => {
+    const brlVal = c.usd * c.ptax;
+    const precoToken = c.tokens > 0 ? (c.usd / c.tokens) : 0;
+    return `<tr style="border-bottom:1px solid #f1f5f9;">
+      <td style="padding:8px 12px;font-size:13px;">${fmtDate(c.data)}</td>
+      <td style="padding:8px 12px;text-align:right;font-size:13px;font-weight:600;">US$ ${c.usd.toFixed(2)}</td>
+      <td style="padding:8px 12px;text-align:right;font-size:13px;">${c.tokens.toLocaleString('pt-BR',{maximumFractionDigits:6})}</td>
+      <td style="padding:8px 12px;text-align:right;font-size:13px;color:#64748b;">R$ ${c.ptax.toFixed(2)}</td>
+      <td style="padding:8px 12px;text-align:right;font-size:13px;font-weight:600;color:#2563eb;">${brl(brlVal)}</td>
+      <td style="padding:8px 12px;text-align:center;">
+        <button onclick="deletarCompraCripto('${inv.id}','${c.id}')" style="background:none;border:none;color:#e11d48;cursor:pointer;font-size:14px;" title="Excluir">🗑️</button>
+      </td>
+    </tr>`;
+  }).join('');
+
+  const modal = document.getElementById('amort-table-modal');
+  modal.style.display = 'block';
+  document.getElementById('amort-modal-title').textContent = `Histórico de Compras — ${inv.desc}`;
+
+  const totalUSD = inv.criptoUSD;
+  const totalTokens = inv.criptoTokens;
+  const totalBRL = inv.valorInvestido;
+  const pmToken = totalTokens > 0 ? (totalUSD / totalTokens) : 0;
+
+  document.getElementById('amort-resumo').innerHTML = `
+    <div style="background:#f8fafc;border-radius:10px;padding:12px 16px;">
+      <p style="font-size:11px;color:#94a3b8;">Total Investido</p>
+      <p style="font-size:16px;font-weight:800;color:#0f172a;">US$ ${totalUSD.toFixed(2)}</p>
+      <p style="font-size:11px;color:#64748b;">${brl(totalBRL)}</p>
+    </div>
+    <div style="background:#f8fafc;border-radius:10px;padding:12px 16px;">
+      <p style="font-size:11px;color:#94a3b8;">Total Tokens</p>
+      <p style="font-size:16px;font-weight:800;color:#475569;">${totalTokens.toLocaleString('pt-BR',{maximumFractionDigits:6})}</p>
+    </div>
+    <div style="background:#f8fafc;border-radius:10px;padding:12px 16px;">
+      <p style="font-size:11px;color:#94a3b8;">Preço Médio / Token</p>
+      <p style="font-size:16px;font-weight:800;color:#4f46e5;">US$ ${pmToken.toFixed(6)}</p>
+    </div>
+  `;
+
+  document.getElementById('amort-thead').innerHTML = `
+    <tr style="background:#f8fafc;">
+      <th style="padding:10px 12px;text-align:left;font-size:12px;">Data</th>
+      <th style="padding:10px 12px;text-align:right;font-size:12px;">USD</th>
+      <th style="padding:10px 12px;text-align:right;font-size:12px;">Tokens</th>
+      <th style="padding:10px 12px;text-align:right;font-size:12px;">PTAX</th>
+      <th style="padding:10px 12px;text-align:right;font-size:12px;">BRL</th>
+      <th style="padding:10px 12px;text-align:center;font-size:12px;"></th>
+    </tr>`;
+
+  document.getElementById('amort-tbody').innerHTML = rows;
+  document.getElementById('amort-tfoot').innerHTML = `
+    <tr style="border-top:2px solid #e2e8f0;background:#f8fafc;font-weight:800;">
+      <td style="padding:10px 12px;">TOTAL</td>
+      <td style="padding:10px 12px;text-align:right;">US$ ${totalUSD.toFixed(2)}</td>
+      <td style="padding:10px 12px;text-align:right;">${totalTokens.toLocaleString('pt-BR',{maximumFractionDigits:6})}</td>
+      <td style="padding:10px 12px;"></td>
+      <td style="padding:10px 12px;text-align:right;color:#2563eb;">${brl(totalBRL)}</td>
+      <td></td>
+    </tr>`;
+}
+
+function deletarCompraCripto(invId, compraId) {
+  if (!confirm('Excluir esta compra?')) return;
+  const inv = S.investments.find(x => x.id === invId);
+  if (!inv || !inv.compras) return;
+  inv.compras = inv.compras.filter(c => c.id !== compraId);
+  recalcCriptoTotais(inv);
+  inv.updatedAt = new Date().toISOString();
+  save();
+  renderInvestimentos();
+  // Reabrir o histórico atualizado
+  if (inv.compras.length > 0) verComprasCripto(invId);
+  else { document.getElementById('amort-table-modal').style.display = 'none'; }
+  toast('Compra excluída!');
 }
 
 function deletarInvest(id) {
