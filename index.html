@@ -2660,6 +2660,23 @@ function salvarConta() {
   } else {
     S.accounts.push(obj);
   }
+
+  // If card fecha changed, recalculate faturaRef for all credit transactions on this card
+  if (isCartao && obj.fecha) {
+    const fechaDia = parseInt(obj.fecha);
+    let recalc = 0;
+    S.transactions.forEach(tx => {
+      if (tx.formaPgto === 'credito' && tx.accountId === obj.id) {
+        const d = new Date(tx.date + 'T12:00:00');
+        const day = d.getDate();
+        if (day > fechaDia) { d.setMonth(d.getMonth() + 1); }
+        const newRef = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        if (tx.faturaRef !== newRef) { tx.faturaRef = newRef; recalc++; }
+      }
+    });
+    if (recalc > 0) toast(`🔄 ${recalc} transações recalculadas para nova data de fechamento`);
+  }
+
   save();
   fecharModalConta();
   renderContas();
@@ -8211,7 +8228,7 @@ function init() {
   }
   seedAccounts();
   // One-time fix: recalculate faturaRef for credit transactions (bug had +1 month extra)
-  if (!S.settings._faturaRefFixedV2) {
+  if (!S.settings._faturaRefFixedV3) {
     let fixed = 0;
     S.transactions.forEach(tx => {
       if (tx.type === 'despesa' && tx.formaPgto === 'credito' && tx.faturaRef && !tx.id.startsWith('imp_')) {
@@ -8226,7 +8243,7 @@ function init() {
         }
       }
     });
-    S.settings._faturaRefFixedV2 = true;
+    S.settings._faturaRefFixedV3 = true;
     if (fixed > 0) save();
     else { localStorage.setItem('fincasal', JSON.stringify(S)); }
   }
