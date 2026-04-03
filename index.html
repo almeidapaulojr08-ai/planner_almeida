@@ -6803,8 +6803,10 @@ function renderDividas() {
   list.innerHTML = debts.map(d => {
     const bank = BANKS[d.bank] || { name: d.bank, color:'#64748b', svg:'' };
     const st = STATUS_DIVIDA[d.status] || STATUS_DIVIDA.em_dia;
-    const pctPago = d.totalParcelas > 0 ? Math.round((d.parcelasPagas / d.totalParcelas) * 100) : 0;
     const hasSistema = d.sistema === 'price' || d.sistema === 'sac';
+    const totalPgtos = ((d.pagamentos || []).reduce((s, p) => s + (p.amount || 0), 0)) + ((d.amortizacoesExtra || []).reduce((s, a) => s + (a.amount || 0), 0));
+    const totalRef = calcTotalComJuros(d) || d.totalAmount || 0;
+    const pctPago = totalRef > 0 ? Math.min(100, Math.round((totalPgtos / totalRef) * 100)) : 0;
     const saldoDev = hasSistema ? calcSaldoDevedor(d) : Math.max(0, (d.totalAmount||0) - (d.parcelasPagas||0) * (d.parcelaAmount||0));
     const restante = saldoDev;
     const hoje = new Date();
