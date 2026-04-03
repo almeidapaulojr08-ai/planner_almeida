@@ -8340,6 +8340,24 @@ function init() {
     S.settings._unimed3Added = true;
     save();
   }
+  // One-time: remove R$28000 payment from debt history (Paulo will re-enter it)
+  if (!S.settings._clean28k) {
+    (S.debts || []).forEach(d => {
+      const hadPgto = (d.pagamentos || []).some(p => p.amount === 28000);
+      const hadAmort = (d.amortizacoesExtra || []).some(p => p.amount === 28000);
+      if (hadPgto) {
+        d.pagamentos = d.pagamentos.filter(p => p.amount !== 28000);
+        d.parcelasPagas = Math.max(0, (d.parcelasPagas || 0) - 1);
+      }
+      if (hadAmort) {
+        d.amortizacoesExtra = d.amortizacoesExtra.filter(p => p.amount !== 28000);
+        // Restore principal that was reduced by the amortization
+        d.principal = (d.principal || 0) + 28000;
+      }
+    });
+    S.settings._clean28k = true;
+    save();
+  }
   importExcelData();
   initFirebaseSync();
   setType('receita');
