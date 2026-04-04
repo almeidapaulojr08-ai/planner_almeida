@@ -2273,6 +2273,35 @@
   </div>
 </div>
 
+<!-- ============================================================ ATUALIZAR SALDO PREVIDENCIA MODAL -->
+<div id="atualizar-saldo-modal" style="display:none;">
+  <div id="modal-backdrop" onclick="fecharAtualizarSaldoModal()">
+    <div onclick="event.stopPropagation()" style="background:white;border-radius:18px;padding:28px;max-width:420px;width:95%;box-shadow:0 20px 60px rgba(0,0,0,0.15);">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+        <p style="font-weight:800;font-size:17px;color:#0f172a;">Atualizar Saldo</p>
+        <button onclick="fecharAtualizarSaldoModal()" style="background:none;border:none;font-size:20px;cursor:pointer;color:#94a3b8;">✕</button>
+      </div>
+      <div id="atsaldo-invest-info" style="border:2px solid #ecfdf5;border-radius:12px;padding:14px 18px;margin-bottom:18px;"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
+        <div>
+          <label class="flabel">Novo saldo (valor atual) *</label>
+          <input class="finput" type="number" id="atsaldo-valor" step="0.01" min="0" placeholder="Ex: 1070.50" oninput="calcDiffSaldo()">
+        </div>
+        <div>
+          <label class="flabel">Data *</label>
+          <input class="finput" type="date" id="atsaldo-data">
+        </div>
+      </div>
+      <div id="atsaldo-diff" style="padding:12px 16px;border-radius:10px;margin-bottom:14px;font-size:14px;font-weight:700;display:none;"></div>
+      <input type="hidden" id="atsaldo-invest-id" value="">
+      <div style="display:flex;gap:10px;margin-top:4px;">
+        <button onclick="fecharAtualizarSaldoModal()" style="flex:1;padding:12px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:14px;font-weight:600;color:#64748b;background:white;cursor:pointer;">Cancelar</button>
+        <button onclick="confirmarAtualizarSaldo()" style="flex:1;padding:12px;background:#059669;color:white;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;">Atualizar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- ============================================================ COMPRA CRIPTO MODAL -->
 <div id="compra-cripto-modal" style="display:none;">
   <div id="modal-backdrop" onclick="fecharCompraCriptoModal()">
@@ -8181,7 +8210,7 @@ function renderInvestimentos() {
         <button onclick="verComprasCripto('${inv.id}')" style="padding:8px 16px;background:#fef3c7;color:#92400e;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;">Compras</button>
         ` : inv.tipo === 'previdencia' ? `
         <button onclick="abrirAporteModal('${inv.id}')" style="padding:8px 16px;background:#9d174d;color:white;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;">+ Aporte</button>
-        <button onclick="abrirRendimentoModal('${inv.id}')" style="padding:8px 16px;background:#059669;color:white;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;">+ Rendimento</button>
+        <button onclick="abrirAtualizarSaldoModal('${inv.id}')" style="padding:8px 16px;background:#059669;color:white;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;">Atualizar Saldo</button>
         <button onclick="verRendimentos('${inv.id}')" style="padding:8px 16px;background:#eff6ff;color:#2563eb;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;">Histórico</button>
         ` : `
         <button onclick="abrirRendimentoModal('${inv.id}')" style="padding:8px 16px;background:#059669;color:white;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;">+ Rendimento</button>
@@ -8810,6 +8839,92 @@ function confirmarAporte() {
   toast(`Aporte de ${brl(valor)} registrado!${contaId ? ' Débito criado na conta.' : ''}`);
 }
 
+// ─── ATUALIZAR SALDO PREVIDÊNCIA ────────────────────────────────────────────
+
+function abrirAtualizarSaldoModal(id) {
+  const inv = S.investments.find(x => x.id === id);
+  if (!inv) return;
+
+  document.getElementById('atualizar-saldo-modal').style.display = 'block';
+  document.getElementById('atsaldo-invest-id').value = id;
+  document.getElementById('atsaldo-valor').value = '';
+  document.getElementById('atsaldo-data').value = new Date().toISOString().slice(0,10);
+  document.getElementById('atsaldo-diff').style.display = 'none';
+
+  const valorAtual = calcValorAtual(inv);
+  document.getElementById('atsaldo-invest-info').innerHTML = `
+    <p style="font-size:14px;font-weight:700;color:#0f172a;">${inv.desc} (${inv.prevTipo || 'VGBL'})</p>
+    <p style="font-size:12px;color:#64748b;margin-top:4px;">Investido: ${brl(inv.valorInvestido)} · Saldo atual: <strong>${brl(valorAtual)}</strong></p>
+  `;
+}
+
+function fecharAtualizarSaldoModal() {
+  document.getElementById('atualizar-saldo-modal').style.display = 'none';
+}
+
+function calcDiffSaldo() {
+  const id = document.getElementById('atsaldo-invest-id').value;
+  const inv = S.investments.find(x => x.id === id);
+  if (!inv) return;
+
+  const novoSaldo = parseFloat(document.getElementById('atsaldo-valor').value) || 0;
+  const saldoAnterior = calcValorAtual(inv);
+  const diff = novoSaldo - saldoAnterior;
+  const el = document.getElementById('atsaldo-diff');
+
+  if (novoSaldo > 0) {
+    const isPos = diff >= 0;
+    el.style.display = 'block';
+    el.style.background = isPos ? '#ecfdf5' : '#fff1f2';
+    el.style.color = isPos ? '#059669' : '#e11d48';
+    el.innerHTML = `${isPos ? '📈 Rendimento' : '📉 Variação'}: <span style="font-size:16px;">${isPos ? '+' : ''}${brl(diff)}</span>`;
+  } else {
+    el.style.display = 'none';
+  }
+}
+
+function confirmarAtualizarSaldo() {
+  const id = document.getElementById('atsaldo-invest-id').value;
+  const novoSaldo = parseFloat(document.getElementById('atsaldo-valor').value) || 0;
+  const data = document.getElementById('atsaldo-data').value;
+
+  if (novoSaldo <= 0 || !data) { toast('Preencha o novo saldo e a data'); return; }
+
+  const inv = S.investments.find(x => x.id === id);
+  if (!inv) return;
+
+  const saldoAnterior = calcValorAtual(inv);
+  const diff = novoSaldo - saldoAnterior;
+
+  // Atualizar valor atual
+  inv.valorAtual = novoSaldo;
+  inv.updatedAt = new Date().toISOString();
+
+  // Registrar a diferença como rendimento (se houve variação)
+  if (Math.abs(diff) >= 0.01) {
+    inv.rendimentos = inv.rendimentos || [];
+    inv.rendimentos.push({
+      valor: diff,
+      moeda: 'BRL',
+      data: data,
+      pct: saldoAnterior > 0 ? parseFloat(((diff / saldoAnterior) * 100).toFixed(2)) : 0,
+      obs: `Saldo atualizado: ${brl(saldoAnterior)} → ${brl(novoSaldo)}`,
+      tipo: 'saldo',
+      at: new Date().toISOString()
+    });
+  }
+
+  save();
+  fecharAtualizarSaldoModal();
+  renderInvestimentos();
+
+  if (Math.abs(diff) >= 0.01) {
+    toast(`Saldo atualizado! ${diff >= 0 ? 'Rendimento' : 'Variação'}: ${diff >= 0 ? '+' : ''}${brl(diff)}`);
+  } else {
+    toast('Saldo atualizado!');
+  }
+}
+
 function verRendimentos(id) {
   const inv = S.investments.find(x => x.id === id);
   if (!inv || !(inv.rendimentos || []).length) {
@@ -8820,11 +8935,13 @@ function verRendimentos(id) {
   const rends = [...inv.rendimentos].sort((a,b) => new Date(b.data) - new Date(a.data));
   const rows = rends.map(r => {
     const isAporte = r.tipo === 'aporte';
+    const isSaldo = r.tipo === 'saldo';
     const valorBRL = calcRendBRL(r, inv);
     const moedaInfo = r.moeda === 'USD' ? ` <span style="color:#94a3b8;">(US$ ${r.valor.toFixed(2)})</span>` : '';
     const pctInfo = r.pct ? ` <span style="color:#4f46e5;">${r.pct}%</span>` : '';
-    const tagHtml = isAporte ? '<span style="background:#fdf2f8;color:#9d174d;font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px;margin-right:4px;">APORTE</span>' : '';
-    const valColor = isAporte ? '#9d174d' : '#059669';
+    const tagHtml = isAporte ? '<span style="background:#fdf2f8;color:#9d174d;font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px;margin-right:4px;">APORTE</span>'
+      : isSaldo ? '<span style="background:#ecfdf5;color:#065f46;font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px;margin-right:4px;">SALDO</span>' : '';
+    const valColor = isAporte ? '#9d174d' : valorBRL >= 0 ? '#059669' : '#e11d48';
     return `<tr style="border-bottom:1px solid #f1f5f9;">
       <td style="padding:8px 12px;">${fmtDate(r.data)}</td>
       <td style="padding:8px 12px;text-align:right;font-weight:600;color:${valColor};">${brl(valorBRL)}${moedaInfo}</td>
