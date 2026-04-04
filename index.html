@@ -2465,9 +2465,10 @@ function _startFirebaseListener() {
     S.deletedIds = allTombstones;
     if (fbData.settings) S.settings = { ...S.settings, ...fbData.settings };
     if (fbData.budget) S.budget = fbData.budget;
+    if (fbData.catOrcGroup) S.catOrcGroup = { ...(S.catOrcGroup || {}), ...fbData.catOrcGroup };
     if (fbData.chatHistory) S.chatHistory = fbToArray(fbData.chatHistory);
-    if (fbData.customCats && !S.customCats) S.customCats = fbData.customCats;
-    if (fbData.customBanks && !S.customBanks) { S.customBanks = fbData.customBanks; Object.assign(BANKS, fbData.customBanks); }
+    if (fbData.customCats) S.customCats = { ...(S.customCats || {}), ...fbData.customCats };
+    if (fbData.customBanks) { S.customBanks = { ...(S.customBanks || {}), ...fbData.customBanks }; Object.assign(BANKS, S.customBanks); }
     if (fbData.loveMessages) S.loveMessages = fbData.loveMessages ? mergeArrayById(S.loveMessages || [], fbToArray(fbData.loveMessages), allTombstones) : (S.loveMessages || []);
 
     localStorage.setItem('fincasal_v2', JSON.stringify(S));
@@ -2503,6 +2504,8 @@ function _startFirebaseListener() {
         else if (page === 'investimentos') renderInvestimentos();
         else if (page === 'leiaaqui') renderLeiaAqui();
         else if (page === 'mensagens') renderMensagensPanel();
+        else if (page === 'orcamento') renderOrcamento();
+        else if (page === 'categorias') renderCategorias();
       }
       updateLeiaAquiVisibility();
     }
