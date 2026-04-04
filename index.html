@@ -5318,7 +5318,7 @@ const ORC_GROUPS = {
   },
   'Investimentos': {
     color: '#8b5cf6', bg: '#f5f3ff', pct: 20,
-    cats: ['Renda Fixa','Ações','FIIs','Tesouro Direto','Criptomoedas','Poupança','Previdência']
+    cats: ['Renda Fixa','Ações','FIIs','Tesouro Direto','Criptomoedas','Poupança','Previdência','Negócio']
   }
 };
 
@@ -5379,7 +5379,25 @@ function renderOrcamento() {
 
       let realizado = 0;
       if (isInvest) {
-        realizado = S.transactions.filter(t => t.type === 'investimento' && t.category === cat && t.date.startsWith(ym)).reduce((s,t) => s + amountBrl(t), 0);
+        // Map ORC category names to S.investments tipo
+        const CAT_TO_TIPO = {
+          'Renda Fixa': 'renda_fixa', 'Ações': 'acoes', 'FIIs': 'acoes',
+          'Tesouro Direto': 'tesouro', 'Criptomoedas': 'cripto',
+          'Poupança': 'reserva', 'Previdência': 'previdencia', 'Negócio': 'negocio'
+        };
+        const tipoAlvo = CAT_TO_TIPO[cat];
+        const invs = (S.investments || []).filter(i => i && i.tipo === tipoAlvo && i.dataInicio && i.dataInicio <= ym + '-31');
+        for (const inv of invs) {
+          if (inv.tipo === 'negocio') {
+            // Negócio: só rendimentos (dinheiro que já retornou)
+            realizado += (inv.rendimentos || [])
+              .filter(r => r.data && r.data <= ym + '-31')
+              .reduce((s, r) => s + calcRendBRL(r, inv), 0);
+          } else {
+            // Renda fixa, cripto, etc: valor atual do investimento
+            realizado += calcValorAtual(inv);
+          }
+        }
       } else {
         realizado = S.transactions.filter(t => t.type === 'despesa' && t.category === cat && t.date.startsWith(ym)).reduce((s,t) => s + amountBrl(t), 0);
       }
