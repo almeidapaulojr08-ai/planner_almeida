@@ -2051,6 +2051,7 @@
             <option value="renda_fixa">Renda Fixa</option>
             <option value="acoes">Ações / FIIs</option>
             <option value="cripto">Cripto</option>
+            <option value="previdencia">Previdência</option>
             <option value="outro">Outro</option>
           </select>
         </div>
@@ -2112,6 +2113,32 @@
           </div>
         </div>
         <div id="inv-cripto-resumo" style="padding:10px 14px;background:#f0fdf4;border-radius:10px;margin-bottom:14px;font-size:13px;color:#065f46;display:none;"></div>
+      </div>
+      <!-- Campos Previdência -->
+      <div id="inv-previdencia-fields" style="display:none;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
+          <div>
+            <label class="flabel">Tipo Previdência</label>
+            <select class="finput" id="inv-prev-tipo">
+              <option value="VGBL">VGBL</option>
+              <option value="PGBL">PGBL</option>
+            </select>
+          </div>
+          <div>
+            <label class="flabel">Taxa Admin (%/ano)</label>
+            <input class="finput" type="number" id="inv-prev-taxa-admin" step="0.01" min="0" placeholder="0.50">
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
+          <div>
+            <label class="flabel">Aporte Mensal (R$)</label>
+            <input class="finput" type="number" id="inv-prev-aporte" step="0.01" min="0" placeholder="100.00">
+          </div>
+          <div>
+            <label class="flabel">Rentab. 12 meses (%)</label>
+            <input class="finput" type="number" id="inv-prev-rent12m" step="0.01" min="0" placeholder="14.42">
+          </div>
+        </div>
       </div>
       <!-- Campos Renda Fixa -->
       <div id="inv-renda-fixa-fields" style="display:none;">
@@ -5318,7 +5345,7 @@ const ORC_GROUPS = {
   },
   'Investimentos': {
     color: '#8b5cf6', bg: '#f5f3ff', pct: 20,
-    cats: ['Reserva','FGTS','Negócio','Renda Fixa','Ações / FIIs','Cripto','Outro']
+    cats: ['Reserva','FGTS','Negócio','Renda Fixa','Ações / FIIs','Cripto','Previdência','Outro']
   }
 };
 
@@ -5383,7 +5410,7 @@ function renderOrcamento() {
         const CAT_TO_TIPO = {
           'Reserva': 'reserva', 'FGTS': 'fgts', 'Negócio': 'negocio',
           'Renda Fixa': 'renda_fixa', 'Ações / FIIs': 'acoes',
-          'Cripto': 'cripto', 'Outro': 'outro'
+          'Cripto': 'cripto', 'Previdência': 'previdencia', 'Outro': 'outro'
         };
         const tipoAlvo = CAT_TO_TIPO[cat];
         const invs = (S.investments || []).filter(i => i && i.tipo === tipoAlvo && i.dataInicio && i.dataInicio <= ym + '-31');
@@ -7812,6 +7839,7 @@ const TIPO_INVEST = {
   renda_fixa: { label:'Renda Fixa',       icon:'📄', bg:'#f0fdf4', color:'#166534' },
   acoes:      { label:'Ações / FIIs',     icon:'📈', bg:'#eef2ff', color:'#4f46e5' },
   cripto:     { label:'Cripto',           icon:'₿',  bg:'#fefce8', color:'#a16207' },
+  previdencia:{ label:'Previdência',     icon:'🛡️', bg:'#fdf2f8', color:'#9d174d' },
   outro:      { label:'Outro',            icon:'💼', bg:'#f1f5f9', color:'#475569' }
 };
 
@@ -7970,6 +7998,43 @@ function renderInvestimentos() {
         </div>`;
     }
 
+    // Previdência details
+    if (inv.tipo === 'previdencia') {
+      const aportes = inv.valorInvestido;
+      const atual = calcValorAtual(inv);
+      const rendBruto = atual - aportes;
+      const pctRend = aportes > 0 ? ((rendBruto / aportes) * 100) : 0;
+      const mesesInv = calcMesesPassados(inv.dataInicio);
+      const aporteMensal = inv.prevAporteMensal || 0;
+
+      breakEvenHtml = `
+        <div style="margin-top:14px;padding:14px;background:#f8fafc;border-radius:10px;">
+          <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+            <span style="font-size:12px;font-weight:700;color:#475569;">${inv.prevTipo || 'VGBL'} · Taxa Admin: ${inv.prevTaxaAdmin || 0}%/ano</span>
+            <span style="font-size:12px;font-weight:700;color:${rendBruto >= 0 ? '#059669' : '#e11d48'};">${rendBruto >= 0 ? '📈' : '📉'} ${pctRend.toFixed(2)}% acumulado</span>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px;">
+            <div>
+              <p style="font-size:11px;color:#94a3b8;">Total Aportado</p>
+              <p style="font-size:13px;font-weight:700;color:#0f172a;">${brl(aportes)}</p>
+            </div>
+            <div>
+              <p style="font-size:11px;color:#94a3b8;">Valor Atual</p>
+              <p style="font-size:13px;font-weight:700;color:#2563eb;">${brl(atual)}</p>
+            </div>
+            <div>
+              <p style="font-size:11px;color:#94a3b8;">Rendimento</p>
+              <p style="font-size:13px;font-weight:700;color:${rendBruto >= 0 ? '#059669' : '#e11d48'};">${rendBruto >= 0 ? '+' : ''}${brl(rendBruto)}</p>
+            </div>
+          </div>
+          <div style="display:flex;gap:12px;flex-wrap:wrap;">
+            <span style="font-size:11px;color:#64748b;">Aporte mensal: <strong>${brl(aporteMensal)}</strong></span>
+            <span style="font-size:11px;color:#64748b;">Meses investidos: <strong>${mesesInv}</strong></span>
+            ${inv.prevRent12m ? '<span style="font-size:11px;color:#64748b;">Rent. 12m: <strong>' + inv.prevRent12m + '%</strong></span>' : ''}
+          </div>
+        </div>`;
+    }
+
     // Cripto details
     if (inv.tipo === 'cripto' && inv.criptoTokens) {
       const dolarAtual = S.settings.usdRate || inv.criptoPtaxCompra || 5.0;
@@ -8107,6 +8172,7 @@ function toggleInvestFields() {
   document.getElementById('inv-negocio-fields').style.display = (tipo === 'negocio') ? 'block' : 'none';
   document.getElementById('inv-renda-fixa-fields').style.display = (tipo === 'renda_fixa') ? 'block' : 'none';
   document.getElementById('inv-cripto-fields').style.display = (tipo === 'cripto') ? 'block' : 'none';
+  document.getElementById('inv-previdencia-fields').style.display = (tipo === 'previdencia') ? 'block' : 'none';
   // Quando é cripto, esconder "Valor Investido" e "Valor Atual" normais (são calculados)
   const valorRow = document.getElementById('inv-valor').closest('div').parentElement;
   if (tipo === 'cripto') {
@@ -8183,6 +8249,11 @@ function abrirNovoInvestModal(editId) {
       document.getElementById('inv-cripto-tokens').value = inv.criptoTokens || '';
       document.getElementById('inv-cripto-ptax').value = inv.criptoPtaxCompra || '';
       document.getElementById('inv-cripto-preco-atual').value = inv.criptoPrecoAtual || '';
+      // Previdência fields
+      document.getElementById('inv-prev-tipo').value = inv.prevTipo || 'VGBL';
+      document.getElementById('inv-prev-taxa-admin').value = inv.prevTaxaAdmin || '';
+      document.getElementById('inv-prev-aporte').value = inv.prevAporteMensal || '';
+      document.getElementById('inv-prev-rent12m').value = inv.prevRent12m || '';
       // Se já tem compras, desabilitar campos que são controlados pelo histórico
       document.getElementById('inv-cripto-usd').disabled = temCompras;
       document.getElementById('inv-cripto-tokens').disabled = temCompras;
@@ -8220,6 +8291,11 @@ function abrirNovoInvestModal(editId) {
     document.getElementById('inv-cripto-resumo').style.display = 'none';
     document.getElementById('inv-cripto-resumo').style.background = '#f0fdf4';
     document.getElementById('inv-cripto-resumo').style.color = '#065f46';
+    // Previdência fields reset
+    document.getElementById('inv-prev-tipo').value = 'VGBL';
+    document.getElementById('inv-prev-taxa-admin').value = '';
+    document.getElementById('inv-prev-aporte').value = '';
+    document.getElementById('inv-prev-rent12m').value = '';
   }
   toggleInvestFields();
 }
@@ -8291,6 +8367,17 @@ function salvarInvest() {
     return;
   }
 
+  // Previdência: dados específicos
+  let prevData = {};
+  if (tipo === 'previdencia') {
+    prevData = {
+      prevTipo: document.getElementById('inv-prev-tipo')?.value || 'VGBL',
+      prevTaxaAdmin: parseFloat(document.getElementById('inv-prev-taxa-admin')?.value) || 0,
+      prevAporteMensal: parseFloat(document.getElementById('inv-prev-aporte')?.value) || 0,
+      prevRent12m: parseFloat(document.getElementById('inv-prev-rent12m')?.value) || 0
+    };
+  }
+
   S.investments = S.investments || [];
 
   const moedaRetorno = document.getElementById('inv-moeda-retorno')?.value || 'BRL';
@@ -8301,7 +8388,7 @@ function salvarInvest() {
     valorAtual: finalValorAtual || finalValorInvestido,
     retornoMensal, rendimentoPct, moedaRetorno, indice,
     objetivo, dataInicio, titular, notas,
-    ...criptoData
+    ...criptoData, ...prevData
   };
 
   if (editId) {
