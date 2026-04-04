@@ -5318,7 +5318,7 @@ const ORC_GROUPS = {
   },
   'Investimentos': {
     color: '#8b5cf6', bg: '#f5f3ff', pct: 20,
-    cats: ['Renda Fixa','Ações','FIIs','Tesouro Direto','Criptomoedas','Poupança','Previdência','Negócio']
+    cats: ['Reserva','FGTS','Negócio','Renda Fixa','Ações / FIIs','Cripto','Outro']
   }
 };
 
@@ -5381,9 +5381,9 @@ function renderOrcamento() {
       if (isInvest) {
         // Map ORC category names to S.investments tipo
         const CAT_TO_TIPO = {
-          'Renda Fixa': 'renda_fixa', 'Ações': 'acoes', 'FIIs': 'acoes',
-          'Tesouro Direto': 'tesouro', 'Criptomoedas': 'cripto',
-          'Poupança': 'reserva', 'Previdência': 'previdencia', 'Negócio': 'negocio'
+          'Reserva': 'reserva', 'FGTS': 'fgts', 'Negócio': 'negocio',
+          'Renda Fixa': 'renda_fixa', 'Ações / FIIs': 'acoes',
+          'Cripto': 'cripto', 'Outro': 'outro'
         };
         const tipoAlvo = CAT_TO_TIPO[cat];
         const invs = (S.investments || []).filter(i => i && i.tipo === tipoAlvo && i.dataInicio && i.dataInicio <= ym + '-31');
