@@ -2231,6 +2231,48 @@
   </div>
 </div>
 
+<!-- ============================================================ APORTE PREVIDENCIA MODAL -->
+<div id="aporte-modal" style="display:none;">
+  <div id="modal-backdrop" onclick="fecharAporteModal()">
+    <div onclick="event.stopPropagation()" style="background:white;border-radius:18px;padding:28px;max-width:420px;width:95%;box-shadow:0 20px 60px rgba(0,0,0,0.15);">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+        <p style="font-weight:800;font-size:17px;color:#0f172a;">Registrar Aporte</p>
+        <button onclick="fecharAporteModal()" style="background:none;border:none;font-size:20px;cursor:pointer;color:#94a3b8;">✕</button>
+      </div>
+      <div id="aporte-invest-info" style="border:2px solid #fdf2f8;border-radius:12px;padding:14px 18px;margin-bottom:18px;"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
+        <div>
+          <label class="flabel">Valor do aporte *</label>
+          <input class="finput" type="number" id="aporte-valor" step="0.01" min="0.01" placeholder="100.00">
+        </div>
+        <div>
+          <label class="flabel">Data do aporte *</label>
+          <input class="finput" type="date" id="aporte-data">
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
+        <div>
+          <label class="flabel">Novo valor atual *</label>
+          <input class="finput" type="number" id="aporte-valor-atual" step="0.01" min="0" placeholder="Saldo após aporte">
+        </div>
+        <div>
+          <label class="flabel">Descontar da conta</label>
+          <select class="finput" id="aporte-conta"></select>
+        </div>
+      </div>
+      <div style="margin-bottom:14px;">
+        <label class="flabel">Observação</label>
+        <input class="finput" type="text" id="aporte-obs" placeholder="Ex: Aporte mensal abril/2026">
+      </div>
+      <input type="hidden" id="aporte-invest-id" value="">
+      <div style="display:flex;gap:10px;margin-top:4px;">
+        <button onclick="fecharAporteModal()" style="flex:1;padding:12px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:14px;font-weight:600;color:#64748b;background:white;cursor:pointer;">Cancelar</button>
+        <button onclick="confirmarAporte()" style="flex:1;padding:12px;background:#9d174d;color:white;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;">Registrar Aporte</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- ============================================================ COMPRA CRIPTO MODAL -->
 <div id="compra-cripto-modal" style="display:none;">
   <div id="modal-backdrop" onclick="fecharCompraCriptoModal()">
@@ -8137,6 +8179,10 @@ function renderInvestimentos() {
         ${inv.tipo === 'cripto' ? `
         <button onclick="abrirCompraCriptoModal('${inv.id}')" style="padding:8px 16px;background:#f59e0b;color:white;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;">+ Nova Compra</button>
         <button onclick="verComprasCripto('${inv.id}')" style="padding:8px 16px;background:#fef3c7;color:#92400e;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;">Compras</button>
+        ` : inv.tipo === 'previdencia' ? `
+        <button onclick="abrirAporteModal('${inv.id}')" style="padding:8px 16px;background:#9d174d;color:white;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;">+ Aporte</button>
+        <button onclick="abrirRendimentoModal('${inv.id}')" style="padding:8px 16px;background:#059669;color:white;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;">+ Rendimento</button>
+        <button onclick="verRendimentos('${inv.id}')" style="padding:8px 16px;background:#eff6ff;color:#2563eb;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;">Histórico</button>
         ` : `
         <button onclick="abrirRendimentoModal('${inv.id}')" style="padding:8px 16px;background:#059669;color:white;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;">+ Rendimento</button>
         <button onclick="verRendimentos('${inv.id}')" style="padding:8px 16px;background:#eff6ff;color:#2563eb;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;">Histórico</button>
@@ -8157,7 +8203,7 @@ function calcValorAtual(inv) {
 }
 
 function calcTotalRendimentos(inv) {
-  return (inv.rendimentos || []).reduce((s, r) => s + calcRendBRL(r, inv), 0);
+  return (inv.rendimentos || []).filter(r => r.tipo !== 'aporte').reduce((s, r) => s + calcRendBRL(r, inv), 0);
 }
 
 function calcMesesPassados(dataInicio) {
@@ -8673,6 +8719,97 @@ function confirmarRendimento() {
   toast(`Rendimento de ${brl(valorBRL)}${moedaStr} registrado!`);
 }
 
+// ─── APORTE PREVIDÊNCIA ─────────────────────────────────────────────────────
+
+function abrirAporteModal(id) {
+  const inv = S.investments.find(x => x.id === id);
+  if (!inv) return;
+
+  document.getElementById('aporte-modal').style.display = 'block';
+  document.getElementById('aporte-invest-id').value = id;
+  document.getElementById('aporte-valor').value = inv.prevAporteMensal || '';
+  document.getElementById('aporte-data').value = new Date().toISOString().slice(0,10);
+  document.getElementById('aporte-valor-atual').value = '';
+  document.getElementById('aporte-obs').value = '';
+
+  // Populate conta select with user's bank accounts
+  const titular = inv.titular;
+  const contas = S.accounts.filter(a => a.accountType === 'conta' && (!a.owner || a.owner === titular));
+  const sel = document.getElementById('aporte-conta');
+  sel.innerHTML = '<option value="">Não descontar</option>' +
+    contas.map(a => {
+      const b = BANKS[a.bank] || { name: a.bank };
+      return `<option value="${a.id}">${b.name} — ${a.label}</option>`;
+    }).join('');
+
+  const valorAtual = calcValorAtual(inv);
+  document.getElementById('aporte-invest-info').innerHTML = `
+    <p style="font-size:14px;font-weight:700;color:#0f172a;">${inv.desc} (${inv.prevTipo || 'VGBL'})</p>
+    <p style="font-size:12px;color:#64748b;margin-top:4px;">Investido: ${brl(inv.valorInvestido)} · Valor Atual: ${brl(valorAtual)}</p>
+    <p style="font-size:11px;color:#94a3b8;margin-top:2px;">Aporte mensal: ${brl(inv.prevAporteMensal || 0)} · ${calcMesesPassados(inv.dataInicio)} meses</p>
+  `;
+}
+
+function fecharAporteModal() {
+  document.getElementById('aporte-modal').style.display = 'none';
+}
+
+function confirmarAporte() {
+  const id = document.getElementById('aporte-invest-id').value;
+  const valor = parseFloat(document.getElementById('aporte-valor').value) || 0;
+  const data = document.getElementById('aporte-data').value;
+  const novoValorAtual = parseFloat(document.getElementById('aporte-valor-atual').value) || 0;
+  const contaId = document.getElementById('aporte-conta').value;
+  const obs = document.getElementById('aporte-obs').value.trim();
+
+  if (valor <= 0 || !data) { toast('Preencha valor e data do aporte'); return; }
+  if (novoValorAtual <= 0) { toast('Informe o novo valor atual da previdência'); return; }
+
+  const inv = S.investments.find(x => x.id === id);
+  if (!inv) return;
+
+  // 1. Atualizar investimento
+  inv.valorInvestido = (inv.valorInvestido || 0) + valor;
+  inv.valorAtual = novoValorAtual;
+  inv.updatedAt = new Date().toISOString();
+
+  // Registrar aporte no histórico de rendimentos (com flag de aporte)
+  inv.rendimentos = inv.rendimentos || [];
+  inv.rendimentos.push({
+    valor: valor,
+    moeda: 'BRL',
+    data: data,
+    pct: 0,
+    obs: obs || `Aporte ${inv.prevTipo || 'VGBL'}`,
+    tipo: 'aporte',
+    at: new Date().toISOString()
+  });
+
+  // 2. Criar transação de débito na conta bancária (se selecionada)
+  if (contaId) {
+    S.transactions.push({
+      id: Date.now().toString(),
+      type: 'despesa',
+      desc: `Aporte ${inv.prevTipo || 'Previdência'} — ${inv.desc}`,
+      amount: valor,
+      category: 'Investimentos',
+      subcategory: '',
+      date: data,
+      user: inv.titular,
+      accountId: contaId,
+      formaPgto: 'debito',
+      pago: true,
+      at: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    });
+  }
+
+  save();
+  fecharAporteModal();
+  renderInvestimentos();
+  toast(`Aporte de ${brl(valor)} registrado!${contaId ? ' Débito criado na conta.' : ''}`);
+}
+
 function verRendimentos(id) {
   const inv = S.investments.find(x => x.id === id);
   if (!inv || !(inv.rendimentos || []).length) {
@@ -8682,13 +8819,16 @@ function verRendimentos(id) {
 
   const rends = [...inv.rendimentos].sort((a,b) => new Date(b.data) - new Date(a.data));
   const rows = rends.map(r => {
+    const isAporte = r.tipo === 'aporte';
     const valorBRL = calcRendBRL(r, inv);
     const moedaInfo = r.moeda === 'USD' ? ` <span style="color:#94a3b8;">(US$ ${r.valor.toFixed(2)})</span>` : '';
     const pctInfo = r.pct ? ` <span style="color:#4f46e5;">${r.pct}%</span>` : '';
+    const tagHtml = isAporte ? '<span style="background:#fdf2f8;color:#9d174d;font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px;margin-right:4px;">APORTE</span>' : '';
+    const valColor = isAporte ? '#9d174d' : '#059669';
     return `<tr style="border-bottom:1px solid #f1f5f9;">
       <td style="padding:8px 12px;">${fmtDate(r.data)}</td>
-      <td style="padding:8px 12px;text-align:right;font-weight:600;color:#059669;">${brl(valorBRL)}${moedaInfo}</td>
-      <td style="padding:8px 12px;color:#64748b;font-size:12px;">${pctInfo} ${r.obs || '-'}</td>
+      <td style="padding:8px 12px;text-align:right;font-weight:600;color:${valColor};">${brl(valorBRL)}${moedaInfo}</td>
+      <td style="padding:8px 12px;color:#64748b;font-size:12px;">${tagHtml}${pctInfo} ${r.obs || '-'}</td>
     </tr>`;
   }).join('');
 
