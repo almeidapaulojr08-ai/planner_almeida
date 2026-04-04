@@ -2450,12 +2450,21 @@ function _startFirebaseListener() {
     const newDebt = fbData.debts ? mergeArrayById(S.debts, fbToArray(fbData.debts), allTombstones) : S.debts;
     const newInv  = fbData.investments ? mergeArrayById(S.investments, fbToArray(fbData.investments), allTombstones) : S.investments;
 
-    // Detectar se houve mudanças reais
+    // Detectar se houve mudanças reais (arrays + configs)
+    const localCatOrc = JSON.stringify(S.catOrcGroup || {});
+    const fbCatOrc = JSON.stringify(fbData.catOrcGroup || {});
+    const localCustomCats = JSON.stringify(S.customCats || {});
+    const fbCustomCats = JSON.stringify(fbData.customCats || {});
+    const localBudget = JSON.stringify(S.budget || {});
+    const fbBudget = JSON.stringify(fbData.budget || {});
     const changed = newTx.length !== S.transactions.length ||
                     newAcc.length !== S.accounts.length ||
                     newDebt.length !== S.debts.length ||
                     newInv.length !== S.investments.length ||
-                    allTombstones.length !== (S.deletedIds||[]).length;
+                    allTombstones.length !== (S.deletedIds||[]).length ||
+                    localCatOrc !== fbCatOrc ||
+                    localCustomCats !== fbCustomCats ||
+                    localBudget !== fbBudget;
 
     // Aplicar merge
     S.transactions = newTx;
