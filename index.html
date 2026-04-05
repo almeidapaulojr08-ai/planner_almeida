@@ -2437,86 +2437,32 @@ function _startFirebaseListener() {
 
     const fbData = snapshot.val();
     if (!fbData) {
+      // Firebase vazio — primeiro uso ou reset. Enviar dados locais para o Firebase.
       save();
       return;
     }
 
-    // Merge tombstones primeiro (union de ambos os lados)
-    const allTombstones = mergeTombstones(S.deletedIds, fbToArray(fbData.deletedIds));
+    // ── FIREBASE É A FONTE DA VERDADE ──
+    // Substituir estado local com dados do Firebase (sem merge complexo)
+    const tombSet = new Set((fbToArray(fbData.deletedIds) || []).map(t => t.id));
 
-    // Merge arrays por ID com tombstones
-    const newTx   = fbData.transactions ? mergeArrayById(S.transactions, fbToArray(fbData.transactions), allTombstones) : S.transactions;
-    const newAcc  = fbData.accounts ? mergeArrayById(S.accounts, fbToArray(fbData.accounts), allTombstones) : S.accounts;
-    const newDebt = fbData.debts ? mergeArrayById(S.debts, fbToArray(fbData.debts), allTombstones) : S.debts;
-    const newInv  = fbData.investments ? mergeArrayById(S.investments, fbToArray(fbData.investments), allTombstones) : S.investments;
+    if (fbData.transactions) S.transactions = fbToArray(fbData.transactions).filter(t => t && t.id && !tombSet.has(t.id));
+    if (fbData.accounts)     S.accounts     = fbToArray(fbData.accounts).filter(a => a && a.id && !tombSet.has(a.id));
+    if (fbData.debts)        S.debts        = fbToArray(fbData.debts).filter(d => d && d.id && !tombSet.has(d.id));
+    if (fbData.investments)  S.investments  = fbToArray(fbData.investments).filter(i => i && i.id && !tombSet.has(i.id));
+    if (fbData.deletedIds)   S.deletedIds   = fbToArray(fbData.deletedIds);
+    if (fbData.settings)     S.settings     = { ...S.settings, ...fbData.settings };
+    if (fbData.budget)       S.budget       = fbData.budget;
+    if (fbData.catOrcGroup)  S.catOrcGroup  = fbData.catOrcGroup;
+    if (fbData.chatHistory)  S.chatHistory  = fbToArray(fbData.chatHistory);
+    if (fbData.customCats)   S.customCats   = fbData.customCats;
+    if (fbData.customBanks)  { S.customBanks = fbData.customBanks; Object.assign(BANKS, S.customBanks); }
+    if (fbData.loveMessages) S.loveMessages = fbToArray(fbData.loveMessages).filter(m => m && (!m.id || !tombSet.has(m.id)));
 
-    // Detectar se houve mudanças reais (arrays + configs)
-    const localCatOrc = JSON.stringify(S.catOrcGroup || {});
-    const fbCatOrc = JSON.stringify(fbData.catOrcGroup || {});
-    const localCustomCats = JSON.stringify(S.customCats || {});
-    const fbCustomCats = JSON.stringify(fbData.customCats || {});
-    const localBudget = JSON.stringify(S.budget || {});
-    const fbBudget = JSON.stringify(fbData.budget || {});
-    const changed = newTx.length !== S.transactions.length ||
-                    newAcc.length !== S.accounts.length ||
-                    newDebt.length !== S.debts.length ||
-                    newInv.length !== S.investments.length ||
-                    allTombstones.length !== (S.deletedIds||[]).length ||
-                    localCatOrc !== fbCatOrc ||
-                    localCustomCats !== fbCustomCats ||
-                    localBudget !== fbBudget;
-
-    // Aplicar merge
-    S.transactions = newTx;
-    S.accounts = newAcc;
-    S.debts = newDebt;
-    S.investments = newInv;
-    S.deletedIds = allTombstones;
-    if (fbData.settings) S.settings = { ...S.settings, ...fbData.settings };
-    if (fbData.budget) S.budget = fbData.budget;
-    if (fbData.catOrcGroup) S.catOrcGroup = { ...(S.catOrcGroup || {}), ...fbData.catOrcGroup };
-    if (fbData.chatHistory) S.chatHistory = fbToArray(fbData.chatHistory);
-    if (fbData.customCats) S.customCats = { ...(S.customCats || {}), ...fbData.customCats };
-    if (fbData.customBanks) { S.customBanks = { ...(S.customBanks || {}), ...fbData.customBanks }; Object.assign(BANKS, S.customBanks); }
-    if (fbData.loveMessages) S.loveMessages = fbData.loveMessages ? mergeArrayById(S.loveMessages || [], fbToArray(fbData.loveMessages), allTombstones) : (S.loveMessages || []);
-
+    // Cachear no localStorage (apenas backup offline)
     localStorage.setItem('fincasal_v2', JSON.stringify(S));
 
-    // Se houve mudanças do merge, enviar resultado combinado de volta
-    if (changed) {
-      _isSyncing = true;
-      db.ref('data').set({
-        transactions: S.transactions,
-        accounts: S.accounts,
-        settings: S.settings,
-        debts: S.debts || [],
-        investments: S.investments || [],
-        deletedIds: S.deletedIds || [],
-        budget: S.budget || {},
-        catOrcGroup: S.catOrcGroup || {},
-        chatHistory: S.chatHistory || [],
-        customCats: S.customCats || null,
-        customBanks: S.customBanks || null,
-        loveMessages: S.loveMessages || []
-      }).then(() => { _isSyncing = false; updateSyncStatus('ok'); })
-        .catch(() => { _isSyncing = false; updateSyncStatus('error'); });
-    }
-
-    // Repair: fix accounts with empty owner after merge (seed bug)
-    if (S.settings.u1) {
-      let repaired = false;
-      S.accounts.forEach(a => {
-        if (!a.owner) {
-          // Assign owner based on known card config
-          const thayseCards = ['bradesco', 'mercado_pago', 'itau'];
-          a.owner = thayseCards.includes(a.bank) ? S.settings.u2 : S.settings.u1;
-          a.updatedAt = new Date().toISOString();
-          repaired = true;
-        }
-      });
-      if (repaired) save();
-    }
-    // Update header with synced settings
+    // Update header com settings sincronizados
     document.getElementById('header-users').textContent = `${S.settings.u1} & ${S.settings.u2}`;
 
     // Re-render só se logado
