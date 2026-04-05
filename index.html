@@ -2436,14 +2436,16 @@ function _startFirebaseListener() {
     if (_isSyncing) return;
 
     const fbData = snapshot.val();
+
+    // Firebase vazio — primeiro uso. Marcar como pronto e enviar dados locais.
     if (!fbData) {
-      // Firebase vazio — primeiro uso ou reset. Enviar dados locais para o Firebase.
+      firebaseReady = true;
       save();
       return;
     }
 
     // ── FIREBASE É A FONTE DA VERDADE ──
-    // Substituir estado local com dados do Firebase (sem merge complexo)
+    // Substituir estado local com dados do Firebase (sem merge)
     const tombSet = new Set((fbToArray(fbData.deletedIds) || []).map(t => t.id));
 
     if (fbData.transactions) S.transactions = fbToArray(fbData.transactions).filter(t => t && t.id && !tombSet.has(t.id));
@@ -2459,50 +2461,51 @@ function _startFirebaseListener() {
     if (fbData.customBanks)  { S.customBanks = fbData.customBanks; Object.assign(BANKS, S.customBanks); }
     if (fbData.loveMessages) S.loveMessages = fbToArray(fbData.loveMessages).filter(m => m && (!m.id || !tombSet.has(m.id)));
 
-    // Repair: contas com owner vazio (dados corrompidos pelo bug antigo de merge)
+    // ── REPAROS (rodam SEMPRE, sem flags one-time) ──
+    let needsRepair = false;
+
+    // 1. Contas/cartões sem titular
     if (S.settings.u1) {
-      let repaired = false;
       S.accounts.forEach(a => {
         if (!a.owner) {
           const thayseCards = ['bradesco', 'mercado_pago', 'itau'];
           a.owner = thayseCards.includes(a.bank) ? S.settings.u2 : S.settings.u1;
           a.updatedAt = new Date().toISOString();
-          repaired = true;
+          needsRepair = true;
         }
       });
-      if (repaired) {
-        // Salvar repair direto no Firebase pra corrigir de vez
-        _isSyncing = true;
-        db.ref('data/accounts').set(S.accounts).then(() => { _isSyncing = false; }).catch(() => { _isSyncing = false; });
-      }
     }
 
-    // Repair: restaurar categorias customizadas que foram perdidas pelo bug de sync
-    if (!S.settings._catRepairV2) {
-      const cats = getCats();
-      const desp = cats.despesa;
-      let catFixed = false;
-      // Categorias que Paulo e Thayse tinham e podem ter sido perdidas
-      if (!desp['Diversos'])    { desp['Diversos'] = [];  catFixed = true; }
-      if (!desp['Servicos'])    { desp['Servicos'] = [];  catFixed = true; }
-      if (!desp['Presentes'])   { desp['Presentes'] = []; catFixed = true; }
-      if (!desp['Pedro'])       { desp['Pedro'] = ['Festa de Aniversário']; catFixed = true; }
-      // Subcategoria Cuidados Pessoais em Saúde
+    // 2. Categorias customizadas — garantir que nunca fiquem faltando
+    if (!S.customCats) S.customCats = JSON.parse(JSON.stringify(DEFAULT_CATS));
+    const desp = S.customCats.despesa;
+    if (desp) {
+      const required = { 'Diversos': [], 'Servicos': [], 'Presentes': [], 'Pedro': ['Festa de Aniversário'] };
+      for (const [cat, subs] of Object.entries(required)) {
+        if (!desp[cat]) { desp[cat] = subs; needsRepair = true; }
+      }
       if (desp['Saúde'] && !desp['Saúde'].includes('Cuidados Pessoais')) {
-        desp['Saúde'].push('Cuidados Pessoais'); catFixed = true;
-      }
-      S.settings._catRepairV2 = true;
-      if (catFixed) {
-        S.customCats = cats;
-        _isSyncing = true;
-        db.ref('data').update({ customCats: S.customCats, settings: S.settings }).then(() => { _isSyncing = false; }).catch(() => { _isSyncing = false; });
+        desp['Saúde'].push('Cuidados Pessoais'); needsRepair = true;
       }
     }
 
-    // Cachear no localStorage (apenas backup offline)
+    // Salvar reparos no Firebase numa única escrita
+    if (needsRepair) {
+      _isSyncing = true;
+      db.ref('data').update({
+        accounts: S.accounts,
+        customCats: S.customCats
+      }).then(() => { _isSyncing = false; updateSyncStatus('ok'); })
+        .catch(() => { _isSyncing = false; });
+    }
+
+    // Marcar Firebase como carregado ANTES de cachear e renderizar
+    firebaseReady = true;
+
+    // Cachear no localStorage (backup offline)
     localStorage.setItem('fincasal_v2', JSON.stringify(S));
 
-    // Update header com settings sincronizados
+    // Update header
     document.getElementById('header-users').textContent = `${S.settings.u1} & ${S.settings.u2}`;
 
     // Re-render só se logado
@@ -2522,7 +2525,6 @@ function _startFirebaseListener() {
       updateLeiaAquiVisibility();
     }
 
-    firebaseReady = true;
     updateSyncStatus('ok');
   }, (error) => {
     console.error('Firebase listen error:', error.code, error.message);
@@ -2637,7 +2639,8 @@ function load() {
 
 function save() {
   localStorage.setItem('fincasal_v2', JSON.stringify(S));
-  if (db && firebaseAuthReady) {
+  // Só enviar pro Firebase se ele já carregou pelo menos 1x (evita sobrescrever dados reais com defaults)
+  if (db && firebaseAuthReady && firebaseReady) {
     updateSyncStatus('syncing');
     _isSyncing = true;
     db.ref('data').set({
