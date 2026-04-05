@@ -499,20 +499,22 @@
     </div>
 
     <!-- Charts row -->
-    <div style="display:grid;grid-template-columns:280px 1fr;gap:16px;margin-bottom:24px;">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px;">
       <div class="card">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-          <p style="font-weight:700;font-size:14px;color:#334155;">Despesas por Categoria</p>
-          <div style="display:flex;gap:4px;background:#f1f5f9;border-radius:8px;padding:3px;">
-            <button onclick="setDonutMode('cat')" id="donut-mode-cat" style="padding:3px 10px;border-radius:6px;border:none;background:#4f46e5;color:white;font-size:11px;font-weight:600;cursor:pointer;">Categorias</button>
-            <button onclick="setDonutMode('sub')" id="donut-mode-sub" style="padding:3px 10px;border-radius:6px;border:none;background:transparent;color:#64748b;font-size:11px;font-weight:600;cursor:pointer;">Subcategorias</button>
+          <p style="font-weight:700;font-size:14px;color:#334155;">Gastos por Categoria</p>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <div style="display:flex;gap:4px;background:#f1f5f9;border-radius:8px;padding:3px;">
+              <button onclick="setDebitCatMode('cat')" id="deb-cat-mode-cat" style="padding:3px 10px;border-radius:6px;border:none;background:#4f46e5;color:white;font-size:11px;font-weight:600;cursor:pointer;">Categorias</button>
+              <button onclick="setDebitCatMode('sub')" id="deb-cat-mode-sub" style="padding:3px 10px;border-radius:6px;border:none;background:transparent;color:#64748b;font-size:11px;font-weight:600;cursor:pointer;">Subcategorias</button>
+            </div>
+            <span id="deb-cat-total" style="font-size:13px;font-weight:700;color:#334155;">Total R$ 0,00</span>
           </div>
         </div>
-        <div id="donut-back" style="display:none;margin-bottom:8px;">
-          <button onclick="donutBack()" style="background:none;border:none;cursor:pointer;font-size:12px;color:#6366f1;font-weight:600;">← Voltar (todas)</button>
+        <div id="deb-cat-back" style="display:none;margin-bottom:8px;">
+          <button onclick="debCatBack()" style="background:none;border:none;cursor:pointer;font-size:12px;color:#6366f1;font-weight:600;">← Voltar</button>
         </div>
-        <div style="position:relative;height:170px;"><canvas id="ch-donut-dash"></canvas></div>
-        <div id="donut-legend" class="hv" style="margin-top:12px;display:flex;flex-direction:column;gap:6px;"></div>
+        <div id="deb-cat-list" class="hv" style="display:flex;flex-direction:column;gap:8px;"></div>
       </div>
       <div class="card">
         <p style="font-weight:700;font-size:14px;color:#334155;margin-bottom:16px;">Balanço Mensal</p>
@@ -2581,9 +2583,6 @@ let titularFilter = 'ambos';
 let dashView = 'conta';
 let barChartType = 'bar';
 let ccCardFilter = '';
-let donutMode = 'cat';       // 'cat' or 'sub'
-let donutDrillCat = null;    // categoria clicada para drill-down
-let donutTxCache = [];       // cache das transações do donut atual
 let ccCatMode = 'cat';       // 'cat' or 'sub'
 let ccCatDrillCat = null;    // categoria clicada para drill-down no crédito
 
@@ -4237,7 +4236,7 @@ function renderDashConta(ym, ymPrev) {
   renderCardBreakdowns(mTx);
 
   // Donut: débito do mês + crédito pago do mês (por faturaRef)
-  renderDonutDash([...debitoYM, ...creditPagoYM]);
+  renderDebitCatBreakdown(debitoYM);
   renderBarDash();
   renderCatStackedChart();
   renderRecent();
@@ -4321,94 +4320,87 @@ function renderCardBreakdowns(mTx) {
   document.getElementById('breakdown-invest').innerHTML = invHtml || '<p style="font-size:12px;color:#94a3b8;text-align:center;">Nenhum investimento</p>';
 }
 
-function setDonutMode(mode) {
-  donutMode = mode;
-  donutDrillCat = null;
-  document.getElementById('donut-mode-cat').style.cssText = `padding:3px 10px;border-radius:6px;border:none;font-size:11px;font-weight:600;cursor:pointer;background:${mode==='cat'?'#4f46e5':'transparent'};color:${mode==='cat'?'white':'#64748b'};`;
-  document.getElementById('donut-mode-sub').style.cssText = `padding:3px 10px;border-radius:6px;border:none;font-size:11px;font-weight:600;cursor:pointer;background:${mode==='sub'?'#4f46e5':'transparent'};color:${mode==='sub'?'white':'#64748b'};`;
-  document.getElementById('donut-back').style.display = 'none';
-  renderDonutDash(donutTxCache);
+let debCatMode = 'cat';
+let debCatDrillCat = null;
+let debCatTxCache = [];
+
+function setDebitCatMode(mode) {
+  debCatMode = mode;
+  debCatDrillCat = null;
+  document.getElementById('deb-cat-mode-cat').style.cssText = `padding:3px 10px;border-radius:6px;border:none;font-size:11px;font-weight:600;cursor:pointer;background:${mode==='cat'?'#4f46e5':'transparent'};color:${mode==='cat'?'white':'#64748b'};`;
+  document.getElementById('deb-cat-mode-sub').style.cssText = `padding:3px 10px;border-radius:6px;border:none;font-size:11px;font-weight:600;cursor:pointer;background:${mode==='sub'?'#4f46e5':'transparent'};color:${mode==='sub'?'white':'#64748b'};`;
+  document.getElementById('deb-cat-back').style.display = 'none';
+  renderDebitCatBreakdown(debCatTxCache);
 }
 
-function donutBack() {
-  donutDrillCat = null;
-  document.getElementById('donut-back').style.display = 'none';
-  renderDonutDash(donutTxCache);
+function debCatBack() {
+  debCatDrillCat = null;
+  document.getElementById('deb-cat-back').style.display = 'none';
+  renderDebitCatBreakdown(debCatTxCache);
 }
 
-function donutDrillTo(cat) {
-  donutMode = 'sub';
-  donutDrillCat = cat;
-  document.getElementById('donut-mode-cat').style.cssText = `padding:3px 10px;border-radius:6px;border:none;font-size:11px;font-weight:600;cursor:pointer;background:transparent;color:#64748b;`;
-  document.getElementById('donut-mode-sub').style.cssText = `padding:3px 10px;border-radius:6px;border:none;font-size:11px;font-weight:600;cursor:pointer;background:#4f46e5;color:white;`;
-  renderDonutDash(donutTxCache);
+function debCatDrill(cat) {
+  debCatMode = 'sub';
+  debCatDrillCat = cat;
+  document.getElementById('deb-cat-mode-cat').style.cssText = `padding:3px 10px;border-radius:6px;border:none;font-size:11px;font-weight:600;cursor:pointer;background:transparent;color:#64748b;`;
+  document.getElementById('deb-cat-mode-sub').style.cssText = `padding:3px 10px;border-radius:6px;border:none;font-size:11px;font-weight:600;cursor:pointer;background:#4f46e5;color:white;`;
+  document.getElementById('deb-cat-back').style.display = 'block';
+  document.getElementById('deb-cat-back').querySelector('button').textContent = `← ${cat}`;
+  renderDebitCatBreakdown(debCatTxCache);
 }
 
-function renderDonutDash(txs) {
-  donutTxCache = txs;
-  const filtered = txs.filter(t => t.category !== 'Transferência' && !isPgtoFatura(t));
+function isExcludedFromChart(t) {
+  return isPgtoFatura(t) ||
+    (t.category === 'Servicos' && t.subcategory === 'Investimentos') ||
+    (t.category === 'Taxas' && (t.subcategory === 'Ajuste Saldo' || t.subcategory === 'Conciliacao' || t.subcategory === 'Conciliação'));
+}
+
+function renderDebitCatBreakdown(txs) {
+  debCatTxCache = txs;
+  // Só débito, excluir transferências e itens que Paulo não quer ver
+  const filtered = txs.filter(t => !t.isTransfer && !isExcludedFromChart(t));
+
   const by = {};
-
-  if (donutMode === 'sub' && donutDrillCat) {
-    // Drill-down: mostrar subcategorias de uma categoria específica
-    document.getElementById('donut-back').style.display = 'block';
-    const catTxs = filtered.filter(t => t.category === donutDrillCat);
+  if (debCatMode === 'sub' && debCatDrillCat) {
+    const catTxs = filtered.filter(t => t.category === debCatDrillCat);
     catTxs.forEach(t => {
       const key = t.subcategory || 'Geral';
       by[key] = (by[key] || 0) + amountBrl(t);
     });
-  } else if (donutMode === 'sub') {
-    // Todas as subcategorias (formato "Categoria > Sub")
-    document.getElementById('donut-back').style.display = 'none';
+  } else if (debCatMode === 'sub') {
     filtered.forEach(t => {
       const key = t.subcategory ? `${t.category} > ${t.subcategory}` : t.category;
       by[key] = (by[key] || 0) + amountBrl(t);
     });
   } else {
-    // Modo categoria normal
-    document.getElementById('donut-back').style.display = 'none';
     filtered.forEach(t => by[t.category] = (by[t.category] || 0) + amountBrl(t));
   }
 
-  const sorted = Object.entries(by).sort((a,b) => b[1] - a[1]);
-  const top = sorted.slice(0, 7);
-  const outrosVal = sorted.slice(7).reduce((s, [,v]) => s + v, 0);
-  if (outrosVal > 0) top.push(['Outros', outrosVal]);
+  const sorted = Object.entries(by).sort((a, b) => b[1] - a[1]);
+  const total = sorted.reduce((s, [, v]) => s + v, 0);
 
-  const labels = top.map(([l]) => l);
-  const data = top.map(([,v]) => v);
+  document.getElementById('deb-cat-total').textContent = `Total ${brl(total)}`;
 
-  destroyChart('ch-donut-dash');
-  const ctx = document.getElementById('ch-donut-dash');
-  if (!ctx || !labels.length) { document.getElementById('donut-legend').innerHTML = '<p style="font-size:13px;color:#94a3b8;">Nenhuma despesa este mês</p>'; return; }
+  const el = document.getElementById('deb-cat-list');
+  if (!sorted.length) {
+    el.innerHTML = '<p style="font-size:13px;color:#94a3b8;text-align:center;padding:20px;">Nenhuma despesa no débito este mês</p>';
+    return;
+  }
 
-  charts['ch-donut-dash'] = new Chart(ctx, {
-    type: 'doughnut',
-    data: { labels, datasets: [{ data, backgroundColor: COLORS, borderWidth: 2, borderColor: '#fff' }] },
-    options: {
-      responsive: true, maintainAspectRatio: false, cutout: '68%',
-      onClick: (evt, elems) => {
-        if (donutMode === 'cat' && elems.length > 0) {
-          const cat = labels[elems[0].index];
-          if (cat !== 'Outros') donutDrillTo(cat);
-        }
-      },
-      plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => ` ${c.label}: ${brl(c.raw)}` } } }
-    }
-  });
-
-  const titleEl = document.getElementById('donut-back');
-  if (donutDrillCat) titleEl.querySelector('button').textContent = `← ${donutDrillCat}`;
-
-  const total = data.reduce((a,b)=>a+b,0);
-  document.getElementById('donut-legend').innerHTML = top.map(([l, v], i) => {
-    const clickable = donutMode === 'cat' && l !== 'Outros';
-    return `<div style="display:flex;align-items:center;justify-content:space-between;font-size:12px;${clickable?'cursor:pointer;':''}" ${clickable ? `onclick="donutDrillTo('${l.replace(/'/g,"\\'")}')"` : ''}>
-      <div style="display:flex;align-items:center;gap:6px;">
-        <div style="width:10px;height:10px;border-radius:50%;background:${COLORS[i]};flex-shrink:0;"></div>
-        <span style="color:#475569;">${l}</span>
+  el.innerHTML = sorted.slice(0, 12).map(([cat, val], i) => {
+    const pct = total > 0 ? (val / total) * 100 : 0;
+    const clickable = debCatMode === 'cat';
+    return `<div style="display:flex;align-items:center;gap:12px;${clickable?'cursor:pointer;':''}" ${clickable ? `onclick="debCatDrill('${cat.replace(/'/g,"\\'")}')"` : ''}>
+      <div style="width:10px;height:10px;border-radius:50%;background:${COLORS[i % COLORS.length]};flex-shrink:0;"></div>
+      <div style="flex:1;">
+        <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+          <span style="font-size:13px;font-weight:600;color:#334155;">${cat}</span>
+          <span style="font-size:13px;font-weight:700;color:#334155;">${brl(val)}</span>
+        </div>
+        <div style="height:6px;background:#f1f5f9;border-radius:3px;overflow:hidden;">
+          <div style="height:100%;width:${pct}%;background:${COLORS[i % COLORS.length]};border-radius:3px;"></div>
+        </div>
       </div>
-      <span style="font-weight:700;color:#334155;">${total > 0 ? ((v/total)*100).toFixed(0) : 0}%</span>
     </div>`;
   }).join('');
 }
@@ -9262,7 +9254,7 @@ function renderCatStackedChart() {
     if (t.isTransfer) return false;
     if (t.type !== catChartMode) return false;
     if (catChartMode === 'despesa' && t.formaPgto === 'credito') return false;
-    if (isPgtoFatura(t)) return false;
+    if (isExcludedFromChart(t)) return false;
     return t.date.startsWith(String(year));
   });
 
