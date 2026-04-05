@@ -501,7 +501,16 @@
     <!-- Charts row -->
     <div style="display:grid;grid-template-columns:280px 1fr;gap:16px;margin-bottom:24px;">
       <div class="card">
-        <p style="font-weight:700;font-size:14px;color:#334155;margin-bottom:16px;">Despesas por Categoria</p>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+          <p style="font-weight:700;font-size:14px;color:#334155;">Despesas por Categoria</p>
+          <div style="display:flex;gap:4px;background:#f1f5f9;border-radius:8px;padding:3px;">
+            <button onclick="setDonutMode('cat')" id="donut-mode-cat" style="padding:3px 10px;border-radius:6px;border:none;background:#4f46e5;color:white;font-size:11px;font-weight:600;cursor:pointer;">Categorias</button>
+            <button onclick="setDonutMode('sub')" id="donut-mode-sub" style="padding:3px 10px;border-radius:6px;border:none;background:transparent;color:#64748b;font-size:11px;font-weight:600;cursor:pointer;">Subcategorias</button>
+          </div>
+        </div>
+        <div id="donut-back" style="display:none;margin-bottom:8px;">
+          <button onclick="donutBack()" style="background:none;border:none;cursor:pointer;font-size:12px;color:#6366f1;font-weight:600;">← Voltar (todas)</button>
+        </div>
         <div style="position:relative;height:170px;"><canvas id="ch-donut-dash"></canvas></div>
         <div id="donut-legend" class="hv" style="margin-top:12px;display:flex;flex-direction:column;gap:6px;"></div>
       </div>
@@ -648,13 +657,20 @@
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
           <p style="font-weight:700;font-size:14px;color:#334155;">Gastos por Categoria</p>
           <div style="display:flex;align-items:center;gap:8px;">
+            <div style="display:flex;gap:4px;background:#f1f5f9;border-radius:8px;padding:3px;">
+              <button onclick="setCcCatMode('cat')" id="cc-cat-mode-cat" style="padding:3px 10px;border-radius:6px;border:none;background:#4f46e5;color:white;font-size:11px;font-weight:600;cursor:pointer;">Categorias</button>
+              <button onclick="setCcCatMode('sub')" id="cc-cat-mode-sub" style="padding:3px 10px;border-radius:6px;border:none;background:transparent;color:#64748b;font-size:11px;font-weight:600;cursor:pointer;">Subcategorias</button>
+            </div>
             <span id="cc-cat-total" class="hv" style="font-size:13px;font-weight:700;color:#334155;">Total R$ 0,00</span>
           </div>
         </div>
-        <div style="display:flex;gap:8px;margin-bottom:16px;">
+        <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;">
           <select id="cc-cat-card-filter" onchange="renderCreditCatBreakdown()" style="padding:6px 12px;border-radius:8px;border:1px solid #e2e8f0;font-size:12px;color:#475569;cursor:pointer;">
             <option value="">Todos os cartões</option>
           </select>
+          <div id="cc-cat-back" style="display:none;">
+            <button onclick="ccCatBack()" style="background:none;border:none;cursor:pointer;font-size:12px;color:#6366f1;font-weight:600;">← Voltar (todas)</button>
+          </div>
         </div>
         <div id="cc-cat-list" class="hv" style="display:flex;flex-direction:column;gap:8px;"></div>
       </div>
@@ -2559,6 +2575,11 @@ let titularFilter = 'ambos';
 let dashView = 'conta';
 let barChartType = 'bar';
 let ccCardFilter = '';
+let donutMode = 'cat';       // 'cat' or 'sub'
+let donutDrillCat = null;    // categoria clicada para drill-down
+let donutTxCache = [];       // cache das transações do donut atual
+let ccCatMode = 'cat';       // 'cat' or 'sub'
+let ccCatDrillCat = null;    // categoria clicada para drill-down no crédito
 
 const CATS = {
   receita:      ['Salário','Freelance','Bônus','Aluguel Recebido','Dividendos','Reembolso','Outros'],
@@ -4289,16 +4310,56 @@ function renderCardBreakdowns(mTx) {
   document.getElementById('breakdown-invest').innerHTML = invHtml || '<p style="font-size:12px;color:#94a3b8;text-align:center;">Nenhum investimento</p>';
 }
 
+function setDonutMode(mode) {
+  donutMode = mode;
+  donutDrillCat = null;
+  document.getElementById('donut-mode-cat').style.cssText = `padding:3px 10px;border-radius:6px;border:none;font-size:11px;font-weight:600;cursor:pointer;background:${mode==='cat'?'#4f46e5':'transparent'};color:${mode==='cat'?'white':'#64748b'};`;
+  document.getElementById('donut-mode-sub').style.cssText = `padding:3px 10px;border-radius:6px;border:none;font-size:11px;font-weight:600;cursor:pointer;background:${mode==='sub'?'#4f46e5':'transparent'};color:${mode==='sub'?'white':'#64748b'};`;
+  document.getElementById('donut-back').style.display = 'none';
+  renderDonutDash(donutTxCache);
+}
+
+function donutBack() {
+  donutDrillCat = null;
+  document.getElementById('donut-back').style.display = 'none';
+  renderDonutDash(donutTxCache);
+}
+
+function donutDrillTo(cat) {
+  donutMode = 'sub';
+  donutDrillCat = cat;
+  document.getElementById('donut-mode-cat').style.cssText = `padding:3px 10px;border-radius:6px;border:none;font-size:11px;font-weight:600;cursor:pointer;background:transparent;color:#64748b;`;
+  document.getElementById('donut-mode-sub').style.cssText = `padding:3px 10px;border-radius:6px;border:none;font-size:11px;font-weight:600;cursor:pointer;background:#4f46e5;color:white;`;
+  renderDonutDash(donutTxCache);
+}
+
 function renderDonutDash(txs) {
-  // Also exclude category "Transferência" (manual transfers from before the feature)
+  donutTxCache = txs;
   const filtered = txs.filter(t => t.category !== 'Transferência');
   const by = {};
-  filtered.forEach(t => by[t.category] = (by[t.category]||0) + t.amount);
 
-  // Sort by value descending
+  if (donutMode === 'sub' && donutDrillCat) {
+    // Drill-down: mostrar subcategorias de uma categoria específica
+    document.getElementById('donut-back').style.display = 'block';
+    const catTxs = filtered.filter(t => t.category === donutDrillCat);
+    catTxs.forEach(t => {
+      const key = t.subcategory || 'Geral';
+      by[key] = (by[key] || 0) + amountBrl(t);
+    });
+  } else if (donutMode === 'sub') {
+    // Todas as subcategorias (formato "Categoria > Sub")
+    document.getElementById('donut-back').style.display = 'none';
+    filtered.forEach(t => {
+      const key = t.subcategory ? `${t.category} > ${t.subcategory}` : t.category;
+      by[key] = (by[key] || 0) + amountBrl(t);
+    });
+  } else {
+    // Modo categoria normal
+    document.getElementById('donut-back').style.display = 'none';
+    filtered.forEach(t => by[t.category] = (by[t.category] || 0) + amountBrl(t));
+  }
+
   const sorted = Object.entries(by).sort((a,b) => b[1] - a[1]);
-
-  // Top 7 + "Outros"
   const top = sorted.slice(0, 7);
   const outrosVal = sorted.slice(7).reduce((s, [,v]) => s + v, 0);
   if (outrosVal > 0) top.push(['Outros', outrosVal]);
@@ -4315,19 +4376,30 @@ function renderDonutDash(txs) {
     data: { labels, datasets: [{ data, backgroundColor: COLORS, borderWidth: 2, borderColor: '#fff' }] },
     options: {
       responsive: true, maintainAspectRatio: false, cutout: '68%',
+      onClick: (evt, elems) => {
+        if (donutMode === 'cat' && elems.length > 0) {
+          const cat = labels[elems[0].index];
+          if (cat !== 'Outros') donutDrillTo(cat);
+        }
+      },
       plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => ` ${c.label}: ${brl(c.raw)}` } } }
     }
   });
 
+  const titleEl = document.getElementById('donut-back');
+  if (donutDrillCat) titleEl.querySelector('button').textContent = `← ${donutDrillCat}`;
+
   const total = data.reduce((a,b)=>a+b,0);
-  document.getElementById('donut-legend').innerHTML = top.map(([l, v], i) => `
-    <div style="display:flex;align-items:center;justify-content:space-between;font-size:12px;">
+  document.getElementById('donut-legend').innerHTML = top.map(([l, v], i) => {
+    const clickable = donutMode === 'cat' && l !== 'Outros';
+    return `<div style="display:flex;align-items:center;justify-content:space-between;font-size:12px;${clickable?'cursor:pointer;':''}" ${clickable ? `onclick="donutDrillTo('${l.replace(/'/g,"\\'")}')"` : ''}>
       <div style="display:flex;align-items:center;gap:6px;">
         <div style="width:10px;height:10px;border-radius:50%;background:${COLORS[i]};flex-shrink:0;"></div>
         <span style="color:#475569;">${l}</span>
       </div>
       <span style="font-weight:700;color:#334155;">${total > 0 ? ((v/total)*100).toFixed(0) : 0}%</span>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
 
 function renderBarDash() {
@@ -4562,6 +4634,31 @@ function renderFaturasChart(cartoes) {
   });
 }
 
+function setCcCatMode(mode) {
+  ccCatMode = mode;
+  ccCatDrillCat = null;
+  document.getElementById('cc-cat-mode-cat').style.cssText = `padding:3px 10px;border-radius:6px;border:none;font-size:11px;font-weight:600;cursor:pointer;background:${mode==='cat'?'#4f46e5':'transparent'};color:${mode==='cat'?'white':'#64748b'};`;
+  document.getElementById('cc-cat-mode-sub').style.cssText = `padding:3px 10px;border-radius:6px;border:none;font-size:11px;font-weight:600;cursor:pointer;background:${mode==='sub'?'#4f46e5':'transparent'};color:${mode==='sub'?'white':'#64748b'};`;
+  document.getElementById('cc-cat-back').style.display = 'none';
+  renderCreditCatBreakdown();
+}
+
+function ccCatBack() {
+  ccCatDrillCat = null;
+  document.getElementById('cc-cat-back').style.display = 'none';
+  renderCreditCatBreakdown();
+}
+
+function ccCatDrill(cat) {
+  ccCatMode = 'sub';
+  ccCatDrillCat = cat;
+  document.getElementById('cc-cat-mode-cat').style.cssText = `padding:3px 10px;border-radius:6px;border:none;font-size:11px;font-weight:600;cursor:pointer;background:transparent;color:#64748b;`;
+  document.getElementById('cc-cat-mode-sub').style.cssText = `padding:3px 10px;border-radius:6px;border:none;font-size:11px;font-weight:600;cursor:pointer;background:#4f46e5;color:white;`;
+  document.getElementById('cc-cat-back').style.display = 'block';
+  document.getElementById('cc-cat-back').querySelector('button').textContent = `← ${cat}`;
+  renderCreditCatBreakdown();
+}
+
 function renderCreditCatBreakdown() {
   const isAno = dashPeriodMode === 'ano';
   const faturaYM = `${dashYear}-${String(dashMonth + 1).padStart(2, '0')}`;
@@ -4579,7 +4676,23 @@ function renderCreditCatBreakdown() {
   if (cardFilter) txs = txs.filter(t => t.accountId === cardFilter);
 
   const by = {};
-  txs.forEach(t => by[t.category] = (by[t.category] || 0) + amountBrl(t));
+  if (ccCatMode === 'sub' && ccCatDrillCat) {
+    // Drill-down: subcategorias de uma categoria
+    const catTxs = txs.filter(t => t.category === ccCatDrillCat);
+    catTxs.forEach(t => {
+      const key = t.subcategory || 'Geral';
+      by[key] = (by[key] || 0) + amountBrl(t);
+    });
+  } else if (ccCatMode === 'sub') {
+    // Todas subcategorias
+    txs.forEach(t => {
+      const key = t.subcategory ? `${t.category} > ${t.subcategory}` : t.category;
+      by[key] = (by[key] || 0) + amountBrl(t);
+    });
+  } else {
+    txs.forEach(t => by[t.category] = (by[t.category] || 0) + amountBrl(t));
+  }
+
   const sorted = Object.entries(by).sort((a, b) => b[1] - a[1]);
   const total = sorted.reduce((s, [, v]) => s + v, 0);
 
@@ -4591,17 +4704,18 @@ function renderCreditCatBreakdown() {
     return;
   }
 
-  el.innerHTML = sorted.slice(0, 8).map(([cat, val], i) => {
+  el.innerHTML = sorted.slice(0, 12).map(([cat, val], i) => {
     const pct = total > 0 ? (val / total) * 100 : 0;
-    return `<div style="display:flex;align-items:center;gap:12px;">
-      <div style="width:10px;height:10px;border-radius:50%;background:${COLORS[i]};flex-shrink:0;"></div>
+    const clickable = ccCatMode === 'cat';
+    return `<div style="display:flex;align-items:center;gap:12px;${clickable?'cursor:pointer;':''}" ${clickable ? `onclick="ccCatDrill('${cat.replace(/'/g,"\\'")}')"` : ''}>
+      <div style="width:10px;height:10px;border-radius:50%;background:${COLORS[i % COLORS.length]};flex-shrink:0;"></div>
       <div style="flex:1;">
         <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
           <span style="font-size:13px;font-weight:600;color:#334155;">${cat}</span>
           <span style="font-size:13px;font-weight:700;color:#334155;">${brl(val)}</span>
         </div>
         <div style="height:6px;background:#f1f5f9;border-radius:3px;overflow:hidden;">
-          <div style="height:100%;width:${pct}%;background:${COLORS[i]};border-radius:3px;"></div>
+          <div style="height:100%;width:${pct}%;background:${COLORS[i % COLORS.length]};border-radius:3px;"></div>
         </div>
       </div>
     </div>`;
