@@ -4353,13 +4353,9 @@ function isExcludedFromChart(t) {
   if (isPgtoFatura(t)) return true;
   const sub = (t.subcategory || '').toLowerCase();
   const cat = (t.category || '').toLowerCase();
-  // Excluir: investimentos, empréstimos, ajustes, conciliação
   if (sub === 'investimento' || sub === 'investimentos') return true;
   if (sub === 'emprestimo' || sub === 'empréstimo' || sub === 'emprestimos' || sub === 'empréstimos') return true;
   if (sub === 'ajuste saldo' || sub === 'conciliacao' || sub === 'conciliação') return true;
-  // Excluir categoria Servicos inteira (empréstimos, investimentos, etc)
-  if (cat === 'servicos' || cat === 'serviços') return true;
-  // Excluir Taxas > Banco
   if (cat === 'taxas' && sub === 'banco') return true;
   return false;
 }
