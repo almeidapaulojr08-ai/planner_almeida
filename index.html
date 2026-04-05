@@ -2477,6 +2477,28 @@ function _startFirebaseListener() {
       }
     }
 
+    // Repair: restaurar categorias customizadas que foram perdidas pelo bug de sync
+    if (!S.settings._catRepairV2) {
+      const cats = getCats();
+      const desp = cats.despesa;
+      let catFixed = false;
+      // Categorias que Paulo e Thayse tinham e podem ter sido perdidas
+      if (!desp['Diversos'])    { desp['Diversos'] = [];  catFixed = true; }
+      if (!desp['Servicos'])    { desp['Servicos'] = [];  catFixed = true; }
+      if (!desp['Presentes'])   { desp['Presentes'] = []; catFixed = true; }
+      if (!desp['Pedro'])       { desp['Pedro'] = ['Festa de Aniversário']; catFixed = true; }
+      // Subcategoria Cuidados Pessoais em Saúde
+      if (desp['Saúde'] && !desp['Saúde'].includes('Cuidados Pessoais')) {
+        desp['Saúde'].push('Cuidados Pessoais'); catFixed = true;
+      }
+      S.settings._catRepairV2 = true;
+      if (catFixed) {
+        S.customCats = cats;
+        _isSyncing = true;
+        db.ref('data').update({ customCats: S.customCats, settings: S.settings }).then(() => { _isSyncing = false; }).catch(() => { _isSyncing = false; });
+      }
+    }
+
     // Cachear no localStorage (apenas backup offline)
     localStorage.setItem('fincasal_v2', JSON.stringify(S));
 
@@ -5254,7 +5276,14 @@ const DEFAULT_CATS = {
 };
 
 function getCats() {
-  if (!S.customCats) S.customCats = JSON.parse(JSON.stringify(DEFAULT_CATS));
+  if (!S.customCats) {
+    if (!firebaseReady) {
+      // Firebase ainda não carregou — retornar defaults SEM salvar em S.customCats
+      // para não sobrescrever categorias reais do Firebase ao chamar save()
+      return JSON.parse(JSON.stringify(DEFAULT_CATS));
+    }
+    S.customCats = JSON.parse(JSON.stringify(DEFAULT_CATS));
+  }
   return S.customCats;
 }
 
