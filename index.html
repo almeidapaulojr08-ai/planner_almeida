@@ -2502,6 +2502,23 @@ function _startFirebaseListener() {
         .catch(() => { _isSyncing = false; updateSyncStatus('error'); });
     }
 
+    // Repair: fix accounts with empty owner after merge (seed bug)
+    if (S.settings.u1) {
+      let repaired = false;
+      S.accounts.forEach(a => {
+        if (!a.owner) {
+          // Assign owner based on known card config
+          const thayseCards = ['bradesco', 'mercado_pago', 'itau'];
+          a.owner = thayseCards.includes(a.bank) ? S.settings.u2 : S.settings.u1;
+          a.updatedAt = new Date().toISOString();
+          repaired = true;
+        }
+      });
+      if (repaired) save();
+    }
+    // Update header with synced settings
+    document.getElementById('header-users').textContent = `${S.settings.u1} & ${S.settings.u2}`;
+
     // Re-render só se logado
     if (sessionStorage.getItem('fincasal_auth')) {
       const current = document.querySelector('section[id^="page-"]:not([style*="display:none"])');
@@ -6931,12 +6948,13 @@ function apagarTudo() {
 
 // ─── INIT ─────────────────────────────────────────────────────────────────────
 function seedAccounts() {
-  const _now = new Date().toISOString();
+  // Use old timestamp so Firebase data ALWAYS wins in merge
+  const _seed = '2020-01-01T00:00:00.000Z';
   const defaults = [
-    { id: 'nubank_conta',  bank:'nubank',  label:'Conta Nubank',   owner: S.settings.u1, accountType:'conta', tipoConta:'corrente', updatedAt: _now },
-    { id: 'sicredi_conta', bank:'sicredi', label:'Conta Sicredi',  owner: S.settings.u1, accountType:'conta', tipoConta:'corrente', updatedAt: _now },
-    { id: 'card_nubank',   bank:'nubank',  label:'Cartão Nubank',  owner: S.settings.u1, accountType:'cartao', tipoConta:null, limite:'17500', fecha:'2', vence:'10', updatedAt: _now },
-    { id: 'card_sicredi',  bank:'sicredi', label:'Cartão Sicredi', owner: S.settings.u1, accountType:'cartao', tipoConta:null, limite:'13000', fecha:'2', vence:'15', updatedAt: _now },
+    { id: 'nubank_conta',  bank:'nubank',  label:'Conta Nubank',   owner: S.settings.u1, accountType:'conta', tipoConta:'corrente', updatedAt: _seed },
+    { id: 'sicredi_conta', bank:'sicredi', label:'Conta Sicredi',  owner: S.settings.u1, accountType:'conta', tipoConta:'corrente', updatedAt: _seed },
+    { id: 'card_nubank',   bank:'nubank',  label:'Cartão Nubank',  owner: S.settings.u1, accountType:'cartao', tipoConta:null, limite:'17500', fecha:'2', vence:'10', updatedAt: _seed },
+    { id: 'card_sicredi',  bank:'sicredi', label:'Cartão Sicredi', owner: S.settings.u1, accountType:'cartao', tipoConta:null, limite:'13000', fecha:'2', vence:'15', updatedAt: _seed },
   ];
   let changed = false;
   // Only add missing accounts, NEVER remove or deduplicate existing ones
