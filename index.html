@@ -2502,7 +2502,7 @@ function _startFirebaseListener() {
     if (!S.customCats) S.customCats = JSON.parse(JSON.stringify(DEFAULT_CATS));
     const desp = S.customCats.despesa;
     if (desp) {
-      const required = { 'Diversos': [], 'Servicos': [], 'Presentes': [], 'Pedro': ['Festa de Aniversário'] };
+      const required = { 'Diversos': [], 'Servicos': [], 'Presentes': [], 'Pedro': ['Festa de Aniversário'], 'Taxas': ['Pgto Fatura'] };
       for (const [cat, subs] of Object.entries(required)) {
         if (!desp[cat]) { desp[cat] = subs; needsRepair = true; }
       }
@@ -2586,6 +2586,12 @@ let donutDrillCat = null;    // categoria clicada para drill-down
 let donutTxCache = [];       // cache das transações do donut atual
 let ccCatMode = 'cat';       // 'cat' or 'sub'
 let ccCatDrillCat = null;    // categoria clicada para drill-down no crédito
+
+// Detecta transação de pagamento de fatura (excluir dos gráficos de despesas)
+function isPgtoFatura(t) {
+  return (t.desc && t.desc.startsWith('Pagamento Fatura')) ||
+         (t.category === 'Taxas' && t.subcategory === 'Pgto Fatura');
+}
 
 const CATS = {
   receita:      ['Salário','Freelance','Bônus','Aluguel Recebido','Dividendos','Reembolso','Outros'],
@@ -4116,7 +4122,6 @@ function renderDashConta(ym, ymPrev) {
   const mTx = txByTitular(allMTx);
   const pTx = txByTitular(S.transactions.filter(t => t.date.startsWith(ymPrev)));
 
-  const isPgtoFatura = t => t.desc && t.desc.startsWith('Pagamento Fatura');
   const allTitTx = txByTitular(S.transactions);
 
   // SALDO = receitas - débitos pagos (o que realmente entrou/saiu da conta bancária)
@@ -4341,7 +4346,7 @@ function donutDrillTo(cat) {
 
 function renderDonutDash(txs) {
   donutTxCache = txs;
-  const filtered = txs.filter(t => t.category !== 'Transferência');
+  const filtered = txs.filter(t => t.category !== 'Transferência' && !isPgtoFatura(t));
   const by = {};
 
   if (donutMode === 'sub' && donutDrillCat) {
@@ -5226,8 +5231,8 @@ function pagarFatura() {
       type: 'despesa',
       desc: `Pagamento Fatura ${bankName} — ${MESES[mes]}/${ano}${descSuffix}`,
       amount: valorPago,
-      category: 'Outros',
-      subcategory: '',
+      category: 'Taxas',
+      subcategory: 'Pgto Fatura',
       date: dataPgto,
       user: titular,
       accountId: instId,
@@ -9241,6 +9246,7 @@ function renderCatStackedChart() {
     if (t.isTransfer) return false;
     if (t.type !== catChartMode) return false;
     if (catChartMode === 'despesa' && t.formaPgto === 'credito') return false;
+    if (isPgtoFatura(t)) return false;
     return t.date.startsWith(String(year));
   });
 
