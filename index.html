@@ -2459,6 +2459,24 @@ function _startFirebaseListener() {
     if (fbData.customBanks)  { S.customBanks = fbData.customBanks; Object.assign(BANKS, S.customBanks); }
     if (fbData.loveMessages) S.loveMessages = fbToArray(fbData.loveMessages).filter(m => m && (!m.id || !tombSet.has(m.id)));
 
+    // Repair: contas com owner vazio (dados corrompidos pelo bug antigo de merge)
+    if (S.settings.u1) {
+      let repaired = false;
+      S.accounts.forEach(a => {
+        if (!a.owner) {
+          const thayseCards = ['bradesco', 'mercado_pago', 'itau'];
+          a.owner = thayseCards.includes(a.bank) ? S.settings.u2 : S.settings.u1;
+          a.updatedAt = new Date().toISOString();
+          repaired = true;
+        }
+      });
+      if (repaired) {
+        // Salvar repair direto no Firebase pra corrigir de vez
+        _isSyncing = true;
+        db.ref('data/accounts').set(S.accounts).then(() => { _isSyncing = false; }).catch(() => { _isSyncing = false; });
+      }
+    }
+
     // Cachear no localStorage (apenas backup offline)
     localStorage.setItem('fincasal_v2', JSON.stringify(S));
 
