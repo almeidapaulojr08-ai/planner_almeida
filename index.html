@@ -4351,8 +4351,8 @@ function debCatDrill(cat) {
 
 function isExcludedFromChart(t) {
   return isPgtoFatura(t) ||
-    (t.category === 'Servicos' && t.subcategory === 'Investimentos') ||
-    (t.category === 'Taxas' && (t.subcategory === 'Ajuste Saldo' || t.subcategory === 'Conciliacao' || t.subcategory === 'Conciliação'));
+    t.subcategory === 'Investimentos' ||
+    t.subcategory === 'Ajuste Saldo' || t.subcategory === 'Conciliacao' || t.subcategory === 'Conciliação';
 }
 
 function renderDebitCatBreakdown(txs) {
