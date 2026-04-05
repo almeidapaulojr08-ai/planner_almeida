@@ -869,6 +869,12 @@
       <select class="finput" id="fil-conta" onchange="renderHistorico()" style="width:140px;padding:8px 10px;font-size:13px;">
         <option value="">Todas Contas</option>
       </select>
+      <select class="finput" id="fil-categoria" onchange="onFilCategoriaChange();renderHistorico()" style="width:150px;padding:8px 10px;font-size:13px;">
+        <option value="">Todas Categorias</option>
+      </select>
+      <select class="finput" id="fil-subcategoria" onchange="renderHistorico()" style="width:150px;padding:8px 10px;font-size:13px;">
+        <option value="">Todas Subcategorias</option>
+      </select>
       <select class="finput" id="fil-custo" onchange="renderHistorico()" style="width:140px;padding:8px 10px;font-size:13px;">
         <option value="">Tipo Custo</option>
         <option value="fixo">📌 Fixo</option>
@@ -4793,6 +4799,19 @@ function initHistFiltros() {
 
   // Conta filter (filtrada pelo titular selecionado)
   refreshHistContaFilter();
+
+  // Categoria filter — pegar todas as categorias que existem nas transações
+  const catSel = document.getElementById('fil-categoria');
+  const prevCat = catSel.value;
+  const allCats = new Set();
+  S.transactions.forEach(t => { if (t.category) allCats.add(t.category); });
+  const sortedCats = [...allCats].sort((a, b) => a.localeCompare(b, 'pt-BR'));
+  catSel.innerHTML = '<option value="">Todas Categorias</option>' +
+    sortedCats.map(c => `<option value="${c}">${c}</option>`).join('');
+  if (prevCat) catSel.value = prevCat;
+
+  // Subcategoria filter
+  refreshHistSubcatFilter();
 }
 
 function refreshHistContaFilter() {
@@ -4807,6 +4826,33 @@ function refreshHistContaFilter() {
       return `<option value="${a.id}">${icon} ${b ? b.name : a.bank} — ${a.label} [${a.owner}]</option>`;
     }).join('');
   if (prevConta && filtered.some(a => a.id === prevConta)) contaSel.value = prevConta;
+}
+
+function refreshHistSubcatFilter() {
+  const catFil = document.getElementById('fil-categoria')?.value || '';
+  const subSel = document.getElementById('fil-subcategoria');
+  const prevSub = subSel.value;
+  if (!catFil) {
+    subSel.innerHTML = '<option value="">Todas Subcategorias</option>';
+    subSel.disabled = true;
+    subSel.style.opacity = '0.5';
+    return;
+  }
+  subSel.disabled = false;
+  subSel.style.opacity = '1';
+  const allSubs = new Set();
+  S.transactions.forEach(t => {
+    if (t.category === catFil) allSubs.add(t.subcategory || 'Geral');
+  });
+  const sortedSubs = [...allSubs].sort((a, b) => a.localeCompare(b, 'pt-BR'));
+  subSel.innerHTML = '<option value="">Todas Subcategorias</option>' +
+    sortedSubs.map(s => `<option value="${s}">${s}</option>`).join('');
+  if (prevSub && allSubs.has(prevSub)) subSel.value = prevSub;
+}
+
+function onFilCategoriaChange() {
+  document.getElementById('fil-subcategoria').value = '';
+  refreshHistSubcatFilter();
 }
 
 function onHistTitularChange() {
@@ -4864,6 +4910,10 @@ function getFilteredTxs() {
   }
   if (pagamento) txs = txs.filter(t => t.formaPgto === pagamento);
   if (conta)     txs = txs.filter(t => t.accountId === conta);
+  const catFil   = document.getElementById('fil-categoria')?.value || '';
+  const subFil   = document.getElementById('fil-subcategoria')?.value || '';
+  if (catFil)    txs = txs.filter(t => t.category === catFil);
+  if (subFil)    txs = txs.filter(t => (t.subcategory || 'Geral') === subFil);
   if (custo)     txs = txs.filter(t => (t.custoTipo || autoCustoTipo(t.category)) === custo);
   const status   = document.getElementById('fil-status')?.value || '';
   if (status === 'pendente') txs = txs.filter(t => t.pago === false);
