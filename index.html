@@ -855,7 +855,7 @@
   <!-- Filter row -->
   <div class="card" style="padding:12px 18px;margin-bottom:12px;">
     <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-      <select class="finput" id="fil-tipo" onchange="renderHistorico()" style="width:140px;padding:8px 10px;font-size:13px;">
+      <select class="finput" id="fil-tipo" onchange="onFilTipoChange()" style="width:140px;padding:8px 10px;font-size:13px;">
         <option value="">🔄 Todas</option>
         <option value="receita">&#8593; Receitas</option>
         <option value="despesa">&#8595; Despesas</option>
@@ -4805,18 +4805,8 @@ function initHistFiltros() {
   // Conta filter (filtrada pelo titular selecionado)
   refreshHistContaFilter();
 
-  // Categoria filter — pegar todas as categorias que existem nas transações
-  const catSel = document.getElementById('fil-categoria');
-  const prevCat = catSel.value;
-  const allCats = new Set();
-  S.transactions.forEach(t => { if (t.category) allCats.add(t.category); });
-  const sortedCats = [...allCats].sort((a, b) => a.localeCompare(b, 'pt-BR'));
-  catSel.innerHTML = '<option value="">Todas Categorias</option>' +
-    sortedCats.map(c => `<option value="${c}">${c}</option>`).join('');
-  if (prevCat) catSel.value = prevCat;
-
-  // Subcategoria filter
-  refreshHistSubcatFilter();
+  // Categoria filter — filtrado pelo tipo selecionado (receita/despesa/etc)
+  refreshHistCatFilter();
 }
 
 function refreshHistContaFilter() {
@@ -4855,9 +4845,35 @@ function refreshHistSubcatFilter() {
   if (prevSub && allSubs.has(prevSub)) subSel.value = prevSub;
 }
 
+function refreshHistCatFilter() {
+  const tipo = document.getElementById('fil-tipo')?.value || '';
+  const catSel = document.getElementById('fil-categoria');
+  const prevCat = catSel.value;
+  const allCats = new Set();
+  S.transactions.forEach(t => {
+    if (!t.category) return;
+    if (tipo === 'transferencia') { if (t.isTransfer) allCats.add(t.category); }
+    else if (tipo) { if (t.type === tipo && !t.isTransfer) allCats.add(t.category); }
+    else allCats.add(t.category);
+  });
+  const sortedCats = [...allCats].sort((a, b) => a.localeCompare(b, 'pt-BR'));
+  catSel.innerHTML = '<option value="">Todas Categorias</option>' +
+    sortedCats.map(c => `<option value="${c}">${c}</option>`).join('');
+  if (prevCat && allCats.has(prevCat)) catSel.value = prevCat;
+  else catSel.value = '';
+  refreshHistSubcatFilter();
+}
+
 function onFilCategoriaChange() {
   document.getElementById('fil-subcategoria').value = '';
   refreshHistSubcatFilter();
+}
+
+function onFilTipoChange() {
+  document.getElementById('fil-categoria').value = '';
+  document.getElementById('fil-subcategoria').value = '';
+  refreshHistCatFilter();
+  renderHistorico();
 }
 
 function onHistTitularChange() {
