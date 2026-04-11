@@ -987,6 +987,9 @@
         <p id="fat-count" style="font-size:12px;color:#94a3b8;margin-top:2px;">0 lançamentos encontrados</p>
       </div>
 
+      <!-- Info de pagamento (mostrado só se fatura já foi paga) -->
+      <div id="fat-pagamento-info" style="display:none;margin-bottom:18px;"></div>
+
       <!-- Fatura items -->
       <p style="font-weight:700;font-size:14px;color:#334155;margin-bottom:10px;">Lançamentos da fatura</p>
       <div id="fat-items" style="display:flex;flex-direction:column;gap:6px;margin-bottom:20px;max-height:300px;overflow-y:auto;"></div>
@@ -1014,7 +1017,7 @@
         </div>
         <div style="display:flex;gap:10px;">
           <button onclick="fecharFaturaModal()" style="flex:1;padding:12px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:14px;font-weight:600;color:#64748b;background:white;cursor:pointer;">Cancelar</button>
-          <button onclick="pagarFatura()" style="flex:1;padding:12px;background:#059669;color:white;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;">Pagar Fatura</button>
+          <button id="fat-pagar-btn" onclick="pagarFatura()" style="flex:1;padding:12px;background:#059669;color:white;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;">Pagar Fatura</button>
         </div>
       </div>
     </div>
@@ -5152,6 +5155,22 @@ function filtrarCartoesFatura() {
 
 function fecharFaturaModal() { document.getElementById('fatura-modal').style.display = 'none'; }
 
+// Busca pagamentos já feitos dessa fatura (usa faturaCartaoId+faturaYM; fallback no formato antigo via desc)
+function getPagamentosFatura(cartaoId, mes, ano) {
+  const faturaYM = `${ano}-${String(mes+1).padStart(2,'0')}`;
+  const cartao = S.accounts.find(a => a.id === cartaoId);
+  const bankName = cartao && BANKS[cartao.bank] ? BANKS[cartao.bank].name : '';
+  const descPrefix = `Pagamento Fatura ${bankName} — ${MESES[mes]}/${ano}`;
+  return S.transactions.filter(p => {
+    if (p.category !== 'Taxas' || p.subcategory !== 'Pgto Fatura') return false;
+    if (p.faturaCartaoId && p.faturaYM) {
+      return p.faturaCartaoId === cartaoId && p.faturaYM === faturaYM;
+    }
+    // Fallback pra registros antigos sem faturaCartaoId/faturaYM
+    return p.desc && p.desc.startsWith(descPrefix);
+  });
+}
+
 function renderFaturaDetail() {
   const cartaoId = document.getElementById('fat-cartao').value;
   const mes = parseInt(document.getElementById('fat-mes').value);
@@ -5165,6 +5184,61 @@ function renderFaturaDetail() {
   document.getElementById('fat-total').textContent = brl(total);
   document.getElementById('fat-total').style.color = total > 0 ? '#059669' : '#94a3b8';
   document.getElementById('fat-count').textContent = `${txs.length} lançamentos encontrados`;
+
+  // ─── Info de pagamento ───────────────────────────────────────────────
+  const infoEl = document.getElementById('fat-pagamento-info');
+  const pagarBtn = document.getElementById('fat-pagar-btn');
+  const pagamentos = cartaoId ? getPagamentosFatura(cartaoId, mes, ano) : [];
+  const totalPago = pagamentos.reduce((s,p) => s + Math.abs(p.amount||0), 0);
+  const allCreditPaid = txs.length > 0 && txs.every(t => t.pago === true);
+  const faturaPagaIntegral = total > 0 && (totalPago >= total - 0.01);
+  const faturaPagaSemRegistro = total > 0 && allCreditPaid && pagamentos.length === 0;
+
+  if (pagamentos.length > 0) {
+    const linhas = pagamentos.map(p => {
+      const conta = S.accounts.find(a => a.id === p.accountId);
+      const bancoNome = conta ? `${BANKS[conta.bank]?.name || conta.bank} — ${conta.label}` : '—';
+      const parcialTag = (p.desc||'').includes('(Parcial)') ? ' <span style="color:#d97706;font-weight:700;">(Parcial)</span>' : '';
+      return `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-top:1px solid #d1fae5;font-size:12px;">
+        <span style="color:#334155;">🏦 ${bancoNome}${parcialTag}<br><span style="color:#94a3b8;font-size:11px;">📅 ${fmtDate(p.date)}</span></span>
+        <span style="color:#059669;font-weight:700;">${brl(Math.abs(p.amount||0))}</span>
+      </div>`;
+    }).join('');
+    const restante = Math.max(0, total - totalPago);
+    const statusLabel = faturaPagaIntegral
+      ? `<span style="color:#059669;">✅ Fatura paga</span>`
+      : `<span style="color:#d97706;">⚠️ Parcialmente paga — restante ${brl(restante)}</span>`;
+    infoEl.innerHTML = `<div style="border:2px solid #a7f3d0;background:#ecfdf5;border-radius:12px;padding:12px 16px;">
+      <p style="font-size:13px;font-weight:700;margin-bottom:4px;">${statusLabel}</p>
+      <p style="font-size:11px;color:#64748b;margin-bottom:4px;">Pago: <b>${brl(totalPago)}</b> de ${brl(total)}</p>
+      ${linhas}
+    </div>`;
+    infoEl.style.display = 'block';
+  } else if (faturaPagaSemRegistro) {
+    infoEl.innerHTML = `<div style="border:2px solid #bfdbfe;background:#eff6ff;border-radius:12px;padding:12px 16px;">
+      <p style="font-size:13px;font-weight:700;color:#1d4ed8;">ℹ️ Fatura marcada como paga (sem registro de pagamento)</p>
+      <p style="font-size:11px;color:#64748b;margin-top:4px;">Todos os lançamentos estão marcados como pagos, mas não há transação de Pgto Fatura. Pode ter sido importada já quitada.</p>
+    </div>`;
+    infoEl.style.display = 'block';
+  } else {
+    infoEl.style.display = 'none';
+    infoEl.innerHTML = '';
+  }
+
+  // Trava visual: desabilita botão se integralmente paga
+  if (pagarBtn) {
+    if (faturaPagaIntegral || faturaPagaSemRegistro) {
+      pagarBtn.disabled = true;
+      pagarBtn.style.background = '#cbd5e1';
+      pagarBtn.style.cursor = 'not-allowed';
+      pagarBtn.textContent = 'Fatura já paga';
+    } else {
+      pagarBtn.disabled = false;
+      pagarBtn.style.background = '#059669';
+      pagarBtn.style.cursor = 'pointer';
+      pagarBtn.textContent = 'Pagar Fatura';
+    }
+  }
 
   const itemsEl = document.getElementById('fat-items');
   if (!txs.length) {
@@ -5223,6 +5297,18 @@ function pagarFatura() {
   const faturaTxs = getCreditTxByFatura(faturaYM, cartaoId);
   const total = faturaTxs.reduce((s,t) => s + amountBrl(t), 0);
 
+  // ─── Trava anti-duplicidade ──────────────────────────────────────────
+  const pagamentosExistentes = getPagamentosFatura(cartaoId, mes, ano);
+  const jaPago = pagamentosExistentes.reduce((s,p) => s + Math.abs(p.amount||0), 0);
+  const allCreditPaid = faturaTxs.length > 0 && faturaTxs.every(t => t.pago === true);
+  const faturaJaPagaIntegral = total > 0 && jaPago >= total - 0.01;
+  const faturaPagaSemRegistro = total > 0 && allCreditPaid && pagamentosExistentes.length === 0;
+
+  if (faturaJaPagaIntegral || faturaPagaSemRegistro) {
+    toast('⛔ Esta fatura já está paga. Exclua o pagamento no Histórico antes de pagar de novo.');
+    return;
+  }
+
   let valorPago = total;
   const isParcial = fatPgtoTipo === 'parcial';
 
@@ -5230,7 +5316,20 @@ function pagarFatura() {
     const input = parseFloat(document.getElementById('fat-valor-parcial').value);
     if (!input || input <= 0) { toast('Informe o valor pago'); return; }
     if (input > total) { toast('Valor pago não pode ser maior que o total da fatura'); return; }
+    // Trava parcial: não pode exceder o saldo restante (total - já pago anteriormente)
+    const restante = total - jaPago;
+    if (input > restante + 0.01) {
+      toast(`⛔ Valor excede o saldo restante. Já pago: ${brl(jaPago)}. Restante: ${brl(restante)}.`);
+      return;
+    }
     valorPago = input;
+  } else {
+    // Integral: se já tem pagamento parcial, cobra só o restante
+    valorPago = total - jaPago;
+    if (valorPago <= 0.01) {
+      toast('⛔ Esta fatura já está paga.');
+      return;
+    }
   }
 
   // Mark all credit transactions as paid
@@ -5258,6 +5357,8 @@ function pagarFatura() {
       accountId: instId,
       formaPgto: 'debito',
       pago: true,
+      faturaCartaoId: cartaoId,
+      faturaYM: faturaYM,
       at: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     });
