@@ -4776,10 +4776,13 @@ function initHistFiltros() {
     histMesSel = now.getMonth();
     histReady = true;
   }
-  // Year selector
+  // Year selector — ignora datas malformadas (fora da faixa 2000-2100)
   const anoSel = document.getElementById('fil-ano');
   const years = new Set();
-  S.transactions.forEach(t => years.add(parseInt(t.date.substring(0,4))));
+  S.transactions.forEach(t => {
+    const y = parseInt((t.date||'').substring(0,4));
+    if (y >= 2000 && y <= 2100) years.add(y);
+  });
   years.add(now.getFullYear());
   const sorted = [...years].sort((a,b) => b - a);
   anoSel.innerHTML = sorted.map(y => `<option value="${y}">${y}</option>`).join('');
@@ -4970,10 +4973,10 @@ function renderHistorico() {
   const empty = document.getElementById('hist-empty');
   const cards = document.getElementById('hist-cards');
 
-  // Summary cards
+  // Summary cards (exclui Pgto Fatura pra não duplicar com as despesas do cartão)
   const rec  = txs.filter(t=>t.type==='receita').reduce((s,t)=>s+amountBrl(t),0);
-  const desp = txs.filter(t=>t.type==='despesa').reduce((s,t)=>s+amountBrl(t),0);
-  const pend = txs.filter(t=>t.type==='despesa'&&t.pago===false).reduce((s,t)=>s+amountBrl(t),0);
+  const desp = txs.filter(t=>t.type==='despesa' && !isPgtoFatura(t)).reduce((s,t)=>s+amountBrl(t),0);
+  const pend = txs.filter(t=>t.type==='despesa' && t.pago===false && !isPgtoFatura(t)).reduce((s,t)=>s+amountBrl(t),0);
   const inv  = txs.filter(t=>t.type==='investimento').reduce((s,t)=>s+amountBrl(t),0);
   document.getElementById('hist-sum-rec').textContent  = brl(rec);
   document.getElementById('hist-sum-desp').textContent = brl(desp);
@@ -5107,8 +5110,12 @@ function abrirFaturaModal() {
 
   const anoSel = document.getElementById('fat-ano');
   const years = new Set([now.getFullYear()]);
-  S.transactions.forEach(t => years.add(parseInt(t.date.substring(0,4))));
+  S.transactions.forEach(t => {
+    const y = parseInt((t.date||'').substring(0,4));
+    if (y >= 2000 && y <= 2100) years.add(y);
+  });
   anoSel.innerHTML = [...years].sort((a,b)=>b-a).map(y => `<option value="${y}">${y}</option>`).join('');
+  anoSel.value = now.getFullYear(); // sempre abre no ano atual, não no maior (parcelas futuras puxavam pra 2027)
 
   // Inst. financeira (contas bancárias para débito)
   const instSel = document.getElementById('fat-inst');
