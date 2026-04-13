@@ -4131,28 +4131,21 @@ function renderDashConta(ym, ymPrev) {
   const despDebito = mTx.filter(t=>t.type==='despesa' && t.formaPgto !== 'credito' && !t.isTransfer && t.pago !== false).reduce((s,t)=>s+amountBrl(t),0);
   const saldo = rec - despDebito;
 
-  // DESPESAS = débito pago (excl Pgto Fatura) + crédito pago (por faturaRef)
+  // DESPESAS (visão Conta) = tudo que saiu da conta bancária:
+  //   débitos pagos (inclui Pgto Fatura) — exclui transferências e crédito individual
   const debitoYM = mTx.filter(t =>
-    t.type === 'despesa' && t.formaPgto !== 'credito' && !t.isTransfer && !isPgtoFatura(t) && t.pago !== false
+    t.type === 'despesa' && t.formaPgto !== 'credito' && !t.isTransfer && t.pago !== false
   );
-  const creditPagoYM = allTitTx.filter(t =>
-    t.type === 'despesa' && t.formaPgto === 'credito' && t.pago === true &&
-    getTxFaturaRef(t) === ym
-  );
-  const desp = debitoYM.reduce((s,t)=>s+amountBrl(t),0) + creditPagoYM.reduce((s,t)=>s+amountBrl(t),0);
+  const desp = debitoYM.reduce((s,t)=>s+amountBrl(t),0);
 
   // Mês anterior
   const pRec   = pTx.filter(t=>t.type==='receita' && !t.isTransfer).reduce((s,t)=>s+amountBrl(t),0);
   const pDespDebito = pTx.filter(t=>t.type==='despesa' && t.formaPgto !== 'credito' && !t.isTransfer && t.pago !== false).reduce((s,t)=>s+amountBrl(t),0);
   const pSaldo = pRec - pDespDebito;
   const debitoPrev = pTx.filter(t =>
-    t.type === 'despesa' && t.formaPgto !== 'credito' && !t.isTransfer && !isPgtoFatura(t) && t.pago !== false
+    t.type === 'despesa' && t.formaPgto !== 'credito' && !t.isTransfer && t.pago !== false
   );
-  const creditPagoPrev = allTitTx.filter(t =>
-    t.type === 'despesa' && t.formaPgto === 'credito' && t.pago === true &&
-    getTxFaturaRef(t) === ymPrev
-  );
-  const pDesp = debitoPrev.reduce((s,t)=>s+amountBrl(t),0) + creditPagoPrev.reduce((s,t)=>s+amountBrl(t),0);
+  const pDesp = debitoPrev.reduce((s,t)=>s+amountBrl(t),0);
 
   // Saldo acumulado até o mês selecionado (saldo real nas contas)
   // Inclui transferências (se cancelam no total, mas mantém consistência com breakdown por conta)
@@ -4202,16 +4195,12 @@ function renderDashConta(ym, ymPrev) {
 
   // Despesas with percentage change and pending info
   document.getElementById('c-despesas').textContent = brl(desp);
-  const despN = debitoYM.length + creditPagoYM.length;
-  // Pendente: débito pendente do mês + crédito pendente (faturaRef do mês)
+  const despN = debitoYM.length;
+  // Pendente: débito pendente do mês (excl transferências, inclui Pgto Fatura)
   const debitoPendYM = mTx.filter(t =>
-    t.type === 'despesa' && t.formaPgto !== 'credito' && !t.isTransfer && !isPgtoFatura(t) && t.pago === false
+    t.type === 'despesa' && t.formaPgto !== 'credito' && !t.isTransfer && t.pago === false
   );
-  const creditPendYM = allTitTx.filter(t =>
-    t.type === 'despesa' && t.formaPgto === 'credito' && t.pago === false &&
-    getTxFaturaRef(t) === ym
-  );
-  const pendente = debitoPendYM.reduce((s,t)=>s+amountBrl(t),0) + creditPendYM.reduce((s,t)=>s+amountBrl(t),0);
+  const pendente = debitoPendYM.reduce((s,t)=>s+amountBrl(t),0);
   let despSub = `${despN} lançamentos`;
   if (pendente > 0) despSub += ` · Pendente: ${brl(pendente)}`;
   document.getElementById('c-despesas-n').textContent = despSub;
@@ -4976,10 +4965,10 @@ function renderHistorico() {
   const empty = document.getElementById('hist-empty');
   const cards = document.getElementById('hist-cards');
 
-  // Summary cards (exclui Pgto Fatura pra não duplicar com as despesas do cartão)
-  const rec  = txs.filter(t=>t.type==='receita').reduce((s,t)=>s+amountBrl(t),0);
-  const desp = txs.filter(t=>t.type==='despesa' && !isPgtoFatura(t)).reduce((s,t)=>s+amountBrl(t),0);
-  const pend = txs.filter(t=>t.type==='despesa' && t.pago===false && !isPgtoFatura(t)).reduce((s,t)=>s+amountBrl(t),0);
+  // Summary cards (exclui transferências — não são despesa/receita real)
+  const rec  = txs.filter(t=>t.type==='receita' && !t.isTransfer).reduce((s,t)=>s+amountBrl(t),0);
+  const desp = txs.filter(t=>t.type==='despesa' && !t.isTransfer).reduce((s,t)=>s+amountBrl(t),0);
+  const pend = txs.filter(t=>t.type==='despesa' && t.pago===false && !t.isTransfer).reduce((s,t)=>s+amountBrl(t),0);
   const inv  = txs.filter(t=>t.type==='investimento').reduce((s,t)=>s+amountBrl(t),0);
   document.getElementById('hist-sum-rec').textContent  = brl(rec);
   document.getElementById('hist-sum-desp').textContent = brl(desp);
