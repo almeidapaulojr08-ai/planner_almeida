@@ -2903,15 +2903,19 @@ function salvarConta() {
     updatedAt: new Date().toISOString(),
   };
 
+  let fechaAntigo = null;
   if (editContaId) {
     const idx = S.accounts.findIndex(x => x.id === editContaId);
-    if (idx >= 0) S.accounts[idx] = obj;
+    if (idx >= 0) {
+      fechaAntigo = S.accounts[idx].fecha || null;
+      S.accounts[idx] = obj;
+    }
   } else {
     S.accounts.push(obj);
   }
 
   // If card fecha changed, recalculate faturaRef for all credit transactions on this card
-  if (isCartao && obj.fecha) {
+  if (isCartao && obj.fecha && obj.fecha !== fechaAntigo) {
     const fechaDia = parseInt(obj.fecha);
     let recalc = 0;
     S.transactions.forEach(tx => {
@@ -9463,26 +9467,7 @@ function init() {
     save(); // salva no localStorage E no Firebase pra não voltar
   }
   seedAccounts();
-  // One-time fix: recalculate faturaRef for credit transactions (bug had +1 month extra)
-  if (!S.settings._faturaRefFixedV3) {
-    let fixed = 0;
-    S.transactions.forEach(tx => {
-      if (tx.type === 'despesa' && tx.formaPgto === 'credito' && tx.faturaRef && !tx.id.startsWith('imp_')) {
-        const card = S.accounts.find(a => a.id === tx.accountId && a.accountType === 'cartao');
-        if (card && card.fecha) {
-          const fechaDia = parseInt(card.fecha);
-          const d = new Date(tx.date + 'T12:00:00');
-          const day = d.getDate();
-          if (day > fechaDia) { d.setMonth(d.getMonth() + 1); }
-          const correct = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-          if (tx.faturaRef !== correct) { tx.faturaRef = correct; fixed++; }
-        }
-      }
-    });
-    S.settings._faturaRefFixedV3 = true;
-    if (fixed > 0) save();
-    else { localStorage.setItem('fincasal', JSON.stringify(S)); }
-  }
+  // Migração _faturaRefFixedV3 desativada: sobrescrevia faturaRef manual de parcelas e quebrava faturas.
   // One-time: add Unimed Curitiba 3/3 (Paulo pediu em 03/04/2026)
   if (!S.settings._unimed3Added) {
     const exists = S.transactions.find(t => t.id === 'manual_unimed_3_3');
