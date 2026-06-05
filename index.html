@@ -1533,6 +1533,7 @@
   <div id="modal-backdrop">
     <div onclick="event.stopPropagation()" style="background:white;border-radius:18px;padding:28px;max-width:380px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.15);">
       <p style="font-weight:800;font-size:17px;color:#0f172a;margin-bottom:8px;">Confirmar exclusão</p>
+      <p id="del-parcela-aviso" style="display:none;font-size:13px;color:#92400e;background:#fef3c7;border:1px solid #fde68a;border-radius:10px;padding:10px 12px;margin-bottom:14px;line-height:1.45;"></p>
       <p style="font-size:14px;color:#64748b;margin-bottom:24px;">Tem certeza que quer excluir esta transação? Esta ação não pode ser desfeita.</p>
       <div style="display:flex;gap:10px;">
         <button onclick="closeModal()" style="flex:1;padding:12px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:14px;font-weight:600;color:#64748b;background:white;cursor:pointer;">Cancelar</button>
@@ -3439,8 +3440,30 @@ function saveTransacao(e) {
 }
 
 // ─── DELETE ───────────────────────────────────────────────────────────────────
-function del(id) { deleteId = id; document.getElementById('del-modal').style.display = 'block'; }
-function closeModal() { document.getElementById('del-modal').style.display = 'none'; deleteId = null; }
+function del(id) {
+  deleteId = id;
+  // Aviso visível quando a transação é parcela de um parcelamento (não apaga outras parcelas)
+  const aviso = document.getElementById('del-parcela-aviso');
+  if (aviso) {
+    const t = S.transactions.find(x => x.id === id);
+    let xn = '';
+    if (t) {
+      if (t.parcela && /\d+\/\d+/.test(t.parcela)) xn = (t.parcela.match(/\d+\/\d+/) || [''])[0];
+      else if (t.desc && /\(\d+\/\d+\)/.test(t.desc)) xn = (t.desc.match(/\((\d+\/\d+)\)/) || ['',''])[1];
+    }
+    const ehParcela = !!(t && ((t.parcelaTotal && t.parcelaTotal > 1) || xn));
+    if (ehParcela) {
+      const desc = (t.desc || '').replace(/\s*\(\d+\/\d+\)\s*$/, '').trim() || 'transação';
+      aviso.innerHTML = `⚠️ Esta é a parcela <strong>${xn || '?'}</strong> de um parcelamento: «${desc}». Excluir esta parcela? As outras parcelas <strong>NÃO</strong> serão afetadas.`;
+      aviso.style.display = 'block';
+    } else {
+      aviso.style.display = 'none';
+      aviso.innerHTML = '';
+    }
+  }
+  document.getElementById('del-modal').style.display = 'block';
+}
+function closeModal() { document.getElementById('del-modal').style.display = 'none'; deleteId = null; const a = document.getElementById('del-parcela-aviso'); if (a) { a.style.display = 'none'; a.innerHTML = ''; } }
 function confirmarDelete() {
   // If deleting a transfer, also delete the linked transaction
   const tx = S.transactions.find(t => t.id === deleteId);
@@ -5055,7 +5078,9 @@ function toggleSelectAll() {
 
 function bulkDelete() {
   if (!selectedTxIds.size) return;
-  if (!confirm(`Excluir ${selectedTxIds.size} transações selecionadas?`)) return;
+  const parcelasSel = S.transactions.filter(t => selectedTxIds.has(t.id) && ((t.parcelaTotal && t.parcelaTotal > 1) || (t.parcela && /\d+\/\d+/.test(t.parcela)) || (t.desc && /\(\d+\/\d+\)/.test(t.desc)))).length;
+  const avisoParc = parcelasSel > 0 ? `\n\n⚠️ Inclui ${parcelasSel} parcela(s) de parcelamentos.` : '';
+  if (!confirm(`Excluir ${selectedTxIds.size} transações selecionadas?${avisoParc}`)) return;
   selectedTxIds.forEach(id => S.deletedIds.push({id, collection: 'transactions', deletedAt: new Date().toISOString()}));
   S.transactions = S.transactions.filter(t => !selectedTxIds.has(t.id));
   selectedTxIds.clear();
