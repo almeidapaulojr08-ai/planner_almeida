@@ -4994,8 +4994,8 @@ function renderHistorico() {
 
   // Summary cards (exclui transferências — não são despesa/receita real)
   const rec  = txs.filter(t=>t.type==='receita' && !t.isTransfer).reduce((s,t)=>s+amountBrl(t),0);
-  const desp = txs.filter(t=>t.type==='despesa' && !t.isTransfer).reduce((s,t)=>s+amountBrl(t),0);
-  const pend = txs.filter(t=>t.type==='despesa' && t.pago===false && !t.isTransfer).reduce((s,t)=>s+amountBrl(t),0);
+  const desp = txs.filter(t=>t.type==='despesa' && !t.isTransfer && !isPgtoFatura(t)).reduce((s,t)=>s+amountBrl(t),0);
+  const pend = txs.filter(t=>t.type==='despesa' && t.pago===false && !t.isTransfer && !isPgtoFatura(t)).reduce((s,t)=>s+amountBrl(t),0);
   const inv  = txs.filter(t=>t.type==='investimento').reduce((s,t)=>s+amountBrl(t),0);
   document.getElementById('hist-sum-rec').textContent  = brl(rec);
   document.getElementById('hist-sum-desp').textContent = brl(desp);
