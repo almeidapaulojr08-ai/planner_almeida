@@ -411,13 +411,18 @@
   </div>
 
   <!-- ═══════ TEMPO JUNTOS ═══════ -->
-  <div id="tempo-juntos-card" class="card" style="padding:16px 24px;margin-bottom:20px;background:linear-gradient(135deg,#fff0f3 0%,#ffe4ec 50%,#fdf2f8 100%);border:1.5px solid #fecdd3;display:flex;align-items:center;justify-content:center;gap:16px;">
+  <div id="tempo-juntos-card" class="card" style="padding:16px 24px;margin-bottom:20px;background:linear-gradient(135deg,#fff0f3 0%,#ffe4ec 50%,#fdf2f8 100%);border:1.5px solid #fecdd3;display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:16px;">
     <span style="font-size:28px;">❤️</span>
     <div style="text-align:center;">
       <p style="font-size:13px;font-weight:700;color:#be123c;letter-spacing:0.5px;">Tempo Juntos</p>
       <p id="tempo-juntos-valor" style="font-size:20px;font-weight:800;color:#9f1239;margin-top:2px;"></p>
     </div>
-    <span style="font-size:28px;">❤️</span>
+    <div style="width:1.5px;height:36px;background:#fecdd3;"></div>
+    <div style="text-align:center;">
+      <p style="font-size:13px;font-weight:700;color:#be123c;letter-spacing:0.5px;">Tempo Casados</p>
+      <p id="tempo-casados-valor" style="font-size:20px;font-weight:800;color:#9f1239;margin-top:2px;"></p>
+    </div>
+    <span style="font-size:28px;">💍</span>
   </div>
 
   <!-- ═══════ VISÃO CONTA (BANCO) ═══════ -->
@@ -3751,8 +3756,7 @@ function dashNavMonth(dir) {
 }
 
 // ─── TEMPO JUNTOS ────────────────────────────────────────────────────────────
-function calcTempoJuntos() {
-  const inicio = new Date(2025, 5, 29); // 29/06/2025 (month is 0-indexed)
+function calcTempoDesde(inicio) {
   const hoje = new Date();
   let anos = hoje.getFullYear() - inicio.getFullYear();
   let meses = hoje.getMonth() - inicio.getMonth();
@@ -3773,9 +3777,19 @@ function calcTempoJuntos() {
   return partes.join(', ');
 }
 
+function calcTempoJuntos() {
+  return calcTempoDesde(new Date(2025, 5, 29)); // 29/06/2025 (month is 0-indexed)
+}
+
+function calcTempoCasados() {
+  return calcTempoDesde(new Date(2026, 5, 12)); // 12/06/2026 (month is 0-indexed)
+}
+
 function updateTempoJuntos() {
-  const el = document.getElementById('tempo-juntos-valor');
-  if (el) el.textContent = calcTempoJuntos();
+  const elJ = document.getElementById('tempo-juntos-valor');
+  if (elJ) elJ.textContent = calcTempoJuntos();
+  const elC = document.getElementById('tempo-casados-valor');
+  if (elC) elC.textContent = calcTempoCasados();
 }
 
 // ─── MENSAGENS DE AMOR - SISTEMA BIDIRECIONAL ──────────────────────────────
