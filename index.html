@@ -2925,10 +2925,10 @@ function salvarConta() {
     let recalc = 0;
     S.transactions.forEach(tx => {
       if (tx.formaPgto === 'credito' && tx.accountId === obj.id) {
-        const d = new Date(tx.date + 'T12:00:00');
-        const day = d.getDate();
-        if (day > fechaDia) { d.setMonth(d.getMonth() + 1); }
-        const newRef = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        const [ty, tm, day] = tx.date.split('-').map(Number);
+        // aritmética de mês inteiro (setMonth estoura em datas 29/30/31)
+        const ymRef = ty * 12 + (tm - 1) + (day > fechaDia ? 1 : 0);
+        const newRef = `${Math.floor(ymRef / 12)}-${String(ymRef % 12 + 1).padStart(2, '0')}`;
         if (tx.faturaRef !== newRef) { tx.faturaRef = newRef; recalc++; }
       }
     });
@@ -3634,6 +3634,13 @@ function amountRaw(tx) {
   return tx.isNegative ? -tx.amount : tx.amount;
 }
 
+// Soma meses a uma data sem estourar o dia (31/01 + 1 mês = 28/02, não 03/03).
+function addMesesSeguro(base, n) {
+  const y = base.getFullYear(), m = base.getMonth(), d = base.getDate();
+  const ultimoDia = new Date(y, m + n + 1, 0).getDate();
+  return new Date(y, m + n, Math.min(d, ultimoDia), 12, 0, 0);
+}
+
 // Returns the fatura reference month (YYYY-MM) for a credit transaction.
 // If the transaction has faturaRef (from Excel import), use it directly.
 // Otherwise, calculate based on the card's closing day (fecha).
@@ -3643,17 +3650,15 @@ function getTxFaturaRef(tx) {
   const card = S.accounts.find(a => a.id === tx.accountId && a.accountType === 'cartao');
   if (!card || !card.fecha) return tx.date.substring(0, 7);
   const fechaDia = parseInt(card.fecha);
-  const d = new Date(tx.date + 'T12:00:00');
-  const day = d.getDate();
+  const [y, m, day] = tx.date.split('-').map(Number);
   // If purchase is after closing day, it falls into next month's fatura
   // e.g. March 28, fecha=2 → cycle Mar 3–Apr 2 → fatura de Abril (month+1)
   // If purchase is on or before closing day, it falls into current month's fatura
   // e.g. April 1, fecha=2 → cycle Mar 3–Apr 2 → fatura de Abril (same month)
-  if (day > fechaDia) {
-    d.setMonth(d.getMonth() + 1);
-  }
-  // else: same month, no change
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  // NÃO usar Date.setMonth aqui: 31/08 + 1 mês vira 01/10 (setembro não tem dia 31)
+  // e a transação sumia da fatura correta. Aritmética de mês inteiro é segura.
+  const ym = y * 12 + (m - 1) + (day > fechaDia ? 1 : 0);
+  return `${Math.floor(ym / 12)}-${String(ym % 12 + 1).padStart(2, '0')}`;
 }
 
 // Filter credit transactions that belong to a specific fatura month (YYYY-MM)
@@ -7566,8 +7571,7 @@ function gerarTabelaAmortizacao(principal, taxaMensal, nParcelas, sistema, dataI
       const juros = saldo * taxa;
       const amort = pmt - juros;
       saldo = Math.max(0, saldo - amort);
-      const venc = new Date(dt);
-      venc.setMonth(venc.getMonth() + (i - 1));
+      const venc = addMesesSeguro(dt, i - 1);
       totalJuros += juros;
       totalAmort += amort;
       totalPago += pmt;
@@ -7583,8 +7587,7 @@ function gerarTabelaAmortizacao(principal, taxaMensal, nParcelas, sistema, dataI
       const juros = saldo * taxa;
       const pmt = amortFixa + juros;
       saldo = Math.max(0, saldo - amortFixa);
-      const venc = new Date(dt);
-      venc.setMonth(venc.getMonth() + (i - 1));
+      const venc = addMesesSeguro(dt, i - 1);
       totalJuros += juros;
       totalAmort += amortFixa;
       totalPago += pmt;
@@ -7598,8 +7601,7 @@ function gerarTabelaAmortizacao(principal, taxaMensal, nParcelas, sistema, dataI
     const pmt = principal / nParcelas;
     for (let i = 1; i <= nParcelas; i++) {
       saldo = Math.max(0, saldo - pmt);
-      const venc = new Date(dt);
-      venc.setMonth(venc.getMonth() + (i - 1));
+      const venc = addMesesSeguro(dt, i - 1);
       totalPago += pmt;
       totalAmort += pmt;
       tabela.push({
