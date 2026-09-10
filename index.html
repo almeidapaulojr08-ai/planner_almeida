@@ -2521,13 +2521,48 @@ function _startFirebaseListener() {
       }
     }
 
+    // 3. Parcelas do formulário com a data da compra repetida em todas (bug antigo:
+    //    histórico/dashboard empilhavam as N parcelas no mês da compra).
+    //    Assinatura exata do bug (as duas condições juntas):
+    //      a) outra parcela da MESMA compra tem a MESMA data;
+    //      b) faturaRef está (NN-1) meses à frente do que a data daria.
+    //    Só mexe em `date` (faturaRef intacto → faturas não mudam). Idempotente: depois de
+    //    corrigidas, as parcelas ficam em meses diferentes e nunca mais casam com (a).
+    let txRepaired = 0;
+    const parcNum = t => {
+      if (!(t.parcelaTotal > 1) || !t.faturaRef || !t.date) return 0;
+      const mp = /^(\d+)\/(\d+)$/.exec(t.parcela || '');
+      return mp ? parseInt(mp[1]) : 0;
+    };
+    const grupoKey = t => [t.accountId, t.parcelaTotal, (t.desc || '').replace(/\s*\(\d+\/\d+\)\s*$/, ''), t.date].join('|');
+    const numsPorGrupo = {};
+    S.transactions.forEach(t => {
+      const nn = parcNum(t);
+      if (nn) (numsPorGrupo[grupoKey(t)] = numsPorGrupo[grupoKey(t)] || new Set()).add(nn);
+    });
+    const alvos = S.transactions.filter(t => {
+      const nn = parcNum(t);
+      if (nn < 2 || numsPorGrupo[grupoKey(t)].size < 2) return false;
+      const card = S.accounts.find(a => a.id === t.accountId);
+      const fechaDia = card ? parseInt(card.fecha) || 1 : 1;
+      const [y, m, d] = t.date.split('-').map(Number);
+      const ymData = y * 12 + (m - 1) + (d > fechaDia ? 1 : 0);
+      const [fy, fm] = t.faturaRef.split('-').map(Number);
+      return (fy * 12 + (fm - 1)) - ymData === nn - 1;
+    });
+    alvos.forEach(t => {
+      t.date = addMesesData(t.date, parcNum(t) - 1);
+      t.updatedAt = new Date().toISOString();
+      txRepaired++;
+    });
+    if (txRepaired) console.log(`[reparo] ${txRepaired} parcela(s) com data corrigida`);
+
     // Salvar reparos no Firebase numa única escrita
-    if (needsRepair) {
+    if (needsRepair || txRepaired) {
       _isSyncing = true;
-      db.ref('data').update({
-        accounts: S.accounts,
-        customCats: S.customCats
-      }).then(() => { _isSyncing = false; updateSyncStatus('ok'); })
+      const upd = { accounts: S.accounts, customCats: S.customCats };
+      if (txRepaired) upd.transactions = S.transactions;
+      db.ref('data').update(upd).then(() => { _isSyncing = false; updateSyncStatus('ok'); })
         .catch(() => { _isSyncing = false; });
     }
 
@@ -3388,6 +3423,9 @@ function saveTransacao(e) {
       const faturaRef = `${fatMonth.getFullYear()}-${String(fatMonth.getMonth() + 1).padStart(2, '0')}`;
       S.transactions.push({
         ...baseTx,
+        // Cada parcela cai no seu mês (antes todas herdavam a data da compra e
+        // o histórico/dashboard empilhavam as N parcelas no mês da compra)
+        date: addMesesData(date, i),
         id: Date.now().toString() + '_' + i,
         desc: `${desc} (${String(i+1).padStart(2,'0')}/${String(numParcelas).padStart(2,'0')})`,
         amount: parcelaAmount,
@@ -3644,6 +3682,15 @@ function addMesesSeguro(base, n) {
 // Returns the fatura reference month (YYYY-MM) for a credit transaction.
 // If the transaction has faturaRef (from Excel import), use it directly.
 // Otherwise, calculate based on the card's closing day (fecha).
+// Soma N meses a 'YYYY-MM-DD' travando no último dia do mês (31/01 + 1 → 28/02, não 03/03)
+function addMesesData(dateStr, n) {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  const ym = y * 12 + (m - 1) + n;
+  const ny = Math.floor(ym / 12), nm = ym % 12;
+  const ultimoDia = new Date(ny, nm + 1, 0).getDate();
+  return `${ny}-${String(nm + 1).padStart(2, '0')}-${String(Math.min(d, ultimoDia)).padStart(2, '0')}`;
+}
+
 function getTxFaturaRef(tx) {
   if (tx.faturaRef) return tx.faturaRef;
   // Fallback: calculate from date + card closing day
