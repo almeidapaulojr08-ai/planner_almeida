@@ -428,6 +428,8 @@
 
   <!-- ═══════ VISÃO CONTA (BANCO) ═══════ -->
   <div id="dash-view-conta">
+    <!-- ═══════ INSIGHTS (análises automáticas) ═══════ -->
+    <div id="dash-insights" style="display:none;gap:12px;overflow-x:auto;margin-bottom:20px;padding-bottom:4px;"></div>
     <!-- Summary cards with expandable bank breakdown -->
     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px;">
 
@@ -4378,6 +4380,7 @@ function renderDashConta(ym, ymPrev) {
   renderBarDash();
   renderCatStackedChart();
   renderRecent();
+  renderInsights(ym);
 }
 
 function toggleCardBreakdown(type) {
@@ -4582,6 +4585,112 @@ function renderBarDash() {
       scales: { x:{grid:{display:false}}, y:{grid:{color:'#f8fafc'}, ticks:{callback:v=>v===0?'R$0':'R$'+v.toLocaleString('pt-BR')}} }
     }
   });
+}
+
+function insightCard(emoji, titulo, valor, sub, cor) {
+  return `<div class="card" style="min-width:200px;flex:1;padding:16px;border-left:4px solid ${cor};">
+    <div style="font-size:12px;color:#94a3b8;font-weight:600;display:flex;align-items:center;gap:6px;">${emoji} ${titulo}</div>
+    <div class="hv" style="font-size:20px;font-weight:800;color:#0f172a;margin:6px 0 2px;">${valor}</div>
+    <div class="hv" style="font-size:12px;color:#64748b;line-height:1.4;">${sub}</div>
+  </div>`;
+}
+
+// Painel de análises automáticas do dashboard (só leitura, calculado do estado)
+function renderInsights(ym) {
+  const el = document.getElementById('dash-insights');
+  if (!el) return;
+  const cards = [];
+  const isCurMonth = ym === new Date().toISOString().slice(0, 7);
+  const my = txByTitular(S.transactions);
+  const gastoReal = t => t.type === 'despesa' && !t.isTransfer && !isExcludedFromChart(t);
+  const somaMes = (arr, k) => arr.filter(t => (t.date || '').startsWith(k) && gastoReal(t)).reduce((s, t) => s + amountBrl(t), 0);
+  const ymPrev = (n) => {
+    const d = new Date(parseInt(ym.slice(0, 4)), parseInt(ym.slice(5, 7)) - 1 - n, 1);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  };
+
+  // 1. Ritmo / gasto do mês
+  try {
+    const gasto = somaMes(my, ym);
+    let soma3 = 0, n3 = 0;
+    for (let i = 1; i <= 3; i++) { const g = somaMes(my, ymPrev(i)); if (g > 0) { soma3 += g; n3++; } }
+    const media3 = n3 ? soma3 / n3 : 0;
+    if (isCurMonth) {
+      const hoje = new Date(), diaHoje = hoje.getDate();
+      const diasMes = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0).getDate();
+      const proj = diaHoje > 0 ? gasto / diaHoje * diasMes : gasto;
+      let sub = `Projeção fim do mês: <b>${brl(proj)}</b>`;
+      if (media3 > 0) { const dif = (proj - media3) / media3 * 100; sub += ` · ${dif >= 0 ? '+' : ''}${dif.toFixed(0)}% vs média`; }
+      cards.push(insightCard('📈', 'Ritmo do mês', brl(gasto) + ' até agora', sub, (proj > media3 && media3 > 0) ? '#f43f5e' : '#059669'));
+    } else {
+      cards.push(insightCard('📊', 'Gasto do mês', brl(gasto), media3 > 0 ? `Média 3 meses: ${brl(media3)}` : 'Sem histórico p/ comparar', '#4f46e5'));
+    }
+  } catch (e) {}
+
+  // 2. Categoria em alta vs média dos 3 meses anteriores
+  try {
+    const cur = {}, prev = {};
+    my.filter(t => (t.date || '').startsWith(ym) && gastoReal(t)).forEach(t => cur[t.category] = (cur[t.category] || 0) + amountBrl(t));
+    for (let i = 1; i <= 3; i++) {
+      my.filter(t => (t.date || '').startsWith(ymPrev(i)) && gastoReal(t)).forEach(t => prev[t.category] = (prev[t.category] || 0) + amountBrl(t));
+    }
+    let best = null;
+    for (const c in cur) {
+      const media = prev[c] ? prev[c] / 3 : 0;
+      if (media > 50 && cur[c] > media) { const dif = (cur[c] - media) / media * 100; if (!best || dif > best.dif) best = { c, dif, val: cur[c] }; }
+    }
+    if (best) cards.push(insightCard('🔥', 'Categoria em alta', escapeHtml(best.c), `<b>+${best.dif.toFixed(0)}%</b> vs média · ${brl(best.val)}`, '#f43f5e'));
+  } catch (e) {}
+
+  // 3. Próxima fatura a vencer
+  try {
+    const cartoes = S.accounts.filter(a => a.accountType === 'cartao' && (titularFilter === 'ambos' || a.owner === (titularFilter === 'paulo' ? S.settings.u1 : S.settings.u2)));
+    const hoje = new Date(); let prox = null;
+    const fatYM = getCurrentFaturaYM();
+    cartoes.forEach(c => {
+      const total = txByTitular(getCreditTxByFatura(fatYM, c.id)).reduce((s, t) => s + amountBrl(t), 0);
+      if (total <= 0) return;
+      const venceDia = parseInt(c.vence) || 10;
+      let venc = new Date(hoje.getFullYear(), hoje.getMonth(), venceDia);
+      if (venc < hoje) venc = new Date(hoje.getFullYear(), hoje.getMonth() + 1, venceDia);
+      const dias = Math.ceil((venc - hoje) / 86400000);
+      if (!prox || dias < prox.dias) prox = { nome: BANKS[c.bank] ? BANKS[c.bank].name : c.label, total, dias };
+    });
+    if (prox) cards.push(insightCard('💳', 'Próxima fatura', brl(prox.total), `${escapeHtml(prox.nome)} · vence em <b>${prox.dias} dia${prox.dias !== 1 ? 's' : ''}</b>`, prox.dias <= 5 ? '#f43f5e' : '#4f46e5'));
+  } catch (e) {}
+
+  // 4. Parcelas terminando neste mês
+  try {
+    const term = my.filter(t => {
+      if (!(t.date || '').startsWith(ym)) return false;
+      const m = /^(\d+)\/(\d+)$/.exec(t.parcela || '');
+      return m && m[1] === m[2] && parseInt(m[2]) > 1;
+    });
+    if (term.length) {
+      const val = term.reduce((s, t) => s + amountBrl(t), 0);
+      cards.push(insightCard('🎉', 'Parcelas terminando', `${term.length} última${term.length !== 1 ? 's' : ''}`, `Alívio de <b>${brl(val)}</b>/mês a partir do próximo`, '#059669'));
+    }
+  } catch (e) {}
+
+  // 5. Orçamento estourado
+  try {
+    const mes = parseInt(ym.slice(5, 7)) - 1, ano = parseInt(ym.slice(0, 4));
+    const est = [];
+    Object.keys(S.catOrcGroup || {}).forEach(cat => {
+      const plan = S.budget ? (S.budget[getBudgetKey(ano, mes, cat)] || 0) : 0;
+      if (plan <= 0) return;
+      const real = my.filter(t => t.type === 'despesa' && t.category === cat && (t.date || '').startsWith(ym)).reduce((s, t) => s + amountBrl(t), 0);
+      if (real > plan) est.push({ cat, over: real - plan });
+    });
+    if (est.length) {
+      est.sort((a, b) => b.over - a.over);
+      cards.push(insightCard('⚠️', 'Orçamento estourado', `${est.length} categoria${est.length !== 1 ? 's' : ''}`, `Pior: ${escapeHtml(est[0].cat)} (+${brl(est[0].over)})`, '#f59e0b'));
+    }
+  } catch (e) {}
+
+  if (!cards.length) { el.style.display = 'none'; return; }
+  el.style.display = 'flex';
+  el.innerHTML = cards.join('');
 }
 
 function renderRecent() {
