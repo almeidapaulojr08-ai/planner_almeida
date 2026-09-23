@@ -284,8 +284,8 @@
       <p style="font-size:14px;color:#94a3b8;margin-top:4px;">Entre para continuar</p>
     </div>
     <div style="margin-bottom:16px;">
-      <label class="flabel">Usuário</label>
-      <input class="finput" type="text" id="login-user" placeholder="Seu nome" autocomplete="username">
+      <label class="flabel">E-mail</label>
+      <input class="finput" type="email" id="login-user" placeholder="seu@email.com" autocomplete="username" autocapitalize="none" spellcheck="false">
     </div>
     <div style="margin-bottom:24px;">
       <label class="flabel">Senha</label>
@@ -296,6 +296,7 @@
       Entrar
     </button>
     <div id="login-err" style="display:none;margin-top:12px;text-align:center;font-size:13px;color:#e11d48;font-weight:600;"></div>
+    <p style="text-align:center;margin-top:16px;"><a onclick="esqueciSenha()" style="font-size:13px;color:#6366f1;cursor:pointer;font-weight:600;">Esqueci minha senha</a></p>
   </div>
 </div>
 
@@ -1316,7 +1317,7 @@
 
     <label class="flabel">Chave de API</label>
     <input class="finput" type="password" id="cfg-apikey" placeholder="sk-…" style="font-family:monospace;">
-    <p style="font-size:12px;color:#94a3b8;margin-top:6px;">🔒 Sua chave é armazenada apenas localmente no seu navegador, nunca é enviada para servidores.</p>
+    <p style="font-size:12px;color:#94a3b8;margin-top:6px;">🔒 Sua chave fica no seu banco privado, acessível só por vocês dois após o login.</p>
     <p style="font-size:12px;color:#94a3b8;margin-top:4px;">Para OpenAI: acesse <strong>platform.openai.com</strong>. Para Anthropic: acesse <strong>console.anthropic.com</strong>.</p>
   </div>
 
@@ -1347,7 +1348,7 @@
       <label class="flabel">Confirmar senha</label>
       <input class="finput" type="password" id="cfg-password2" placeholder="Repita a senha">
     </div>
-    <p style="font-size:12px;color:#94a3b8;margin-top:8px;">Deixe em branco para não alterar. Senha padrão inicial: <strong>1234</strong></p>
+    <p style="font-size:12px;color:#94a3b8;margin-top:8px;">Deixe em branco para não alterar (mínimo 6 caracteres). Esqueceu? Use "Esqueci minha senha" na tela de login.</p>
   </div>
 
   <!-- Trocar conta / Deslogar -->
@@ -2446,20 +2447,22 @@ function mergeTombstones(local, remote) {
 function initFirebaseSync() {
   if (!db) return;
 
-  // Escutar mudanças de auth — quando autenticado, iniciar listener
-  firebase.auth().onAuthStateChanged(user => {
-    if (user && !firebaseAuthReady) {
-      firebaseAuthReady = true;
-      _startFirebaseListener();
-    }
-  });
+  // Persistir sessão entre reloads (fica logado no dispositivo)
+  firebase.auth().setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(()=>{});
 
-  // Iniciar login anônimo
-  firebase.auth().signInAnonymously().then(() => {
-    console.log('Firebase anonymous auth OK');
-  }).catch(e => {
-    console.error('Firebase anonymous auth FAILED:', e.code, e.message);
-    updateSyncStatus('error');
+  // Sem login anônimo: os dados só são baixados após login REAL (e-mail/senha).
+  firebase.auth().onAuthStateChanged(user => {
+    if (user && !user.isAnonymous) {
+      if (!firebaseAuthReady) {
+        firebaseAuthReady = true;
+        _startFirebaseListener();
+      }
+      onAuthenticated(user);
+    } else {
+      firebaseAuthReady = false;
+      firebaseReady = false;
+      showLoginScreen();
+    }
   });
 }
 
@@ -3002,73 +3005,100 @@ function txByTitular(txs) {
 }
 
 // ─── LOGIN ────────────────────────────────────────────────────────────────────
-function checkAuth() {
-  if (!sessionStorage.getItem('fincasal_auth')) {
-    document.getElementById('login-screen').style.display = 'flex';
-  } else {
-    document.getElementById('login-screen').style.display = 'none';
-  }
+// Mapa e-mail -> usuário do app (privado, casal)
+const USER_EMAILS = {
+  'almeida.paulojr08@gmail.com': 'u1',
+  'thay_wosniak@yahoo.com.br': 'u2'
+};
+function emailToUserKey(email) {
+  return USER_EMAILS[(email || '').trim().toLowerCase()] || 'u1';
 }
 
-function doLogin() {
-  const user = document.getElementById('login-user').value.trim().toLowerCase();
+function showLoginScreen() {
+  const ls = document.getElementById('login-screen');
+  if (ls) ls.style.display = 'flex';
+}
+
+function checkAuth() {
+  // Visibilidade controlada por onAuthStateChanged; mostra login até o Firebase decidir.
+  if (!db || !firebase.auth().currentUser) showLoginScreen();
+}
+
+function onAuthenticated(user) {
+  sessionStorage.setItem('fincasal_auth', '1');
+  sessionStorage.setItem('fincasal_logged_user', emailToUserKey(user.email));
+  const ls = document.getElementById('login-screen');
+  if (ls) ls.style.display = 'none';
+  const err = document.getElementById('login-err');
+  if (err) err.style.display = 'none';
+  updateLeiaAquiVisibility();
+  const anyVisible = document.querySelector('section[id^="page-"]:not([style*="display: none"]):not([style*="display:none"])');
+  if (!anyVisible) goto('dashboard');
+}
+
+function traduzErroAuth(e) {
+  const m = {
+    'auth/invalid-email': 'E-mail inválido',
+    'auth/weak-password': 'Senha muito curta (mínimo 6 caracteres)',
+    'auth/email-already-in-use': 'Este e-mail já tem conta — use a senha correta',
+    'auth/too-many-requests': 'Muitas tentativas. Aguarde alguns minutos.',
+    'auth/network-request-failed': 'Sem conexão. Verifique a internet.',
+    'auth/operation-not-allowed': 'Login por e-mail/senha não está ativado no Firebase.'
+  };
+  return '❌ ' + (m[e.code] || e.message || 'Erro ao entrar');
+}
+
+async function doLogin() {
+  const email = document.getElementById('login-user').value.trim();
   const pass = document.getElementById('login-pass').value;
   const err = document.getElementById('login-err');
+  const showErr = (msg, color) => { err.textContent = msg; err.style.display = 'block'; err.style.color = color || '#e11d48'; };
 
-  // Se Firebase ainda não sincronizou, esperar antes de validar senha
-  if (!firebaseReady && db) {
-    err.textContent = '⏳ Sincronizando dados, aguarde...';
-    err.style.display = 'block';
-    err.style.color = '#f59e0b';
-    // Tentar novamente quando Firebase sincronizar (máx 5s)
-    const start = Date.now();
-    const waitSync = setInterval(() => {
-      if (firebaseReady || (Date.now() - start) > 5000) {
-        clearInterval(waitSync);
-        err.style.display = 'none';
-        _doLoginCheck(user, pass, err);
-      }
-    }, 200);
-    return;
+  if (!email || !pass) { showErr('Informe e-mail e senha'); return; }
+  if (!email.includes('@')) { showErr('Use seu e-mail completo (ex: nome@dominio.com)'); return; }
+  if (!db) { showErr('Sem conexão com o servidor. Tente recarregar.'); return; }
+
+  showErr('⏳ Entrando...', '#f59e0b');
+  try {
+    await firebase.auth().signInWithEmailAndPassword(email, pass);
+    // onAuthStateChanged cuida de mostrar o app
+  } catch (e) {
+    if (e.code === 'auth/user-not-found') {
+      try {
+        await firebase.auth().createUserWithEmailAndPassword(email, pass);
+        toast('✅ Conta criada! Você já está dentro.');
+      } catch (e2) { showErr(traduzErroAuth(e2)); }
+    } else if (e.code === 'auth/wrong-password' || e.code === 'auth/invalid-credential') {
+      showErr('❌ Senha incorreta');
+      document.getElementById('login-pass').value = '';
+    } else {
+      showErr(traduzErroAuth(e));
+    }
   }
-
-  _doLoginCheck(user, pass, err);
 }
 
-function _doLoginCheck(user, pass, err) {
-  if (!S.settings.password) {
-    err.textContent = '⏳ Carregando dados, tente novamente em instantes...';
-    err.style.display = 'block';
-    err.style.color = '#f59e0b';
-    setTimeout(() => { err.style.display = 'none'; }, 2000);
-    return;
-  }
-
-  const { u1, u2, password } = S.settings;
-  const validUser = user === u1.toLowerCase() || user === u2.toLowerCase() || user === 'casal';
-  if (validUser && pass === password) {
-    sessionStorage.setItem('fincasal_auth', '1');
-    sessionStorage.setItem('fincasal_logged_user', (user === u2.toLowerCase()) ? 'u2' : (user === u1.toLowerCase() ? 'u1' : 'casal'));
-    document.getElementById('login-screen').style.display = 'none';
-    err.style.display = 'none';
-    updateLeiaAquiVisibility();
-    goto('dashboard');
-  } else {
-    err.textContent = '❌ Usuário ou senha incorretos';
-    err.style.display = 'block';
-    err.style.color = '#e11d48';
-    document.getElementById('login-pass').value = '';
-  }
+async function esqueciSenha() {
+  const email = document.getElementById('login-user').value.trim();
+  const err = document.getElementById('login-err');
+  const showErr = (msg, color) => { err.textContent = msg; err.style.display = 'block'; err.style.color = color; };
+  if (!email || !email.includes('@')) { showErr('Digite seu e-mail acima primeiro', '#f59e0b'); return; }
+  try {
+    await firebase.auth().sendPasswordResetEmail(email);
+    showErr('📧 Link de redefinição enviado para ' + email, '#059669');
+  } catch (e) { showErr(traduzErroAuth(e), '#e11d48'); }
 }
 
 function logout() {
-  sessionStorage.removeItem('fincasal_auth');
-  sessionStorage.removeItem('fincasal_logged_user');
-  document.getElementById('login-user').value = '';
-  document.getElementById('login-pass').value = '';
-  document.getElementById('login-err').style.display = 'none';
-  document.getElementById('login-screen').style.display = 'flex';
-  updateLeiaAquiVisibility();
+  const done = () => {
+    sessionStorage.removeItem('fincasal_auth');
+    sessionStorage.removeItem('fincasal_logged_user');
+    document.getElementById('login-user').value = '';
+    document.getElementById('login-pass').value = '';
+    const err = document.getElementById('login-err'); if (err) err.style.display = 'none';
+    showLoginScreen();
+    updateLeiaAquiVisibility();
+  };
+  if (db) firebase.auth().signOut().finally(done); else done();
 }
 
 // ─── MOBILE SIDEBAR ──────────────────────────────────────────────────────────
@@ -7242,8 +7272,17 @@ function salvarConfig() {
   const p2=document.getElementById('cfg-password2').value;
   if (p1 || p2) {
     if (p1 !== p2) { toast('❌ As senhas não coincidem!'); return; }
-    if (p1.length < 4) { toast('❌ Senha deve ter pelo menos 4 caracteres'); return; }
-    S.settings.password=p1;
+    if (p1.length < 6) { toast('❌ Senha deve ter pelo menos 6 caracteres'); return; }
+    const u = db ? firebase.auth().currentUser : null;
+    if (!u) { toast('❌ Faça login novamente para trocar a senha'); return; }
+    u.updatePassword(p1).then(() => {
+      document.getElementById('cfg-password').value='';
+      document.getElementById('cfg-password2').value='';
+      toast('✅ Senha alterada!');
+    }).catch(e => {
+      if (e.code === 'auth/requires-recent-login') toast('⚠️ Por segurança, saia e entre de novo antes de trocar a senha.');
+      else toast('❌ ' + (e.message || 'Erro ao trocar senha'));
+    });
   }
   save();
   document.getElementById('header-users').textContent=`${S.settings.u1} & ${S.settings.u2}`;
