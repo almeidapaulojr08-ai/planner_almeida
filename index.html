@@ -182,6 +182,22 @@
     .empty-state .icon { font-size: 48px; margin-bottom: 12px; }
 
     /* Form input style */
+    /* Autocomplete da descrição (lançamento rápido) */
+    .suggest-box { position: absolute; left: 0; right: 0; top: calc(100% - 22px); z-index: 50; background: var(--surface); border: 1.5px solid var(--border);
+      border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.12); overflow: hidden; max-height: 320px; overflow-y: auto; }
+    .suggest-item { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 14px; cursor: pointer;
+      border-bottom: 1px solid var(--surface-2); }
+    .suggest-item:last-child { border-bottom: none; }
+    .suggest-item:hover, .suggest-item.active { background: var(--tint-indigo); }
+    .suggest-item .s-desc { font-weight: 600; font-size: 14px; color: var(--text); }
+    .suggest-item .s-meta { font-size: 12px; color: var(--text-3); margin-top: 2px; }
+    .suggest-item .s-right { text-align: right; flex-shrink: 0; }
+    .suggest-item .s-amt { font-size: 13px; font-weight: 600; color: var(--text-2); }
+    .suggest-item .s-cnt { font-size: 11px; color: var(--muted); }
+    .suggest-item .s-desc mark { background: transparent; color: #4f46e5; padding: 0; }
+    :root[data-theme="dark"] .suggest-item .s-desc mark { color: #a5b4fc; }
+    kbd.kbd { font-family: inherit; font-size: 11px; padding: 1px 6px; border: 1px solid var(--border-2); border-bottom-width: 2px; border-radius: 5px; color: var(--text-3); background: var(--surface-2); }
+
     .finput { width: 100%; padding: 12px 16px; border: 1.5px solid var(--border); border-radius: 10px; font-size: 14px; color: var(--text); }
     .flabel { display: block; font-size: 13px; font-weight: 600; color: var(--text-2); margin-bottom: 6px; }
 
@@ -839,9 +855,12 @@
 
       <!-- Descrição + Valor -->
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px;">
-        <div>
-          <label class="flabel">Descrição</label>
-          <input class="finput" type="text" id="f-descricao" placeholder="Digite a descrição...">
+        <div style="position:relative;">
+          <label class="flabel">Descrição <span style="color:var(--muted);font-weight:400;font-size:11px;">· sugere pelo histórico</span></label>
+          <input class="finput" type="text" id="f-descricao" placeholder="Ex.: Superm. Italo" autocomplete="off"
+                 oninput="showDescSuggestions()" onfocus="showDescSuggestions()" onkeydown="descKeydown(event)" onblur="setTimeout(hideDescSuggestions, 150)">
+          <div id="desc-suggest" class="suggest-box" style="display:none;"></div>
+          <div id="f-desc-hint" style="display:none;font-size:12px;color:var(--muted);margin-top:6px;"></div>
         </div>
         <div>
           <label class="flabel">Valor</label>
@@ -944,7 +963,7 @@
 
       <div style="display:flex;gap:10px;">
         <button type="button" onclick="goto('dashboard')" style="flex:1;padding:13px;border:1.5px solid var(--border);border-radius:12px;font-size:14px;font-weight:600;color:var(--text-3);background:var(--surface);cursor:pointer;">Cancelar</button>
-        <button type="submit" style="flex:2;padding:13px;background:#4f46e5;color:white;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;">Salvar Transação</button>
+        <button type="submit" style="flex:2;padding:13px;background:#4f46e5;color:white;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;">Salvar Transação <kbd class="kbd" style="margin-left:6px;opacity:.8;">Ctrl+Enter</kbd></button>
       </div>
     </form>
   </div>
@@ -3401,7 +3420,9 @@ function goto(page) {
   if (page === 'config')    loadConfig();
   if (page === 'chat')      initChat();
   if (page === 'contas')    renderContas();
-  if (page === 'nova')      { setTodayDate(); refreshTitularSelect(); setType(currentType); }
+  if (page === 'nova')      { setTodayDate(); refreshTitularSelect(); setType(currentType);
+    const h = document.getElementById('f-desc-hint'); if (h) h.style.display = 'none';
+    setTimeout(() => { const d = document.getElementById('f-descricao'); if (d) d.focus(); }, 50); }
   if (page === 'orcamento')  renderOrcamento();
   if (page === 'categorias') renderCategorias();
   if (page === 'dividas')    renderDividas();
@@ -3592,6 +3613,121 @@ function onCatChange() {
   sub.innerHTML = '<option value="">Sem subcategoria</option>' + subs.map(s => `<option value="${s}">${s}</option>`).join('');
   // Auto-detect custoTipo
   if (currentType === 'despesa' && cat) setCustoTipo(autoCustoTipo(cat));
+}
+
+// ─── LANÇAMENTO RÁPIDO: sugestões pelo histórico ──────────────────────────────
+// Agrupa transações passadas por descrição normalizada e guarda o "perfil" mais recente
+// de cada uma (tipo, titular, conta, forma, categoria, subcategoria, custo, valor).
+let _suggestIdx = null, _suggestIdxKey = '';
+let _suggestList = [], _suggestSel = -1;
+
+function normDesc(d) {
+  return String(d || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/\s*\(\d+\/\d+\)\s*$/, '')          // tira "(03/12)" das parcelas
+    .replace(/\s+/g, ' ').trim();
+}
+function buildSuggestIndex() {
+  const key = S.transactions.length + ':' + (S.transactions[S.transactions.length - 1] || {}).id;
+  if (_suggestIdx && _suggestIdxKey === key) return _suggestIdx;
+  const map = new Map();
+  for (const t of S.transactions) {
+    if (!t || t.isTransfer || t.type === 'transferencia' || !t.desc) continue;
+    const k = normDesc(t.desc);
+    if (k.length < 2) continue;
+    const cur = map.get(k);
+    const date = t.date || '';
+    if (!cur) map.set(k, { key: k, count: 1, last: date, t });
+    else { cur.count++; if (date > cur.last) { cur.last = date; cur.t = t; } }
+  }
+  _suggestIdx = Array.from(map.values());
+  _suggestIdxKey = key;
+  return _suggestIdx;
+}
+function findSuggestions(q) {
+  const nq = normDesc(q);
+  if (nq.length < 2) return [];
+  const idx = buildSuggestIndex();
+  const scored = [];
+  for (const e of idx) {
+    let score = 0;
+    if (e.key === nq) score = 3;
+    else if (e.key.startsWith(nq)) score = 2;
+    else if (e.key.includes(nq)) score = 1;
+    else continue;
+    scored.push({ e, score });
+  }
+  scored.sort((a, b) => b.score - a.score || b.e.count - a.e.count || (b.e.last > a.e.last ? 1 : -1));
+  return scored.slice(0, 6).map(x => x.e);
+}
+function suggestMeta(t) {
+  const acc = S.accounts.find(a => a.id === t.accountId);
+  const accName = acc ? `${(BANKS[acc.bank] || {}).name || acc.bank} — ${acc.label}` : '';
+  const cat = [t.category, t.subcategory].filter(Boolean).join(' › ');
+  const forma = t.type === 'despesa' ? (t.formaPgto === 'credito' ? 'Crédito' : 'Débito') : (t.type === 'receita' ? 'Receita' : '');
+  return [cat, accName, forma, t.user].filter(Boolean).join(' · ');
+}
+function showDescSuggestions() {
+  const inp = document.getElementById('f-descricao');
+  const box = document.getElementById('desc-suggest');
+  if (!inp || !box) return;
+  _suggestList = findSuggestions(inp.value);
+  if (!_suggestList.length) { hideDescSuggestions(); return; }
+  _suggestSel = 0;
+  const nq = normDesc(inp.value);
+  box.innerHTML = _suggestList.map((e, i) => {
+    const t = e.t;
+    const d = escapeHtml(t.desc.replace(/\s*\(\d+\/\d+\)\s*$/, ''));
+    const nd = normDesc(t.desc);
+    const pos = nd.indexOf(nq);
+    const hl = pos >= 0 ? d.slice(0, pos) + '<mark>' + d.slice(pos, pos + nq.length) + '</mark>' + d.slice(pos + nq.length) : d;
+    const amt = (t.currency === 'USD' ? 'US$ ' : 'R$ ') + Number(t.amount || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+    return `<div class="suggest-item${i === 0 ? ' active' : ''}" data-i="${i}" onmousedown="event.preventDefault();applySuggestion(${i})">
+      <div><div class="s-desc">${hl}</div><div class="s-meta">${escapeHtml(suggestMeta(t))}</div></div>
+      <div class="s-right"><div class="s-amt">${amt}</div><div class="s-cnt">${e.count}× · último ${e.last ? e.last.split('-').reverse().join('/') : ''}</div></div>
+    </div>`;
+  }).join('');
+  box.style.display = 'block';
+}
+function hideDescSuggestions() {
+  const box = document.getElementById('desc-suggest');
+  if (box) box.style.display = 'none';
+  _suggestSel = -1;
+}
+function highlightSuggestion(i) {
+  _suggestSel = i;
+  document.querySelectorAll('#desc-suggest .suggest-item').forEach((el, j) => el.classList.toggle('active', j === i));
+}
+function descKeydown(ev) {
+  const open = document.getElementById('desc-suggest').style.display !== 'none' && _suggestList.length;
+  if (ev.key === 'ArrowDown' && open) { ev.preventDefault(); highlightSuggestion((_suggestSel + 1) % _suggestList.length); }
+  else if (ev.key === 'ArrowUp' && open) { ev.preventDefault(); highlightSuggestion((_suggestSel - 1 + _suggestList.length) % _suggestList.length); }
+  else if (ev.key === 'Escape' && open) { ev.preventDefault(); hideDescSuggestions(); }
+  else if (ev.key === 'Enter' || ev.key === 'Tab') {
+    if (open && _suggestSel >= 0) { ev.preventDefault(); applySuggestion(_suggestSel); }
+    else if (ev.key === 'Enter') { ev.preventDefault(); document.getElementById('f-valor').focus(); }
+  }
+}
+const setSel = (id, val) => { const el = document.getElementById(id); if (!el) return false;
+  if ([...el.options].some(o => o.value === val)) { el.value = val; return true; } return false; };
+function applySuggestion(i) {
+  const e = _suggestList[i]; if (!e) return;
+  const t = e.t;
+  hideDescSuggestions();
+  document.getElementById('f-descricao').value = t.desc.replace(/\s*\(\d+\/\d+\)\s*$/, '');
+  const tipo = t.type === 'receita' ? 'receita' : 'despesa';
+  if (currentType !== tipo) setType(tipo);
+  if (t.user && setSel('f-usuario', t.user)) onTitularChange();
+  if (tipo === 'despesa') setFormaPgto(t.formaPgto === 'credito' ? 'credito' : 'debito');
+  if (t.accountId) setSel('f-conta', t.accountId);
+  if (t.category && setSel('f-categoria', t.category)) { onCatChange(); if (t.subcategory) setSel('f-subcategoria', t.subcategory); }
+  if (tipo === 'despesa' && t.custoTipo) setCustoTipo(t.custoTipo);
+  const valor = document.getElementById('f-valor');
+  if (!valor.value && t.amount) valor.value = Number(t.amount).toFixed(2);
+  const hint = document.getElementById('f-desc-hint');
+  hint.innerHTML = '✨ Preenchido pelo histórico: <b style="color:var(--text-2)">' + escapeHtml(suggestMeta(t)) + '</b>' +
+    (e.count > 1 ? ` · ${e.count} lançamentos` : '') + ' — confira e ajuste se precisar.';
+  hint.style.display = 'block';
+  valor.focus(); valor.select();
 }
 
 // ─── SAVE TRANSACTION ─────────────────────────────────────────────────────────
@@ -10041,6 +10177,24 @@ function init() {
   checkAuth();
   if (sessionStorage.getItem('fincasal_auth')) goto('dashboard');
 }
+
+// ─── ATALHOS DE TECLADO ───────────────────────────────────────────────────────
+//  N          → Nova transação (fora de campos de texto)
+//  Ctrl+Enter → salva o formulário de nova transação
+//  Esc        → fecha o modal aberto
+document.addEventListener('keydown', (ev) => {
+  if (!sessionStorage.getItem('fincasal_auth')) return;
+  const tag = (ev.target.tagName || '').toLowerCase();
+  const typing = tag === 'input' || tag === 'textarea' || tag === 'select' || ev.target.isContentEditable;
+  if (ev.key === 'Enter' && (ev.ctrlKey || ev.metaKey)) {
+    const form = document.querySelector('#page-nova form');
+    const visible = document.getElementById('page-nova').style.display !== 'none';
+    if (form && visible) { ev.preventDefault(); form.requestSubmit(); }
+    return;
+  }
+  if (typing || ev.ctrlKey || ev.metaKey || ev.altKey) return;
+  if (ev.key === 'n' || ev.key === 'N') { ev.preventDefault(); goto('nova'); }
+});
 
 window.onload = function () {
   init();
