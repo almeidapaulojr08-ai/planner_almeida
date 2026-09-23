@@ -3043,7 +3043,8 @@ function traduzErroAuth(e) {
     'auth/email-already-in-use': 'Este e-mail já tem conta — use a senha correta',
     'auth/too-many-requests': 'Muitas tentativas. Aguarde alguns minutos.',
     'auth/network-request-failed': 'Sem conexão. Verifique a internet.',
-    'auth/operation-not-allowed': 'Login por e-mail/senha não está ativado no Firebase.'
+    'auth/operation-not-allowed': 'Login por e-mail/senha não está ativado no Firebase.',
+    'auth/invalid-login-credentials': 'E-mail ou senha incorretos'
   };
   return '❌ ' + (m[e.code] || e.message || 'Erro ao entrar');
 }
@@ -3063,12 +3064,22 @@ async function doLogin() {
     await firebase.auth().signInWithEmailAndPassword(email, pass);
     // onAuthStateChanged cuida de mostrar o app
   } catch (e) {
-    if (e.code === 'auth/user-not-found') {
+    // Firebase moderno (email enumeration protection) devolve o MESMO erro para
+    // "senha errada" e "conta inexistente". Então: tenta criar; se já existir, foi senha.
+    const ambiguo = ['auth/user-not-found','auth/invalid-credential','auth/invalid-login-credentials'].includes(e.code);
+    if (ambiguo) {
       try {
         await firebase.auth().createUserWithEmailAndPassword(email, pass);
         toast('✅ Conta criada! Você já está dentro.');
-      } catch (e2) { showErr(traduzErroAuth(e2)); }
-    } else if (e.code === 'auth/wrong-password' || e.code === 'auth/invalid-credential') {
+      } catch (e2) {
+        if (e2.code === 'auth/email-already-in-use') {
+          showErr('❌ Senha incorreta');
+          document.getElementById('login-pass').value = '';
+        } else {
+          showErr(traduzErroAuth(e2));
+        }
+      }
+    } else if (e.code === 'auth/wrong-password') {
       showErr('❌ Senha incorreta');
       document.getElementById('login-pass').value = '';
     } else {
