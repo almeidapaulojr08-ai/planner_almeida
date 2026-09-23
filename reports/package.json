@@ -1,0 +1,13 @@
+{
+  "name": "financas-casal-reports",
+  "version": "1.0.0",
+  "description": "Relatorio financeiro do FinancasCasal via Telegram (roda no GitHub Actions)",
+  "private": true,
+  "type": "commonjs",
+  "scripts": {
+    "report": "node send_report.js"
+  },
+  "dependencies": {
+    "firebase-admin": "^12.7.0"
+  }
+}

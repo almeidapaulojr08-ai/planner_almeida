@@ -1,0 +1,10 @@
+# NUNCA commitar segredos nem dependências
+reports/node_modules/
+reports/*serviceAccount*.json
+reports/service-account*.json
+reports/.env
+*.serviceaccount.json
+# backups locais (já ficam fora do repo)
+index.html.bak
+index.html.bak2
+backups/

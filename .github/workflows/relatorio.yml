@@ -1,0 +1,33 @@
+name: Relatório FinançasCasal
+
+on:
+  schedule:
+    # Horários em UTC. Brasília = UTC-3.
+    - cron: '0 11 * * 1'   # toda segunda 08:00 BRT (resumo semanal)
+    - cron: '0 11 1 * *'   # todo dia 1º 08:00 BRT (fechamento do mês)
+  workflow_dispatch:        # permite rodar manualmente pelo botão "Run workflow"
+
+jobs:
+  enviar-relatorio:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Baixar o repositório
+        uses: actions/checkout@v4
+
+      - name: Instalar Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Instalar dependências
+        working-directory: reports
+        run: npm install
+
+      - name: Enviar relatório
+        working-directory: reports
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          FIREBASE_DB_URL: ${{ secrets.FIREBASE_DB_URL }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_IDS: ${{ secrets.TELEGRAM_CHAT_IDS }}
+        run: node send_report.js
