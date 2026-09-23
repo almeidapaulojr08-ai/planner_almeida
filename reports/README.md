@@ -3,9 +3,10 @@
 Envia um resumo financeiro (saldos, gastos, faturas a vencer, parcelas, orçamento,
 patrimônio) pro Telegram de vocês dois, automático, pelo GitHub Actions.
 
-- **Toda segunda 08:00** → resumo da semana / mês parcial
-- **Todo dia 1º 08:00** → fechamento do mês anterior
-- Botão **Run workflow** (aba Actions) → dispara na hora, pra testar
+- **Todo dia às 08:00** (Brasília) → cada um recebe 2 mensagens: uma "Geral (casal)" e outra só com os valores dele.
+- No **dia 1º** o texto vira "fechamento do mês anterior".
+- Botão **Run workflow** (aba Actions) → dispara na hora, pra testar.
+- Trocar horário: editar o `cron` em `.github/workflows/relatorio.yml` (está em UTC; BRT = UTC-3).
 
 ---
 
@@ -37,7 +38,7 @@ No repositório `planner_almeida` → **Settings** → **Secrets and variables**
 | `FIREBASE_SERVICE_ACCOUNT` | cole o conteúdo inteiro do `.json` do passo 3 |
 | `FIREBASE_DB_URL` | `https://almeida-wosniak-dre-default-rtdb.firebaseio.com` |
 | `TELEGRAM_BOT_TOKEN` | o token do passo 1 |
-| `TELEGRAM_CHAT_IDS` | os dois chat ids separados por vírgula, ex.: `123456789,987654321` |
+| `TELEGRAM_CHAT_IDS` | pares `id:Nome` separados por vírgula, ex.: `111:Paulo,222:Thayse`. O Nome tem que ser igual ao das transações. |
 
 ### 5. Testar
 - Aba **Actions** → workflow **Relatório FinançasCasal** → **Run workflow** → aguarda ~1 min

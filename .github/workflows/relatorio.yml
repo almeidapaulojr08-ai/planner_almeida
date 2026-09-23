@@ -2,10 +2,9 @@ name: Relatório FinançasCasal
 
 on:
   schedule:
-    # Horários em UTC. Brasília = UTC-3.
-    - cron: '0 11 * * 1'   # toda segunda 08:00 BRT (resumo semanal)
-    - cron: '0 11 1 * *'   # todo dia 1º 08:00 BRT (fechamento do mês)
-  workflow_dispatch:        # permite rodar manualmente pelo botão "Run workflow"
+    # Horário em UTC. Brasília = UTC-3, então 11:00 UTC = 08:00 BRT.
+    - cron: '0 11 * * *'   # TODO DIA às 08:00 BRT
+  workflow_dispatch:        # botão "Run workflow" para disparar na hora
 
 jobs:
   enviar-relatorio:
