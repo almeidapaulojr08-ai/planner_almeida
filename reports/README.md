@@ -3,7 +3,7 @@
 Envia um resumo financeiro (saldos, gastos, faturas a vencer, parcelas, orçamento,
 patrimônio) pro Telegram de vocês dois, automático, pelo GitHub Actions.
 
-- **Todo dia às 08:00** (Brasília) → cada um recebe 2 mensagens: uma "Geral (casal)" e outra só com os valores dele.
+- **Todo dia às 08:07 e 20:07** (Brasília) → cada um recebe 2 mensagens: uma "Geral (casal)" e outra só com os valores dele.
 - No **dia 1º** o texto vira "fechamento do mês anterior".
 - Botão **Run workflow** (aba Actions) → dispara na hora, pra testar.
 - Trocar horário: editar o `cron` em `.github/workflows/relatorio.yml` (está em UTC; BRT = UTC-3).
