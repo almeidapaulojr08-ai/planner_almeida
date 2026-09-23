@@ -2429,6 +2429,7 @@ let _migrateColls = new Set();  // coleções ainda no formato antigo (array) �
 let _inflight = 0;              // escritas em andamento
 let _pendingSnapshot = null;    // snapshot que chegou durante uma escrita (processa depois)
 let _lastPushFail = 0;          // quando a última escrita falhou (limita retentativa automática)
+let _lastAutoPush = 0;          // última escrita automática do listener (reparo/migração)
 
 // Normaliza como o Firebase armazena: chaves ordenadas, sem null/undefined/vazios.
 // Assim comparar stableStr(local) === stableStr(remoto) não dá falso positivo.
@@ -2636,7 +2637,9 @@ function _onFirebaseValue(snapshot) {
     if (desp) {
       const required = { 'Diversos': [], 'Servicos': [], 'Presentes': [], 'Pedro': ['Festa de Aniversário'], 'Taxas': ['Pgto Fatura'] };
       for (const [cat, subs] of Object.entries(required)) {
-        if (!desp[cat]) { desp[cat] = subs; needsRepair = true; }
+        // Firebase não armazena array vazio: categoria sem subcategoria SEMPRE chega ausente.
+        // Só marca reparo quando há subcategorias a gravar (senão vira escrita infinita).
+        if (!desp[cat]) { desp[cat] = subs.slice(); if (subs.length) needsRepair = true; }
       }
       if (desp['Saúde'] && !desp['Saúde'].includes('Cuidados Pessoais')) {
         desp['Saúde'].push('Cuidados Pessoais'); needsRepair = true;
@@ -2689,10 +2692,16 @@ function _onFirebaseValue(snapshot) {
     firebaseReady = true;
 
     // Reparos / migração / limpeza vão pro Firebase numa única escrita (só o que mudou).
-    // Se a última escrita falhou (ex.: sem permissão), espera 1 min antes de tentar de novo
-    // automaticamente — evita loop de escrita falha → snapshot → escrita falha.
-    const autoPushOk = Date.now() - _lastPushFail > 60000;
-    if ((needsRepair || txRepaired || tombsRemoved || _migrateColls.size) && autoPushOk) pushToFirebase();
+    // Limites: 1 min após falha (ex.: sem permissão) e no máximo 1 escrita automática a cada
+    // 10 s — evita ping-pong com outro dispositivo rodando versão antiga do app (que regrava
+    // arrays) e loop de escrita falha → snapshot → escrita falha. Saves do usuário não passam
+    // por aqui e não têm limite.
+    const now = Date.now();
+    const autoPushOk = now - _lastPushFail > 60000 && now - _lastAutoPush > 10000;
+    if ((needsRepair || txRepaired || tombsRemoved || _migrateColls.size) && autoPushOk) {
+      _lastAutoPush = now;
+      pushToFirebase();
+    }
 
     // Cachear no localStorage (backup offline)
     localStorage.setItem('fincasal_v2', JSON.stringify(S));
