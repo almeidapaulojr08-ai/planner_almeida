@@ -4,6 +4,7 @@ on:
   schedule:
     # Horário em UTC. Brasília = UTC-3, então 11:00 UTC = 08:00 BRT.
     - cron: '0 11 * * *'   # TODO DIA às 08:00 BRT
+    - cron: '0 23 * * *'   # TODO DIA às 20:00 BRT
   workflow_dispatch:        # botão "Run workflow" para disparar na hora
 
 jobs:
