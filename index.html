@@ -3696,6 +3696,19 @@ function salvarEdicao() {
     updatedAt:  new Date().toISOString(),
   };
 
+  // Compra de crédito avulsa (não parcela): se a data/cartão mudou, recalcula a fatura.
+  // Parcelas têm faturaRef manual por mês — não mexer.
+  const et = S.transactions[idx];
+  if (et.formaPgto === 'credito' && !et.parcela && !et.parcelaTotal) {
+    const card = S.accounts.find(a => a.id === et.accountId && a.accountType === 'cartao');
+    if (card && card.fecha && et.date) {
+      const fechaDia = parseInt(card.fecha) || 1;
+      const [ey, em, eday] = et.date.split('-').map(Number);
+      const eym = ey*12 + (em-1) + (eday > fechaDia ? 1 : 0);
+      et.faturaRef = `${Math.floor(eym/12)}-${String(eym%12+1).padStart(2,'0')}`;
+    }
+  }
+
   save();
   fecharEditModal();
   renderHistorico();
@@ -4586,10 +4599,10 @@ function renderRecent() {
     return `<div class="trow" style="display:flex;align-items:center;padding:14px 24px;border-bottom:1px solid #f8fafc;">
       <div style="width:38px;height:38px;background:#f8fafc;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;margin-right:14px;">${cfg.ic}</div>
       <div style="flex:1;">
-        <p style="font-size:14px;font-weight:600;color:#0f172a;">${t.desc}</p>
+        <p style="font-size:14px;font-weight:600;color:#0f172a;">${escapeHtml(t.desc)}</p>
         <p style="font-size:12px;color:#94a3b8;margin-top:2px;">${t.category} · ${fmtDate(t.date)} · ${t.user}</p>
       </div>
-      <p style="font-size:15px;font-weight:800;color:${cfg.clr};">${cfg.sign}${brl(t.amount)}</p>
+      <p style="font-size:15px;font-weight:800;color:${cfg.clr};">${cfg.sign}${brl(t.currency==='USD'?usdToBrl(t.amount):t.amount)}</p>
     </div>`;
   }).join('');
 }
@@ -4710,7 +4723,7 @@ function renderParcelasFatura(creditTx) {
     const descClean = t.desc.replace(/\s*\(?\d+\/\d+\)?\s*$/, '').replace(/\s*\(\(\d+\/\d+\)\)\s*$/, '');
     return `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:#f8fafc;border-radius:8px;">
       <div>
-        <p style="font-size:13px;font-weight:600;color:#0f172a;">${descClean}</p>
+        <p style="font-size:13px;font-weight:600;color:#0f172a;">${escapeHtml(descClean)}</p>
         <p style="font-size:11px;color:#94a3b8;">${bankName} · ${fmtDate(t.date)} · <span style="color:#4f46e5;font-weight:600;">${parcelaInfo}</span></p>
       </div>
       <p style="font-size:13px;font-weight:700;color:#e11d48;">${brl(amountBrl(t))}</p>
@@ -4879,7 +4892,7 @@ function renderCreditRecent() {
     return `<div class="trow" style="display:flex;align-items:center;padding:14px 24px;border-bottom:1px solid #f8fafc;">
       <div style="width:38px;height:38px;background:#f8fafc;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;margin-right:14px;">💳</div>
       <div style="flex:1;">
-        <p style="font-size:14px;font-weight:600;color:#0f172a;">${t.desc}</p>
+        <p style="font-size:14px;font-weight:600;color:#0f172a;">${escapeHtml(t.desc)}</p>
         <p style="font-size:12px;color:#94a3b8;margin-top:2px;">${t.category} · ${fmtDate(t.date)} · ${bankName} · ${t.user}</p>
       </div>
       <p style="font-size:15px;font-weight:800;color:${t.isNegative ? '#059669' : '#e11d48'};">${t.isNegative ? '+' : '-'}${brl(t.amount)}</p>
@@ -5138,7 +5151,7 @@ function renderHistorico() {
       <input type="checkbox" data-txid="${t.id}" onchange="onTxSelect(this)" style="width:15px;height:15px;accent-color:#4f46e5;flex-shrink:0;">
       <div style="flex:1;min-width:0;">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
-          <span style="font-size:14px;font-weight:700;color:#0f172a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${t.desc}</span>
+          <span style="font-size:14px;font-weight:700;color:#0f172a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(t.desc)}</span>
           ${pagoTag}
         </div>
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
@@ -5376,7 +5389,7 @@ function renderFaturaDetail() {
     const custoTag = t.custoTipo ? ` · ${t.custoTipo==='fixo'?'📌 Fixo':'📊 Var'}` : '';
     return `<div style="display:flex;align-items:center;padding:10px 14px;border-bottom:1px solid #f8fafc;gap:10px;">
       <div style="flex:1;min-width:0;">
-        <p style="font-size:13px;font-weight:600;color:#0f172a;">${t.desc}</p>
+        <p style="font-size:13px;font-weight:600;color:#0f172a;">${escapeHtml(t.desc)}</p>
         <p style="font-size:11px;color:#94a3b8;">${fmtDate(t.date)} · ${t.category}${t.subcategory?' › '+t.subcategory:''}${parcelaTag}${custoTag} · ${t.pago===false?'<span style="color:#f59e0b;">Pendente</span>':'<span style="color:#10b981;">Pago</span>'}</p>
       </div>
       <p style="font-size:14px;font-weight:700;color:${val < 0 ? '#059669' : '#e11d48'};flex-shrink:0;">${val < 0 ? '+' : ''}${brl(Math.abs(val))}</p>
@@ -5614,7 +5627,7 @@ function parseCSV(text) {
     document.getElementById('imp-preview-count').textContent = pendingImportTxs.length;
     document.getElementById('imp-preview-list').innerHTML = pendingImportTxs.slice(0, 10).map(t =>
       `<div style="display:flex;justify-content:space-between;padding:8px 12px;border-bottom:1px solid #f8fafc;font-size:12px;">
-        <span style="color:#475569;">${fmtDate(t.date)} — ${t.desc}</span>
+        <span style="color:#475569;">${fmtDate(t.date)} — ${escapeHtml(t.desc)}</span>
         <span style="font-weight:700;color:#e11d48;">R$ ${t.amount.toFixed(2)}</span>
       </div>`
     ).join('') + (pendingImportTxs.length > 10 ? `<p style="padding:8px 12px;font-size:11px;color:#94a3b8;">+ ${pendingImportTxs.length - 10} mais...</p>` : '');
@@ -6038,17 +6051,20 @@ function getNumMonths(periodo) {
 function renderGraficos() {
   const periodo = document.getElementById('graf-periodo').value;
   const [start] = getDateRange(periodo);
-  const txs = start ? S.transactions.filter(t => new Date(t.date) >= start) : S.transactions;
+  const startStr = start ? `${start.getFullYear()}-${String(start.getMonth()+1).padStart(2,'0')}-01` : null;
+  const noPeriodo = t => !startStr || (t.date || '') >= startStr;
+  // Despesa "real": exclui transferências, pagamento de fatura e itens que não contam
+  const despReal = S.transactions.filter(t => noPeriodo(t) && t.type==='despesa' && !t.isTransfer && !isExcludedFromChart(t));
 
-  renderDonutG(txs.filter(t=>t.type==='despesa'));
+  renderDonutG(despReal);
   renderBarG(periodo);
   renderLineG(periodo);
-  renderHorizG(txs.filter(t=>t.type==='despesa'));
+  renderHorizG(despReal);
 }
 
 function renderDonutG(txs) {
   const by={};
-  txs.forEach(t => by[t.category]=(by[t.category]||0)+t.amount);
+  txs.forEach(t => by[t.category]=(by[t.category]||0)+amountBrl(t));
   const labels=Object.keys(by), data=Object.values(by);
   destroyChart('ch-donut-g');
   const ctx=document.getElementById('ch-donut-g');
@@ -6070,8 +6086,8 @@ function renderBarG(periodo) {
     const k=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
     labels.push(MESES[d.getMonth()]);
     const tx=S.transactions.filter(t=>t.date.startsWith(k));
-    recs.push(tx.filter(t=>t.type==='receita').reduce((s,t)=>s+amountBrl(t),0));
-    desps.push(tx.filter(t=>t.type==='despesa').reduce((s,t)=>s+amountBrl(t),0));
+    recs.push(tx.filter(t=>t.type==='receita' && !t.isTransfer).reduce((s,t)=>s+amountBrl(t),0));
+    desps.push(tx.filter(t=>t.type==='despesa' && !t.isTransfer && !isExcludedFromChart(t)).reduce((s,t)=>s+amountBrl(t),0));
     invs.push(tx.filter(t=>t.type==='investimento').reduce((s,t)=>s+amountBrl(t),0));
   }
   destroyChart('ch-bar-g');
@@ -6100,8 +6116,8 @@ function renderLineG(periodo) {
     const k=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
     labels.push(MESES[d.getMonth()]);
     const tx=S.transactions.filter(t=>t.date.startsWith(k));
-    acum += tx.filter(t=>t.type==='receita').reduce((s,t)=>s+amountBrl(t),0)
-           - tx.filter(t=>t.type==='despesa').reduce((s,t)=>s+amountBrl(t),0);
+    acum += tx.filter(t=>t.type==='receita' && !t.isTransfer).reduce((s,t)=>s+amountBrl(t),0)
+           - tx.filter(t=>t.type==='despesa' && !t.isTransfer && !isExcludedFromChart(t)).reduce((s,t)=>s+amountBrl(t),0);
     saldos.push(acum);
   }
   destroyChart('ch-line-g');
@@ -6121,7 +6137,7 @@ function renderLineG(periodo) {
 
 function renderHorizG(txs) {
   const by={};
-  txs.forEach(t=>by[t.category]=(by[t.category]||0)+t.amount);
+  txs.forEach(t=>by[t.category]=(by[t.category]||0)+amountBrl(t));
   const sorted=Object.entries(by).sort((a,b)=>b[1]-a[1]).slice(0,8);
   destroyChart('ch-horiz-g');
   const ctx=document.getElementById('ch-horiz-g');
@@ -6740,7 +6756,7 @@ ${mTx.length === 0 ? '<br><span style="color:#94a3b8;">Nenhuma transação neste
     const txs = S.transactions.filter(t => t.type === 'despesa' && t.date === today);
     if (txs.length === 0) return 'Nenhuma despesa registrada hoje.';
     const total = txs.reduce((s, t) => s + amountBrl(t), 0);
-    let rows = txs.map(t => `<tr><td style="padding:4px 8px 4px 0;">${t.desc}</td><td style="padding:4px 0;color:#e11d48;text-align:right;font-weight:600;">${brl(amountBrl(t))}</td></tr>`).join('');
+    let rows = txs.map(t => `<tr><td style="padding:4px 8px 4px 0;">${escapeHtml(t.desc)}</td><td style="padding:4px 0;color:#e11d48;text-align:right;font-weight:600;">${brl(amountBrl(t))}</td></tr>`).join('');
     return `<b>Gastos de hoje:</b><br><br>
 <table style="width:100%;border-collapse:collapse;font-size:13px;">${rows}
 <tr style="border-top:2px solid #e2e8f0;"><td style="padding:6px 0;font-weight:700;">Total</td><td style="text-align:right;font-weight:800;color:#e11d48;">${brl(total)}</td></tr></table>`;
@@ -6807,7 +6823,7 @@ ${fmtDate(top.date)}${acc ? ' | ' + getAccName(acc) : ''}${top.formaPgto === 'cr
     if (!found) return `Não encontrei a categoria "<b>${catQuery}</b>". Categorias disponíveis: ${Object.keys(CATS_DESPESA).join(', ')}`;
     const txs = S.transactions.filter(t => t.type === 'despesa' && normalize(t.category) === found.norm && txMonth(t, month, year));
     const total = txs.reduce((s, t) => s + amountBrl(t), 0);
-    let rows = txs.slice(0, 10).map(t => `<tr><td style="padding:3px 8px 3px 0;">${fmtDate(t.date)}</td><td style="padding:3px 0;">${t.desc}</td><td style="text-align:right;color:#e11d48;font-weight:600;">${brl(amountBrl(t))}</td></tr>`).join('');
+    let rows = txs.slice(0, 10).map(t => `<tr><td style="padding:3px 8px 3px 0;">${fmtDate(t.date)}</td><td style="padding:3px 0;">${escapeHtml(t.desc)}</td><td style="text-align:right;color:#e11d48;font-weight:600;">${brl(amountBrl(t))}</td></tr>`).join('');
     return `Gastos com <b>${found.name}</b> em ${MESES_FULL[month]} ${year}:<br><br>
 <span style="font-size:18px;font-weight:800;color:#e11d48;">${brl(total)}</span> (${txs.length} transações)<br><br>
 ${txs.length > 0 ? '<table style="width:100%;border-collapse:collapse;font-size:13px;">' + rows + '</table>' : ''}
@@ -6851,7 +6867,7 @@ ${txs.length > 10 ? '<br><span style="color:#94a3b8;">Mostrando 10 de ' + txs.le
     if (month === null) month = curMonth;
     const txs = S.transactions.filter(t => t.type === 'receita' && txMonth(t, month, year));
     const total = txs.reduce((s, t) => s + amountBrl(t), 0);
-    let rows = txs.map(t => `<tr><td style="padding:3px 8px 3px 0;">${fmtDate(t.date)}</td><td style="padding:3px 0;">${t.desc}</td><td style="text-align:right;color:#059669;font-weight:600;">${brl(amountBrl(t))}</td></tr>`).join('');
+    let rows = txs.map(t => `<tr><td style="padding:3px 8px 3px 0;">${fmtDate(t.date)}</td><td style="padding:3px 0;">${escapeHtml(t.desc)}</td><td style="text-align:right;color:#059669;font-weight:600;">${brl(amountBrl(t))}</td></tr>`).join('');
     return `<b>Receitas de ${MESES_FULL[month]} ${year}:</b><br><br>
 ${txs.length > 0 ? '<table style="width:100%;border-collapse:collapse;font-size:13px;">' + rows + '<tr style="border-top:2px solid #e2e8f0;"><td style="padding:6px 0;font-weight:700;" colspan="2">Total</td><td style="text-align:right;font-weight:800;color:#059669;">' + brl(total) + '</td></tr></table>' : '<span style="color:#94a3b8;">Nenhuma receita encontrada neste mês.</span>'}`;
   }
@@ -6870,7 +6886,7 @@ ${txs.length > 0 ? '<table style="width:100%;border-collapse:collapse;font-size:
     const cardLabel = specAcc ? getAccName(specAcc) : 'todos os cartões';
     let rows = txs.slice(0, 15).map(t => {
       const ca = S.accounts.find(a => a.id === t.accountId);
-      return `<tr><td style="padding:3px 8px 3px 0;font-size:12px;color:#94a3b8;">${fmtDate(t.date)}</td><td style="padding:3px 0;">${t.desc}</td>${!specAcc && ca ? '<td style="padding:3px 4px;font-size:11px;color:#6366f1;">' + ca.name + '</td>' : ''}<td style="text-align:right;color:#e11d48;font-weight:600;">${brl(amountBrl(t))}</td></tr>`;
+      return `<tr><td style="padding:3px 8px 3px 0;font-size:12px;color:#94a3b8;">${fmtDate(t.date)}</td><td style="padding:3px 0;">${escapeHtml(t.desc)}</td>${!specAcc && ca ? '<td style="padding:3px 4px;font-size:11px;color:#6366f1;">' + ca.name + '</td>' : ''}<td style="text-align:right;color:#e11d48;font-weight:600;">${brl(amountBrl(t))}</td></tr>`;
     }).join('');
     return `<b>Fatura de ${MESES_FULL[month]} ${year}</b> (${cardLabel}):<br><br>
 <span style="font-size:20px;font-weight:800;color:#e11d48;">${brl(total)}</span> <span style="color:#94a3b8;">(${txs.length} lançamentos)</span><br><br>
@@ -7070,7 +7086,7 @@ Cole tudo de uma vez. Digite <b>cancelar</b> para abortar.`;
       const catInfo = autoCategorizeTx(t.desc);
       const catLabel = catInfo.category + (catInfo.subcategory ? ' › ' + catInfo.subcategory : '');
       const parcelaTag = t.parcela ? ` <span style="color:#f59e0b;font-size:11px;">(${t.parcela})</span>` : '';
-      return `<tr><td style="padding:3px 0;font-size:12px;color:#94a3b8;">${fmtDate(t.date)}</td><td style="padding:3px 8px;">${t.desc}${parcelaTag}</td><td style="font-size:11px;color:#6366f1;">${catLabel}</td><td style="text-align:right;color:#e11d48;font-weight:600;">${brl(t.amount)}</td></tr>`;
+      return `<tr><td style="padding:3px 0;font-size:12px;color:#94a3b8;">${fmtDate(t.date)}</td><td style="padding:3px 8px;">${escapeHtml(t.desc)}${parcelaTag}</td><td style="font-size:11px;color:#6366f1;">${catLabel}</td><td style="text-align:right;color:#e11d48;font-weight:600;">${brl(t.amount)}</td></tr>`;
     }).join('');
     return `Encontrei <b>${parsed.length} transações</b> (categorias auto-detectadas):<br><br>
 <table style="width:100%;border-collapse:collapse;font-size:13px;">${rows}
