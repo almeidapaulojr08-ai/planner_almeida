@@ -5,7 +5,12 @@ on:
     # Horário em UTC. Brasília = UTC-3, então 11:00 UTC = 08:00 BRT.
     - cron: '7 11 * * *'   # TODO DIA às 08:07 BRT (minuto fora do pico: cron em :00 costuma ser pulado pelo GitHub)
     - cron: '7 23 * * *'   # TODO DIA às 20:07 BRT
-  workflow_dispatch:        # botão "Run workflow" para disparar na hora
+  workflow_dispatch:        # botão "Run workflow" (manual) ou chamada pela API (cron-job.org)
+    inputs:
+      force:
+        description: 'Enviar mesmo que já tenha sido enviado nas últimas 5 h'
+        type: boolean
+        default: true
 
 jobs:
   enviar-relatorio:
@@ -30,4 +35,6 @@ jobs:
           FIREBASE_DB_URL: ${{ secrets.FIREBASE_DB_URL }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_IDS: ${{ secrets.TELEGRAM_CHAT_IDS }}
+          FORCE: ${{ inputs.force }}
+          TRIGGER: ${{ github.event_name }}
         run: node send_report.js

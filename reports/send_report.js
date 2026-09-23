@@ -26,7 +26,20 @@ function fbToArray(obj) {
 async function main() {
   const svc = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
   admin.initializeApp({ credential: admin.credential.cert(svc), databaseURL: process.env.FIREBASE_DB_URL });
-  const data = (await admin.database().ref('data').once('value')).val() || {};
+  const rtdb = admin.database();
+
+  // ── trava anti-duplicata ──
+  // O relatório pode ser disparado por mais de um gatilho (cron do GitHub + cron-job.org).
+  // Se já foi enviado há menos de 5 h, pula — a não ser que FORCE=true (botão "Run workflow").
+  const force = String(process.env.FORCE || '').toLowerCase() === 'true';
+  const lastSentAt = (await rtdb.ref('reportMeta/lastSentAt').once('value')).val();
+  const horasDesde = lastSentAt ? (Date.now() - new Date(lastSentAt).getTime()) / 36e5 : Infinity;
+  if (!force && horasDesde < 5) {
+    console.log(`Relatório já enviado há ${horasDesde.toFixed(1)} h (${lastSentAt}). Pulando para não duplicar.`);
+    process.exit(0);
+  }
+
+  const data = (await rtdb.ref('data').once('value')).val() || {};
 
   const txsAll = fbToArray(data.transactions);
   const accountsAll = fbToArray(data.accounts);
@@ -204,6 +217,7 @@ async function main() {
       await enviar(d.id, cachePessoa[d.nome]);
     }
   }
+  await rtdb.ref('reportMeta').update({ lastSentAt: new Date().toISOString(), lastTrigger: process.env.TRIGGER || 'desconhecido' });
   console.log('Relatório concluído.');
   process.exit(0);
 }

@@ -5,8 +5,33 @@ patrimônio) pro Telegram de vocês dois, automático, pelo GitHub Actions.
 
 - **Todo dia às 08:07 e 20:07** (Brasília) → cada um recebe 2 mensagens: uma "Geral (casal)" e outra só com os valores dele.
 - No **dia 1º** o texto vira "fechamento do mês anterior".
-- Botão **Run workflow** (aba Actions) → dispara na hora, pra testar.
-- Trocar horário: editar o `cron` em `.github/workflows/relatorio.yml` (está em UTC; BRT = UTC-3).
+- Botão **Run workflow** (aba Actions) → dispara na hora, pra testar (ignora a trava de 5 h).
+- Trava anti-duplicata: se já enviou há menos de 5 h, o script pula (grava `reportMeta/lastSentAt` no Firebase).
+- Trocar horário: editar o `cron` em `.github/workflows/relatorio.yml` (está em UTC; BRT = UTC-3) **e** o horário no cron-job.org (abaixo).
+
+### ⚠️ O cron do GitHub NÃO é confiável
+Em 23/09/2026 os dois agendamentos do dia (08:00 e 20:00) simplesmente não dispararam, sem erro nenhum —
+o GitHub trata `schedule` como "melhor esforço" e pula quando está sobrecarregado. Por isso o gatilho
+principal é o **cron-job.org** (gratuito, pontual), que chama a API do GitHub e dispara o workflow.
+O cron do GitHub fica só de backup; a trava de 5 h evita mensagem em dobro quando os dois funcionam.
+
+#### Configurar o cron-job.org (uma vez)
+1. **Token do GitHub:** GitHub → foto de perfil → *Settings* → *Developer settings* → *Personal access tokens* →
+   *Fine-grained tokens* → *Generate new token*.
+   - Repository access: *Only select repositories* → `planner_almeida`
+   - Permissions → Repository permissions → **Actions: Read and write**
+   - Expiration: 1 ano (anota a data pra renovar). Copia o token (`github_pat_...`).
+2. **Conta no cron-job.org:** https://cron-job.org → *Sign up* (grátis).
+3. **Criar o job** (*Create cronjob*):
+   - Title: `Relatório FinançasCasal`
+   - URL: `https://api.github.com/repos/almeidapaulojr08-ai/planner_almeida/actions/workflows/relatorio.yml/dispatches`
+   - Schedule → *Custom* → Timezone `America/Sao_Paulo`, horas `8,20`, minuto `7`
+   - Aba **Advanced**:
+     - Request method: **POST**
+     - Headers: `Authorization` = `Bearer github_pat_...` · `Accept` = `application/vnd.github+json` · `Content-Type` = `application/json`
+     - Request body: `{"ref":"main","inputs":{"force":"false"}}`
+   - Salvar. Botão *Test run* → tem que voltar **HTTP 204** (sem corpo). Aí olha a aba Actions: apareceu um run novo.
+4. Se um dia o token expirar, o cron-job.org passa a receber 401 e manda e-mail avisando — é só gerar outro token e trocar no header.
 
 ---
 
