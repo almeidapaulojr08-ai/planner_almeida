@@ -11,11 +11,11 @@
  *
  * Trocar CACHE_VERSION força limpar o cache antigo no próximo deploy.
  */
-const CACHE_VERSION = 'fincasal-v1';
+const CACHE_VERSION = 'fincasal-v2';
 const OFFLINE_CACHE = CACHE_VERSION + '-shell';
 const ASSET_CACHE = CACHE_VERSION + '-assets';
 
-const CDN_HOSTS = ['cdn.tailwindcss.com', 'cdn.jsdelivr.net', 'cdnjs.cloudflare.com', 'www.gstatic.com'];
+const CDN_HOSTS = ['cdn.tailwindcss.com', 'cdn.jsdelivr.net', 'cdnjs.cloudflare.com', 'www.gstatic.com', 'fonts.googleapis.com', 'fonts.gstatic.com'];
 
 self.addEventListener('install', (event) => {
   // Já pré-carrega o app pra funcionar offline desde a primeira visita
