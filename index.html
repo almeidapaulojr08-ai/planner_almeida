@@ -2417,7 +2417,109 @@ function updateSyncStatus(status) {
   else if (status === 'syncing') { el.textContent = '🔄'; el.title = 'Syncing...'; }
 }
 
-let _isSyncing = false;
+// ─── SYNC GRANULAR ────────────────────────────────────────────────────────────
+// Cada coleção vive no Firebase como objeto {id: item} (não mais array inteiro).
+// save() calcula o que mudou desde o último snapshot recebido (_remote) e manda só
+// isso num único update() multi-path. Dois dispositivos editando itens diferentes
+// ao mesmo tempo não se sobrescrevem mais.
+const ID_COLLECTIONS = ['transactions', 'accounts', 'debts', 'investments', 'deletedIds', 'loveMessages'];
+const KEY_FIELDS     = ['settings', 'budget', 'catOrcGroup', 'chatHistory', 'customCats', 'customBanks'];
+let _remote = null;             // último estado conhecido do Firebase (strings estáveis por id)
+let _migrateColls = new Set();  // coleções ainda no formato antigo (array) → reescrever a chave inteira 1x
+let _inflight = 0;              // escritas em andamento
+let _pendingSnapshot = null;    // snapshot que chegou durante uma escrita (processa depois)
+let _lastPushFail = 0;          // quando a última escrita falhou (limita retentativa automática)
+
+// Normaliza como o Firebase armazena: chaves ordenadas, sem null/undefined/vazios.
+// Assim comparar stableStr(local) === stableStr(remoto) não dá falso positivo.
+function fbNormalize(v) {
+  if (v === null || v === undefined) return undefined;
+  if (Array.isArray(v)) {
+    const out = v.map(fbNormalize).map(x => x === undefined ? null : x);
+    return out.length ? out : undefined;
+  }
+  if (typeof v === 'object') {
+    const out = {};
+    Object.keys(v).sort().forEach(k => { const x = fbNormalize(v[k]); if (x !== undefined) out[k] = x; });
+    return Object.keys(out).length ? out : undefined;
+  }
+  return v;
+}
+function stableStr(v) { const n = fbNormalize(v); return n === undefined ? '' : JSON.stringify(n); }
+
+// Formato antigo = chave do Firebase não bate com o id do item (array posicional 0,1,2...).
+function _isLegacyShape(v) {
+  if (!v || typeof v !== 'object') return false;
+  if (Array.isArray(v)) return v.some((it, i) => it && String(it.id) !== String(i));
+  return Object.keys(v).some(k => v[k] && String(v[k].id) !== k);
+}
+
+function _snapshotToRemote(fbData) {
+  const r = {};
+  ID_COLLECTIONS.forEach(c => {
+    r[c] = {};
+    fbToArray(fbData[c]).forEach(it => { if (it && it.id) r[c][String(it.id)] = stableStr(it); });
+  });
+  KEY_FIELDS.forEach(k => { r[k] = stableStr(fbData[k]); });
+  return r;
+}
+
+// Envia pro Firebase SÓ o que mudou em relação a _remote. Se _remote é null (primeiro uso
+// ou falha anterior), grava tudo por id de uma vez.
+function pushToFirebase() {
+  if (!db || !firebaseAuthReady || !firebaseReady) return;
+  const clean = v => JSON.parse(JSON.stringify(v === undefined ? null : v));
+  const full = !_remote;
+  const next = full ? {} : _remote;
+  const upd = {};
+
+  ID_COLLECTIONS.forEach(c => {
+    const local = (S[c] || []).filter(it => it && it.id);
+    if (full || _migrateColls.has(c) || !next[c]) {
+      // Reescreve a chave inteira no formato {id: item}
+      const obj = {}; next[c] = {};
+      local.forEach(it => { obj[String(it.id)] = clean(it); next[c][String(it.id)] = stableStr(it); });
+      upd[c] = obj;
+      return;
+    }
+    const seen = new Set();
+    local.forEach(it => {
+      const id = String(it.id); seen.add(id);
+      const str = stableStr(it);
+      if (next[c][id] !== str) { upd[c + '/' + id] = clean(it); next[c][id] = str; }
+    });
+    Object.keys(next[c]).forEach(id => {
+      if (!seen.has(id)) { upd[c + '/' + id] = null; delete next[c][id]; }
+    });
+  });
+
+  KEY_FIELDS.forEach(k => {
+    const str = stableStr(S[k]);
+    if (full || next[k] !== str) { upd[k] = clean(S[k]); next[k] = str; }
+  });
+
+  _remote = next;
+  _migrateColls.clear();
+  const nPaths = Object.keys(upd).length;
+  if (!nPaths) { updateSyncStatus('ok'); return; }
+
+  updateSyncStatus('syncing');
+  _inflight++;
+  db.ref('data').update(upd).then(() => {
+    updateSyncStatus('ok');
+  }).catch(e => {
+    _remote = null; // próximo save regrava tudo
+    _lastPushFail = Date.now();
+    console.warn('Firebase save error:', e);
+    updateSyncStatus('error');
+  }).finally(() => {
+    _inflight--;
+    if (_inflight === 0 && _pendingSnapshot) {
+      const snap = _pendingSnapshot; _pendingSnapshot = null;
+      _onFirebaseValue(snap);
+    }
+  });
+}
 
 // Merge dois arrays por ID — mantém ambos os lados, prefere o mais recente por updatedAt
 // Tombstones impedem que itens deletados ressuscitem
@@ -2470,16 +2572,31 @@ function initFirebaseSync() {
 
 function _startFirebaseListener() {
   db.ref('data').on('value', (snapshot) => {
-    if (_isSyncing) return;
+    // Chegou snapshot no meio de uma escrita nossa: guarda o mais recente e processa
+    // quando a escrita terminar (antes era descartado → perdia mudança do outro dispositivo)
+    if (_inflight > 0) { _pendingSnapshot = snapshot; return; }
+    _onFirebaseValue(snapshot);
+  }, (error) => {
+    console.error('Firebase listen error:', error.code, error.message);
+    updateSyncStatus('error');
+  });
+}
 
+function _onFirebaseValue(snapshot) {
     const fbData = snapshot.val();
 
     // Firebase vazio — primeiro uso. Marcar como pronto e enviar dados locais.
     if (!fbData) {
+      _remote = null;
       firebaseReady = true;
       save();
       return;
     }
+
+    // Coleções ainda no formato antigo (array) serão reescritas 1x como {id: item}
+    ID_COLLECTIONS.forEach(c => { if (_isLegacyShape(fbData[c])) _migrateColls.add(c); });
+    if (_migrateColls.size) console.log('[sync] migrando para formato por id:', [..._migrateColls].join(', '));
+    _remote = _snapshotToRemote(fbData);
 
     // ── FIREBASE É A FONTE DA VERDADE ──
     // Substituir estado local com dados do Firebase (sem merge)
@@ -2562,17 +2679,20 @@ function _startFirebaseListener() {
     });
     if (txRepaired) console.log(`[reparo] ${txRepaired} parcela(s) com data corrigida`);
 
-    // Salvar reparos no Firebase numa única escrita
-    if (needsRepair || txRepaired) {
-      _isSyncing = true;
-      const upd = { accounts: S.accounts, customCats: S.customCats };
-      if (txRepaired) upd.transactions = S.transactions;
-      db.ref('data').update(upd).then(() => { _isSyncing = false; updateSyncStatus('ok'); })
-        .catch(() => { _isSyncing = false; });
-    }
+    // 4. Tombstones com mais de 30 dias saem do Firebase (antes só limpava o localStorage)
+    const cutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+    const nTombs = S.deletedIds.length;
+    S.deletedIds = S.deletedIds.filter(t => t && t.deletedAt > cutoff);
+    const tombsRemoved = nTombs - S.deletedIds.length;
 
     // Marcar Firebase como carregado ANTES de cachear e renderizar
     firebaseReady = true;
+
+    // Reparos / migração / limpeza vão pro Firebase numa única escrita (só o que mudou).
+    // Se a última escrita falhou (ex.: sem permissão), espera 1 min antes de tentar de novo
+    // automaticamente — evita loop de escrita falha → snapshot → escrita falha.
+    const autoPushOk = Date.now() - _lastPushFail > 60000;
+    if ((needsRepair || txRepaired || tombsRemoved || _migrateColls.size) && autoPushOk) pushToFirebase();
 
     // Cachear no localStorage (backup offline)
     localStorage.setItem('fincasal_v2', JSON.stringify(S));
@@ -2598,10 +2718,6 @@ function _startFirebaseListener() {
     }
 
     updateSyncStatus('ok');
-  }, (error) => {
-    console.error('Firebase listen error:', error.code, error.message);
-    updateSyncStatus('error');
-  });
 }
 
 // ─── STATE ────────────────────────────────────────────────────────────────────
@@ -2719,32 +2835,9 @@ function load() {
 
 function save() {
   localStorage.setItem('fincasal_v2', JSON.stringify(S));
-  // Só enviar pro Firebase se ele já carregou pelo menos 1x (evita sobrescrever dados reais com defaults)
-  if (db && firebaseAuthReady && firebaseReady) {
-    updateSyncStatus('syncing');
-    _isSyncing = true;
-    db.ref('data').set({
-      transactions: S.transactions,
-      accounts: S.accounts,
-      settings: S.settings,
-      debts: S.debts || [],
-      investments: S.investments || [],
-      deletedIds: S.deletedIds || [],
-      budget: S.budget || {},
-      catOrcGroup: S.catOrcGroup || {},
-      chatHistory: S.chatHistory || [],
-      customCats: S.customCats || null,
-      customBanks: S.customBanks || null,
-      loveMessages: S.loveMessages || []
-    }).then(() => {
-      _isSyncing = false;
-      updateSyncStatus('ok');
-    }).catch(e => {
-      _isSyncing = false;
-      console.warn('Firebase save error:', e);
-      updateSyncStatus('error');
-    });
-  }
+  // Só envia pro Firebase se ele já carregou pelo menos 1x (evita sobrescrever dados reais
+  // com defaults). Manda só o que mudou, por item — ver pushToFirebase().
+  pushToFirebase();
 }
 
 // ─── USD RATE ─────────────────────────────────────────────────────────────────
