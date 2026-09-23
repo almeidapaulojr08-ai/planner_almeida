@@ -9,6 +9,12 @@ patrimônio) pro Telegram de vocês dois, automático, pelo GitHub Actions.
 - Trava anti-duplicata: se já enviou há menos de 5 h, o script pula (grava `reportMeta/lastSentAt` no Firebase).
 - Trocar horário: editar o `cron` em `.github/workflows/relatorio.yml` (está em UTC; BRT = UTC-3) **e** o horário no cron-job.org (abaixo).
 
+### ✅ Gatilho em uso: tarefa agendada no PC do Paulo (23/09/2026)
+Tarefa do Windows **"FinancasCasal - Relatorio Telegram"** (Agendador de Tarefas) roda `reports/disparar_relatorio.cmd`
+às **08:07 e 20:07**, que chama `gh workflow run relatorio.yml -f force=false`. Se o PC estava desligado no horário,
+roda assim que ligar. Log em `%LOCALAPPDATA%incasal_relatorio.log`. Se um dia quiser algo que não dependa do PC,
+usar o cron-job.org (abaixo).
+
 ### ⚠️ O cron do GitHub NÃO é confiável
 Em 23/09/2026 os dois agendamentos do dia (08:00 e 20:00) simplesmente não dispararam, sem erro nenhum —
 o GitHub trata `schedule` como "melhor esforço" e pula quando está sobrecarregado. Por isso o gatilho
