@@ -7302,7 +7302,7 @@ async function sendChat() {
 
       removeTyping(typId);
       const reply = result.text || 'Pronto!';
-      addBubble('ai', reply.replace(/\n/g, '<br>'));
+      addBubble('ai', mdToHtml(reply));
 
       // Save to chat history
       S.chatHistory.push({ role: 'user', text: displayMsg, at: new Date().toISOString() });
@@ -7905,6 +7905,33 @@ function parseFaturaText(text, refMonth, refYear) {
     }
   }
   return results;
+}
+
+// Markdown leve → HTML (negrito, itálico, código, listas, títulos). Escapa HTML antes.
+function mdToHtml(md) {
+  const esc = String(md || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const lines = esc.split('\n');
+  let html = '', inList = false;
+  const inline = t => t
+    .replace(/`([^`]+)`/g, '<code style="background:var(--surface-2);padding:1px 5px;border-radius:4px;font-size:12px;">$1</code>')
+    .replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>')
+    .replace(/(^|[^*])\*([^*\n]+)\*(?!\*)/g, '$1<i>$2</i>');
+  for (const raw of lines) {
+    const line = raw.trimEnd();
+    const li = /^\s*[-•*]\s+(.*)$/.exec(line);
+    if (li) {
+      if (!inList) { html += '<ul style="margin:6px 0 6px 18px;padding:0;">'; inList = true; }
+      html += '<li style="margin:2px 0;">' + inline(li[1]) + '</li>';
+      continue;
+    }
+    if (inList) { html += '</ul>'; inList = false; }
+    const h = /^#{1,3}\s+(.*)$/.exec(line);
+    if (h) { html += '<div style="font-weight:700;margin:8px 0 4px;">' + inline(h[1]) + '</div>'; continue; }
+    if (line === '') { html += '<div style="height:6px;"></div>'; continue; }
+    html += '<div>' + inline(line) + '</div>';
+  }
+  if (inList) html += '</ul>';
+  return html;
 }
 
 function addBubble(role, text) {
