@@ -1107,7 +1107,9 @@ function renderProjecao(ym) {
   const recAuto = tipico(recs);
   const rendaManual = parseFloat(S.settings.rendaMensal) || 0;   // ajuste manual (campo no card)
   const recM = rendaManual > 0 ? rendaManual : recAuto;
-  const espM = tipico(esps);
+  const espAuto = tipico(esps);
+  const varManual = parseFloat(S.settings.variavelMensal) || 0;   // ajuste manual do gasto variável
+  const espM = varManual > 0 ? varManual : espAuto;
   // saldo atual em contas (não cartão): receitas - despesas lançadas até hoje
   const contas = S.accounts.filter(a => a.accountType !== 'cartao' && (titularFilter === 'ambos' || a.owner === (titularFilter === 'paulo' ? S.settings.u1 : S.settings.u2)));
   const hoje = new Date().toISOString().slice(0, 10);
@@ -1132,8 +1134,11 @@ function renderProjecao(ym) {
       <span style="font-size:11px;color:var(--muted);display:flex;align-items:center;gap:6px;flex-wrap:wrap;">saldo em conta hoje ${brl(saldo)} · entradas/mês:
         <span style="position:relative;display:inline-block;"><span style="position:absolute;left:8px;top:50%;transform:translateY(-50%);font-size:11px;">R$</span>
         <input type="number" step="100" value="${Math.round(recM)}" onchange="S.settings.rendaMensal = parseFloat(this.value) || 0; save(); renderProjecao('${ym}')" title="Entradas mensais esperadas. Vazio = mediana dos últimos 6 meses (${brl(recAuto)}), ignorando meses fora do padrão" style="width:110px;padding:3px 6px 3px 26px;border:1px solid var(--border);border-radius:6px;font-size:11px;background:var(--surface);color:var(--text);"></span>
-        ${rendaManual > 0 ? `<a href="#" onclick="S.settings.rendaMensal = 0; save(); renderProjecao('${ym}'); return false;" style="color:var(--text-3);">usar automático (${brl(recAuto)})</a>` : '<span>(automático: mediana de 6 meses)</span>'}
-        · variável estimado = mediana dos gastos avulsos do dia a dia (ignora lançamentos acima de R$ 10 mil e receitas acima de R$ 20 mil)</span></div>
+        ${rendaManual > 0 ? `<a href="#" onclick="S.settings.rendaMensal = 0; save(); renderProjecao('${ym}'); return false;" style="color:var(--text-3);">(auto: ${brl(recAuto)})</a>` : '<span>(auto)</span>'}
+        · variável/mês:
+        <span style="position:relative;display:inline-block;"><span style="position:absolute;left:8px;top:50%;transform:translateY(-50%);font-size:11px;">R$</span>
+        <input type="number" step="100" value="${Math.round(espM)}" onchange="S.settings.variavelMensal = parseFloat(this.value) || 0; save(); renderProjecao('${ym}')" title="Gasto variável esperado por mês (fora recorrentes e parcelas). Vazio = mediana dos últimos 6 meses (${brl(espAuto)}), ignorando lançamentos acima de R$ 10 mil" style="width:110px;padding:3px 6px 3px 26px;border:1px solid var(--border);border-radius:6px;font-size:11px;background:var(--surface);color:var(--text);"></span>
+        ${varManual > 0 ? `<a href="#" onclick="S.settings.variavelMensal = 0; save(); renderProjecao('${ym}'); return false;" style="color:var(--text-3);">(auto: ${brl(espAuto)})</a>` : '<span>(auto: mediana de 6 meses, sem lançamentos > R$ 10 mil)</span>'}</span></div>
     <div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:13px;">
       <thead><tr style="color:var(--muted);font-size:11px;text-align:right;"><th style="text-align:left;padding:6px 8px;">Mês</th><th style="padding:6px 8px;">Entradas</th><th style="padding:6px 8px;">Já lançado</th><th style="padding:6px 8px;">Variável estimado</th><th style="padding:6px 8px;">Resultado</th><th style="padding:6px 8px;">Saldo projetado</th><th style="padding:6px 8px;text-align:center;">Cenário</th></tr></thead>
       <tbody>` + rows.map(r => `<tr style="border-top:1px solid var(--surface-2);text-align:right;">
