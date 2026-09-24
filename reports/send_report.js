@@ -26,10 +26,13 @@ function fbToArray(obj) {
 }
 
 // Chama a API da Anthropic (HTTP direto; sem SDK pra não inflar o npm install do Actions)
-async function gerarLeituraIA(relatorioHtml) {
+async function gerarLeituraIA(relatorioHtml, nome) {
   const key = process.env.ANTHROPIC_API_KEY;
   if (!key) return null;
   const texto = relatorioHtml.replace(/<[^>]+>/g, '');
+  const foco = nome
+    ? `Este relatório é SÓ do ${nome} (contas, gastos, faturas e parcelas em nome dele/dela). Fale diretamente com ${nome}, na segunda pessoa, sobre os números dele/dela.`
+    : 'Este relatório é o consolidado do casal. Fale com os dois.';
   try {
     const res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -44,7 +47,7 @@ async function gerarLeituraIA(relatorioHtml) {
         max_tokens: 600,
         fallbacks: 'default',
         output_config: { effort: 'low' },
-        system: 'Você é Salem, assistente financeiro de um casal brasileiro (Paulo e Thayse). Recebe um relatório com saldos, gastos do mês, faturas e parcelas. Escreva 2 ou 3 frases curtas em PT-BR, tom de colega, apontando o que mais merece atenção (ritmo do mês, fatura pesada, algo fora do padrão) e, se couber, um elogio honesto. Sem saudação, sem lista, sem markdown, sem inventar números que não estejam no relatório.',
+        system: 'Você é Salem, assistente financeiro de um casal brasileiro (Paulo e Thayse). Recebe um relatório com saldos, gastos do mês, faturas e parcelas. ' + foco + ' Escreva 2 ou 3 frases curtas em PT-BR, tom de colega, apontando o que mais merece atenção (ritmo do mês, fatura pesada, algo fora do padrão) e, se couber, um elogio honesto. Sem saudação, sem lista, sem markdown, sem inventar números que não estejam no relatório.',
         messages: [{ role: 'user', content: texto }]
       })
     });
@@ -236,9 +239,12 @@ async function main() {
   let relatorioCasal = buildReport(null);
   const cachePessoa = {};
 
-  // ── Leitura em 2–3 frases pelo Claude (opcional) ──
-  const leitura = await gerarLeituraIA(relatorioCasal);
-  if (leitura) relatorioCasal = relatorioCasal.replace('\n', '\n' + `<i>${leitura}</i>\n`);
+  // ── Leitura em 2–3 frases pelo Claude (opcional): no geral e em cada relatório individual ──
+  const comLeitura = async (rel, nome) => {
+    const leitura = await gerarLeituraIA(rel, nome);
+    return leitura ? rel.replace('\n', '\n' + `<i>${leitura}</i>\n`) : rel;
+  };
+  relatorioCasal = await comLeitura(relatorioCasal, null);
 
   async function enviar(chatId, texto) {
     const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
@@ -253,7 +259,7 @@ async function main() {
   for (const d of destinos) {
     await enviar(d.id, relatorioCasal);                 // 1ª msg: geral (casal)
     if (d.nome) {                                        // 2ª msg: só os dados da pessoa
-      if (!(d.nome in cachePessoa)) cachePessoa[d.nome] = buildReport(d.nome);
+      if (!(d.nome in cachePessoa)) cachePessoa[d.nome] = await comLeitura(buildReport(d.nome), d.nome);
       await enviar(d.id, cachePessoa[d.nome]);
     }
   }
