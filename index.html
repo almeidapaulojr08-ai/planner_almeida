@@ -183,14 +183,15 @@
 
     /* Form input style */
     /* Autocomplete da descrição (lançamento rápido) */
-    .suggest-box { position: absolute; left: 0; right: 0; top: calc(100% - 22px); z-index: 50; background: var(--surface); border: 1.5px solid var(--border);
+    .suggest-box { position: absolute; left: 0; width: calc(200% + 14px); min-width: 320px; top: 100%; margin-top: 4px; z-index: 50; background: var(--surface); border: 1.5px solid var(--border);
       border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.12); overflow: hidden; max-height: 320px; overflow-y: auto; }
     .suggest-item { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 14px; cursor: pointer;
       border-bottom: 1px solid var(--surface-2); }
     .suggest-item:last-child { border-bottom: none; }
     .suggest-item:hover, .suggest-item.active { background: var(--tint-indigo); }
-    .suggest-item .s-desc { font-weight: 600; font-size: 14px; color: var(--text); }
-    .suggest-item .s-meta { font-size: 12px; color: var(--text-3); margin-top: 2px; }
+    .suggest-item > div:first-child { min-width: 0; }
+    .suggest-item .s-desc { font-weight: 600; font-size: 14px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .suggest-item .s-meta { font-size: 12px; color: var(--text-3); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .suggest-item .s-right { text-align: right; flex-shrink: 0; }
     .suggest-item .s-amt { font-size: 13px; font-weight: 600; color: var(--text-2); }
     .suggest-item .s-cnt { font-size: 11px; color: var(--muted); }
@@ -3661,7 +3662,8 @@ function findSuggestions(q) {
 }
 function suggestMeta(t) {
   const acc = S.accounts.find(a => a.id === t.accountId);
-  const accName = acc ? `${(BANKS[acc.bank] || {}).name || acc.bank} — ${acc.label}` : '';
+  const bankName = acc ? ((BANKS[acc.bank] || {}).name || acc.bank) : '';
+  const accName = !acc ? '' : (String(acc.label || '').toLowerCase().includes(String(bankName).toLowerCase()) ? acc.label : `${bankName} ${acc.label || ''}`.trim());
   const cat = [t.category, t.subcategory].filter(Boolean).join(' › ');
   const forma = t.type === 'despesa' ? (t.formaPgto === 'credito' ? 'Crédito' : 'Débito') : (t.type === 'receita' ? 'Receita' : '');
   return [cat, accName, forma, t.user].filter(Boolean).join(' · ');
