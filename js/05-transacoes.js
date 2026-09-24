@@ -12,6 +12,7 @@ function setType(t) {
   document.getElementById('f-row-pago').style.display       = isDespesa ? 'block' : 'none';
   document.getElementById('f-row-pagamento').style.display  = isDespesa ? 'block' : 'none';
   document.getElementById('f-row-recorrente').style.display = isDespesa ? 'block' : 'none';
+  document.getElementById('f-row-compartilhada').style.display = isDespesa ? 'block' : 'none';
   if (!isDespesa) { document.getElementById('f-recorrente').checked = false; document.getElementById('f-recorrente-meses-row').style.display = 'none'; }
   document.getElementById('f-row-custo-tipo').style.display = isDespesa ? 'block' : 'none';
   document.getElementById('f-row-parcela').style.display    = 'none';
@@ -296,6 +297,7 @@ function saveTransacao(e) {
     pago:         isDespesa ? document.getElementById('f-pago').checked : true,
     formaPgto:    isDespesa ? formaPgto : null,
     recorrente:   isDespesa ? document.getElementById('f-recorrente').checked : false,
+    compartilhada: isDespesa ? document.getElementById('f-compartilhada').checked : false,
     custoTipo:    isDespesa ? custoTipo : null,
     at:           new Date().toISOString(),
     updatedAt:    new Date().toISOString()
@@ -377,6 +379,7 @@ function saveTransacao(e) {
   document.getElementById('f-notas').value = '';
   document.getElementById('f-pago').checked = false;
   document.getElementById('f-recorrente').checked = false;
+  document.getElementById('f-compartilhada').checked = false;
   document.getElementById('f-recorrente-meses-row').style.display = 'none';
   document.getElementById('f-recorrente-meses').value = '12';
   document.getElementById('f-parcelado').checked = false;
@@ -457,6 +460,7 @@ function abrirEditModal(id) {
   }
   if (t.type === 'despesa') document.getElementById('ed-pago').checked = t.pago !== false;
   if (t.type === 'despesa') document.getElementById('ed-recorrente').checked = t.recorrente === true;
+  if (t.type === 'despesa') document.getElementById('ed-compartilhada').checked = t.compartilhada === true;
   if (t.type === 'despesa') {
     setEditCustoTipo(t.custoTipo || autoCustoTipo(t.category));
   }
@@ -476,6 +480,7 @@ function onEditTypeChange() {
   document.getElementById('ed-row-pagamento').style.display = isDespesa ? 'block' : 'none';
   document.getElementById('ed-row-pago').style.display = isDespesa ? 'block' : 'none';
   document.getElementById('ed-row-recorrente').style.display = isDespesa ? 'block' : 'none';
+  document.getElementById('ed-row-compartilhada').style.display = isDespesa ? 'block' : 'none';
   document.getElementById('ed-row-custo-tipo').style.display = isDespesa ? 'block' : 'none';
 
   // Populate conta select
@@ -554,6 +559,7 @@ function salvarEdicao() {
     notes:      document.getElementById('ed-notes').value.trim(),
     pago:       isDespesa ? document.getElementById('ed-pago').checked : true,
     recorrente: isDespesa ? document.getElementById('ed-recorrente').checked : false,
+    compartilhada: isDespesa ? document.getElementById('ed-compartilhada').checked : false,
     formaPgto:  isDespesa ? editFormaPgto : null,
     custoTipo:  isDespesa ? editCustoTipo : null,
     updatedAt:  new Date().toISOString(),

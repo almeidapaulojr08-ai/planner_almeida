@@ -12,6 +12,7 @@ let S = {
   investments: [],
   deletedIds: [],
   loveMessages: [],
+  acertos: {},          // { 'YYYY-MM': { amount, from, to, at } } — acerto de contas do casal
   customCats: null,
   settings: {
     u1: '', u2: '',
@@ -108,6 +109,7 @@ function load() {
     if (d.investments)  S.investments  = d.investments;
     if (d.deletedIds)   S.deletedIds   = d.deletedIds;
     if (d.loveMessages) S.loveMessages = d.loveMessages;
+    if (d.acertos)      S.acertos      = d.acertos;
     if (d.customCats)   S.customCats   = d.customCats;
     if (d.customBanks)  { S.customBanks = d.customBanks; Object.assign(BANKS, d.customBanks); }
     if (d.settings)     S.settings     = { ...S.settings, ...d.settings };

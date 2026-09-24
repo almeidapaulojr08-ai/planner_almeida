@@ -664,6 +664,8 @@ function renderDashConta(ym, ymPrev) {
   renderCatStackedChart();
   renderRecent();
   renderInsights(ym);
+  renderConfirmar(ym);
+  renderProjecao(ym);
 }
 
 function toggleCardBreakdown(type) {
@@ -971,9 +973,156 @@ function renderInsights(ym) {
     }
   } catch (e) {}
 
+  // 6. Acerto do casal (despesas marcadas como "do casal", divididas 50/50)
+  try {
+    const ac = calcAcerto(ym);
+    if (ac.total > 0) {
+      const feito = (S.acertos || {})[ym];
+      let valor, sub;
+      if (feito) {
+        valor = '✅ Acertado';
+        sub = `${escapeHtml(feito.from)} pagou <b>${brl(feito.amount)}</b> pra ${escapeHtml(feito.to)} em ${(feito.at || '').slice(0, 10).split('-').reverse().join('/')} · <a href="#" onclick="desfazerAcerto('${ym}');return false;" style="color:var(--text-3);">desfazer</a>`;
+      } else if (Math.abs(ac.saldo) < 0.01) {
+        valor = 'Empatados';
+        sub = `Cada um pagou ${brl(ac.total / 2)} das despesas do casal`;
+      } else {
+        valor = `${escapeHtml(ac.devedor)} deve ${brl(Math.abs(ac.saldo))}`;
+        sub = `${escapeHtml(S.settings.u1)} pagou ${brl(ac.pagou[S.settings.u1] || 0)} · ${escapeHtml(S.settings.u2)} pagou ${brl(ac.pagou[S.settings.u2] || 0)} · total ${brl(ac.total)}` +
+          ` <button onclick="marcarAcerto('${ym}')" style="margin-left:6px;padding:3px 10px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text-2);font-size:11px;font-weight:600;cursor:pointer;">Marcar acertado</button>`;
+      }
+      cards.push(insightCard('👥', 'Acerto do casal', valor, sub, feito ? '#059669' : '#ec4899'));
+    }
+  } catch (e) {}
+
   if (!cards.length) { el.style.display = 'none'; return; }
   el.style.display = 'flex';
   el.innerHTML = cards.join('');
+}
+
+// ─── ACERTO DO CASAL ──────────────────────────────────────────────────────────
+// Despesas marcadas como "do casal" são divididas 50/50. Quem pagou mais recebe a diferença.
+function calcAcerto(ym) {
+  const u1 = S.settings.u1, u2 = S.settings.u2;
+  const txs = S.transactions.filter(t => t.type === 'despesa' && t.compartilhada && !t.isTransfer && !isPgtoFatura(t) && (t.date || '').startsWith(ym));
+  const pagou = {};
+  txs.forEach(t => { pagou[t.user] = (pagou[t.user] || 0) + amountBrl(t); });
+  const total = txs.reduce((s, t) => s + amountBrl(t), 0);
+  const saldo = ((pagou[u1] || 0) - (pagou[u2] || 0)) / 2;   // >0: u2 deve pra u1
+  return { total, pagou, saldo, devedor: saldo > 0 ? u2 : u1, credor: saldo > 0 ? u1 : u2, n: txs.length };
+}
+function marcarAcerto(ym) {
+  const ac = calcAcerto(ym);
+  if (!S.acertos) S.acertos = {};
+  S.acertos[ym] = { amount: Math.round(Math.abs(ac.saldo) * 100) / 100, from: ac.devedor, to: ac.credor, at: new Date().toISOString() };
+  save(); renderInsights(ym);
+  toast(`✅ Acerto de ${MESES_FULL[parseInt(ym.slice(5, 7)) - 1]} registrado`);
+}
+function desfazerAcerto(ym) {
+  if (S.acertos) delete S.acertos[ym];
+  save(); renderInsights(ym);
+}
+
+// ─── CONTAS DO MÊS PRA CONFIRMAR ──────────────────────────────────────────────
+// Despesas de débito ainda pendentes no mês (recorrentes geradas + lançadas como pendentes).
+// Confirmar = marcar como paga (com o valor ajustado); "Não veio" = remove só esta ocorrência.
+function renderConfirmar(ym) {
+  const el = document.getElementById('dash-confirmar');
+  if (!el) return;
+  const pend = txByTitular(S.transactions).filter(t => t.type === 'despesa' && t.pago === false && t.formaPgto !== 'credito'
+    && !t.isTransfer && !isPgtoFatura(t) && (t.date || '').startsWith(ym)).sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+  if (!pend.length) { el.style.display = 'none'; return; }
+  const total = pend.reduce((s, t) => s + amountBrl(t), 0);
+  el.style.display = 'block';
+  el.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px;">
+      <div><span style="font-size:14px;font-weight:700;color:var(--text);">📋 Contas do mês pra confirmar</span>
+        <span style="font-size:12px;color:var(--muted);margin-left:8px;">${pend.length} pendente${pend.length !== 1 ? 's' : ''} · ${brl(total)}</span></div>
+      <button onclick="confirmarTodas('${ym}')" style="padding:6px 12px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text-2);font-size:12px;font-weight:600;cursor:pointer;">Confirmar todas</button>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:6px;">` +
+    pend.map(t => {
+      const acc = S.accounts.find(a => a.id === t.accountId);
+      return `<div id="conf-${t.id}" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:10px;background:var(--bg);flex-wrap:wrap;">
+        <div style="flex:1;min-width:160px;"><div style="font-size:13px;font-weight:600;color:var(--text);">${escapeHtml(t.desc)}${t.recorrente ? ' <span style="font-size:10px;color:#15803d;">🔁</span>' : ''}</div>
+          <div style="font-size:11px;color:var(--muted);">${(t.date || '').split('-').reverse().join('/')} · ${acc ? escapeHtml(acc.label) : ''} · ${escapeHtml(t.category || '')}</div></div>
+        <div style="position:relative;"><span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:12px;color:var(--text-3);">R$</span>
+          <input type="number" step="0.01" id="conf-val-${t.id}" value="${Number(t.amount || 0).toFixed(2)}" style="width:120px;padding:6px 8px 6px 30px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;background:var(--surface);color:var(--text);"></div>
+        <button onclick="confirmarConta('${t.id}')" style="padding:7px 12px;border-radius:8px;border:none;background:#059669;color:white;font-size:12px;font-weight:700;cursor:pointer;">Confirmar</button>
+        <button onclick="pularConta('${t.id}')" title="Remove só esta ocorrência" style="padding:7px 10px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text-3);font-size:12px;cursor:pointer;">Não veio</button>
+      </div>`;
+    }).join('') + '</div>';
+}
+function confirmarConta(id) {
+  const t = S.transactions.find(x => x.id === id); if (!t) return;
+  const v = parseFloat((document.getElementById('conf-val-' + id) || {}).value);
+  if (v > 0) t.amount = v;
+  t.pago = true; t.updatedAt = new Date().toISOString();
+  save(); renderDashboard();
+  toast(`✅ ${t.desc} confirmada: ${brl(t.amount)}`);
+}
+function confirmarTodas(ym) {
+  const pend = txByTitular(S.transactions).filter(t => t.type === 'despesa' && t.pago === false && t.formaPgto !== 'credito' && !t.isTransfer && !isPgtoFatura(t) && (t.date || '').startsWith(ym));
+  pend.forEach(t => { const v = parseFloat((document.getElementById('conf-val-' + t.id) || {}).value); if (v > 0) t.amount = v; t.pago = true; t.updatedAt = new Date().toISOString(); });
+  save(); renderDashboard();
+  toast(`✅ ${pend.length} conta${pend.length !== 1 ? 's' : ''} confirmada${pend.length !== 1 ? 's' : ''}`);
+}
+function pularConta(id) {
+  const idx = S.transactions.findIndex(x => x.id === id); if (idx < 0) return;
+  const t = S.transactions[idx];
+  S.deletedIds.push({ id, collection: 'transactions', deletedAt: new Date().toISOString() });
+  S.transactions.splice(idx, 1);
+  save(); renderDashboard();
+  toast(`🗑️ ${t.desc} removida deste mês`);
+}
+
+// ─── PROJEÇÃO DE CAIXA (3 meses) ──────────────────────────────────────────────
+// Estimativa simples: entradas = média das receitas dos últimos 3 meses; saídas = o que já está
+// lançado no mês (recorrentes, parcelas) + média do gasto "espontâneo" (não recorrente, não parcela)
+// dos últimos 3 meses. Compras no cartão contam pela data da compra.
+function renderProjecao(ym) {
+  const el = document.getElementById('dash-projecao');
+  if (!el) return;
+  const hojeYM = new Date().toISOString().slice(0, 7);
+  if (ym !== hojeYM) { el.style.display = 'none'; return; }
+  const my = txByTitular(S.transactions);
+  const real = t => !t.isTransfer && !isPgtoFatura(t);
+  const addM = (k, n) => { const d = new Date(parseInt(k.slice(0, 4)), parseInt(k.slice(5, 7)) - 1 + n, 1); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`; };
+  const soma = (fn, k) => my.filter(t => (t.date || '').startsWith(k) && real(t) && fn(t)).reduce((s, t) => s + amountBrl(t), 0);
+  const isEspont = t => t.type === 'despesa' && !t.recorrente && !t.parcela && !t.parcelaTotal;
+  let recM = 0, espM = 0, n = 0;
+  for (let i = 1; i <= 3; i++) { const k = addM(ym, -i); const r = soma(t => t.type === 'receita', k); if (r > 0 || soma(t => t.type === 'despesa', k) > 0) { recM += r; espM += soma(isEspont, k); n++; } }
+  if (!n) { el.style.display = 'none'; return; }
+  recM /= n; espM /= n;
+  // saldo atual em contas (não cartão): receitas - despesas lançadas até hoje
+  const contas = S.accounts.filter(a => a.accountType !== 'cartao' && (titularFilter === 'ambos' || a.owner === (titularFilter === 'paulo' ? S.settings.u1 : S.settings.u2)));
+  const hoje = new Date().toISOString().slice(0, 10);
+  let saldo = 0;
+  contas.forEach(a => { S.transactions.filter(t => t.accountId === a.id && (t.date || '') <= hoje).forEach(t => { saldo += t.type === 'receita' ? amountBrl(t) : (t.type === 'despesa' ? -amountBrl(t) : 0); }); });
+  const rows = [];
+  let acum = saldo;
+  for (let i = 1; i <= 3; i++) {
+    const k = addM(ym, i);
+    const lancado = soma(t => t.type === 'despesa', k);
+    const recLanc = soma(t => t.type === 'receita', k);
+    const entradas = Math.max(recLanc, recM);
+    const saidas = lancado + espM;
+    const res = entradas - saidas;
+    acum += res;
+    const tag = res < 0 ? ['Negativo', '#e11d48', 'var(--tint-rose)'] : (res < entradas * 0.1 ? ['Apertado', '#d97706', 'var(--tint-amber)'] : ['Folga', '#059669', 'var(--tint-green)']);
+    rows.push({ k, entradas, lancado, esp: espM, saidas, res, acum, tag });
+  }
+  el.style.display = 'block';
+  el.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px;">
+      <span style="font-size:14px;font-weight:700;color:var(--text);">🔮 Projeção de caixa · próximos 3 meses</span>
+      <span style="font-size:11px;color:var(--muted);">estimativa: média dos últimos ${n} meses + o que já está lançado · saldo em conta hoje ${brl(saldo)}</span></div>
+    <div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:13px;">
+      <thead><tr style="color:var(--muted);font-size:11px;text-align:right;"><th style="text-align:left;padding:6px 8px;">Mês</th><th style="padding:6px 8px;">Entradas</th><th style="padding:6px 8px;">Já lançado</th><th style="padding:6px 8px;">Variável estimado</th><th style="padding:6px 8px;">Resultado</th><th style="padding:6px 8px;">Saldo projetado</th><th style="padding:6px 8px;text-align:center;">Cenário</th></tr></thead>
+      <tbody>` + rows.map(r => `<tr style="border-top:1px solid var(--surface-2);text-align:right;">
+        <td style="text-align:left;padding:8px;font-weight:600;color:var(--text);">${MESES_FULL[parseInt(r.k.slice(5, 7)) - 1]} ${r.k.slice(0, 4)}</td>
+        <td style="padding:8px;color:#059669;">${brl(r.entradas)}</td><td style="padding:8px;color:var(--text-2);">${brl(r.lancado)}</td><td style="padding:8px;color:var(--text-3);">${brl(r.esp)}</td>
+        <td style="padding:8px;font-weight:700;color:${r.res < 0 ? '#e11d48' : '#059669'};">${r.res < 0 ? '-' : '+'}${brl(Math.abs(r.res))}</td>
+        <td style="padding:8px;font-weight:700;color:${r.acum < 0 ? '#e11d48' : 'var(--text)'};">${brl(r.acum)}</td>
+        <td style="padding:8px;text-align:center;"><span style="font-size:11px;font-weight:700;padding:2px 10px;border-radius:20px;background:${r.tag[2]};color:${r.tag[1]};">${r.tag[0]}</span></td>
+      </tr>`).join('') + `</tbody></table></div>`;
 }
 
 function renderRecent() {

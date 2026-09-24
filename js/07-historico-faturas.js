@@ -181,6 +181,7 @@ function getFilteredTxs() {
   const recFil   = document.getElementById('fil-recorrente')?.value || '';
   if (recFil === 'sim') txs = txs.filter(t => t.recorrente === true);
   if (recFil === 'nao') txs = txs.filter(t => !t.recorrente);
+  if (recFil === 'casal') txs = txs.filter(t => t.compartilhada === true);
   if (titular)   txs = txs.filter(t => t.user === titular);
 
   txs.sort((a,b) => new Date(b.date) - new Date(a.date));
@@ -264,6 +265,7 @@ function renderHistorico() {
           ${t.parcela ? `<span style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px;background:var(--tint-amber);color:var(--on-amber);">🔄 ${t.parcela}</span>` : ''}
           ${t.custoTipo ? `<span style="font-size:11px;padding:2px 8px;border-radius:20px;background:${t.custoTipo==='fixo'?'var(--tint-indigo)':'#fff7ed'};color:${t.custoTipo==='fixo'?'#4f46e5':'#c2410c'};">${t.custoTipo==='fixo'?'📌 Fixo':'📊 Variável'}</span>` : ''}
           ${t.recorrente ? `<span style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px;background:var(--tint-green);color:#15803d;">🔁 Recorrente</span>` : ''}
+          ${t.compartilhada ? `<span style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px;background:var(--tint-pink);color:#be185d;" title="Dividida 50/50 no acerto do mês">👥 Casal</span>` : ''}
         </div>
       </div>
       <div style="text-align:right;flex-shrink:0;">

@@ -67,7 +67,7 @@ function updateSyncStatus(status) {
 // isso num único update() multi-path. Dois dispositivos editando itens diferentes
 // ao mesmo tempo não se sobrescrevem mais.
 const ID_COLLECTIONS = ['transactions', 'accounts', 'debts', 'investments', 'deletedIds', 'loveMessages'];
-const KEY_FIELDS     = ['settings', 'budget', 'catOrcGroup', 'chatHistory', 'customCats', 'customBanks'];
+const KEY_FIELDS     = ['settings', 'budget', 'catOrcGroup', 'chatHistory', 'customCats', 'customBanks', 'acertos'];
 let _remote = null;             // último estado conhecido do Firebase (strings estáveis por id)
 let _migrateColls = new Set();  // coleções ainda no formato antigo (array) → reescrever a chave inteira 1x
 let _inflight = 0;              // escritas em andamento
@@ -257,6 +257,7 @@ function _onFirebaseValue(snapshot) {
     if (fbData.catOrcGroup)  S.catOrcGroup  = fbData.catOrcGroup;
     if (fbData.chatHistory)  S.chatHistory  = fbToArray(fbData.chatHistory);
     if (fbData.customCats)   S.customCats   = fbData.customCats;
+    if (fbData.acertos)      S.acertos      = fbData.acertos;
     if (fbData.customBanks)  { S.customBanks = fbData.customBanks; Object.assign(BANKS, S.customBanks); }
     if (fbData.loveMessages) S.loveMessages = fbToArray(fbData.loveMessages).filter(m => m && (!m.id || !tombSet.has(m.id)));
 

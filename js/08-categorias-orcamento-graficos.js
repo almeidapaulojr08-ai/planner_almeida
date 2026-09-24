@@ -224,6 +224,29 @@ function setBudget(cat, val) {
   save();
 }
 
+// Preenche as metas VAZIAS do mês selecionado com a média dos últimos 6 meses (arredonda pra cima, de 10 em 10)
+function sugerirOrcamento() {
+  if (!S.budget) S.budget = {};
+  const cats = Object.keys(S.catOrcGroup || {}).filter(c => ['essencial', 'estilo'].includes(S.catOrcGroup[c]));
+  if (!cats.length) { toast('Classifique as categorias em Essencial/Estilo na tela Categorias primeiro'); return; }
+  const base = new Date(orcAno, orcMes, 1);
+  const meses = [];
+  for (let i = 1; i <= 6; i++) { const d = new Date(base.getFullYear(), base.getMonth() - i, 1); meses.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`); }
+  let n = 0;
+  cats.forEach(cat => {
+    const key = getBudgetKey(orcAno, orcMes, cat);
+    if (S.budget[key] > 0) return;                       // não mexe em meta já definida
+    let soma = 0, meseComGasto = 0;
+    meses.forEach(ym => { const v = S.transactions.filter(t => t.type === 'despesa' && t.category === cat && !t.isTransfer && !isPgtoFatura(t) && (t.date || '').startsWith(ym)).reduce((s, t) => s + amountBrl(t), 0); if (v > 0) { soma += v; meseComGasto++; } });
+    if (!meseComGasto) return;
+    S.budget[key] = Math.ceil((soma / meseComGasto) / 10) * 10;
+    n++;
+  });
+  if (!n) { toast('Todas as categorias já têm meta neste mês'); return; }
+  save(); renderOrcamento();
+  toast(`✨ ${n} meta${n !== 1 ? 's' : ''} sugerida${n !== 1 ? 's' : ''} pela média dos últimos meses — ajuste à vontade`);
+}
+
 function renderOrcamento() {
   document.getElementById('orc-ano').textContent = orcAno;
 

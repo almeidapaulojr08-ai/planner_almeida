@@ -168,6 +168,7 @@ REGRAS:
 - NUNCA estime números de cabeça: qualquer total, média, comparação ou ranking vem de summarize_transactions (agregado), get_fatura (fatura de cartão) ou get_budget (orçamento vs realizado). search_transactions serve pra listar lançamentos individuais.
 - "Este mês" = ${now.toISOString().slice(0,7)}; "mês passado" = mês anterior. Ano corrente = ${curYear}.
 - Quando o usuário perguntar "com quem/quem gastou", agrupe por usuário (group_by: user). Categorias como Pedro são category.
+- "Despesas do casal" = compartilhada:true (divididas 50/50). Pra "quem deve pra quem" use summarize_transactions com compartilhada:true e group_by:user: quem pagou mais recebe metade da diferença.
 - Despesas de cartão de crédito contam na data da compra; pagamentos de fatura já são excluídos automaticamente dos totais.
 - Use as ferramentas para adicionar, buscar, importar ou excluir transações
 - Ao adicionar transações, use IDs de conta válidos listados acima
@@ -254,6 +255,7 @@ const AI_TOOLS = [
           formaPgto: { type: 'string', enum: ['debito', 'credito'], description: 'Forma de pagamento' },
           custoTipo: { type: 'string', enum: ['fixo', 'variavel'], description: 'Custo fixo ou variável' },
           query: { type: 'string', description: 'Texto contido na descrição' },
+          compartilhada: { type: 'boolean', description: 'true = só despesas marcadas como "do casal" (divididas 50/50)' },
           group_by: { type: 'string', enum: ['category', 'subcategory', 'month', 'user', 'account', 'desc', 'formaPgto', 'custoTipo', 'none'], description: 'Como agrupar (padrão: category)' },
           limit: { type: 'number', description: 'Máximo de grupos retornados (padrão 15)' }
         },
@@ -391,6 +393,7 @@ function executeAITool(name, args) {
     if (args.formaPgto)   txs = txs.filter(t => t.formaPgto === args.formaPgto);
     if (args.custoTipo)   txs = txs.filter(t => t.custoTipo === args.custoTipo);
     if (q)                txs = txs.filter(t => normDesc(t.desc).includes(q));
+    if (args.compartilhada === true) txs = txs.filter(t => t.compartilhada === true);
     const total = txs.reduce((s, t) => s + amountBrl(t), 0);
     const gb = args.group_by || 'category';
     const keyOf = t => {

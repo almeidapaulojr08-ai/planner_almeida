@@ -67,6 +67,7 @@ function exportarDados() {
     customBanks: S.customBanks,
     deletedIds: S.deletedIds,
     loveMessages: S.loveMessages || [],
+    acertos: S.acertos || {},
     settings: { u1: S.settings.u1, u2: S.settings.u2 }
   };
   const blob = new Blob([JSON.stringify(exportData, null, 2)], {type:'application/json'});
@@ -92,6 +93,7 @@ function importarDados(e) {
       if (d.debts)        S.debts        = mergeArrayById(S.debts, d.debts, tombstones);
       if (d.investments)  S.investments  = mergeArrayById(S.investments, d.investments, tombstones);
       if (d.loveMessages) S.loveMessages = mergeArrayById(S.loveMessages || [], d.loveMessages, tombstones);
+      if (d.acertos)      S.acertos      = { ...(S.acertos || {}), ...d.acertos };
       if (d.deletedIds)   S.deletedIds   = tombstones;
       if (d.budget)       S.budget       = { ...(S.budget || {}), ...d.budget };
       if (d.catOrcGroup)  S.catOrcGroup  = { ...(S.catOrcGroup || {}), ...d.catOrcGroup };
