@@ -874,7 +874,7 @@ function insightCard(emoji, titulo, valor, sub, cor) {
   return `<div class="card" style="min-width:200px;flex:1;padding:16px;border-left:4px solid ${cor};">
     <div style="font-size:12px;color:var(--muted);font-weight:600;display:flex;align-items:center;gap:6px;">${emoji} ${titulo}</div>
     <div class="hv" style="font-size:20px;font-weight:800;color:var(--text);margin:6px 0 2px;">${valor}</div>
-    <div class="hv" style="font-size:12px;color:var(--text-3);line-height:1.4;">${escapeHtml(sub)}</div>
+    <div class="hv" style="font-size:12px;color:var(--text-3);line-height:1.4;">${sub}</div>
   </div>`;
 }
 

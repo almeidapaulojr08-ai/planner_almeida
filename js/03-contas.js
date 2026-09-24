@@ -51,7 +51,7 @@ function renderContaCard(a) {
         <p style="font-size:13px;color:var(--text-3);">${escapeHtml(a.label)}</p>
         ${isUSD ? `<span class="badge" style="background:#FFFBEA;color:var(--on-amber);">USD</span>` : ''}
       </div>
-      <p style="font-size:12px;color:var(--muted);margin-top:3px;">${escapeHtml(sub)}</p>
+      <p style="font-size:12px;color:var(--muted);margin-top:3px;">${sub}</p>
     </div>
     <div style="display:flex;gap:4px;">
       <button onclick="editarConta('${a.id}')" style="background:none;border:none;cursor:pointer;padding:8px;border-radius:8px;font-size:16px;" title="Editar" class="ico-btn" aria-label="Editar"><svg class="ico-sm"><use href="#i-edit"/></svg></button>
