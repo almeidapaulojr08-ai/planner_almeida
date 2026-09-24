@@ -40,7 +40,7 @@
       --text: #0f172a;
       --text-2: #334155;
       --text-3: #64748b;
-      --muted: #94a3b8;
+      --muted: #7b879a;      /* texto auxiliar (contraste ≥ 4:1 sobre branco) */
       --tint-indigo: #eef2ff;
       --tint-green: #ecfdf5;
       --tint-rose: #fff1f2;
@@ -65,7 +65,7 @@
       --text: #eef2f8;
       --text-2: #c9d3e6;
       --text-3: #9aa8c2;
-      --muted: #74829e;
+      --muted: #8a97b0;
       --tint-indigo: rgba(99,102,241,0.18);
       --tint-green: rgba(16,185,129,0.14);
       --tint-rose: rgba(225,29,72,0.14);
@@ -108,6 +108,7 @@
       color: var(--text-3); font-weight: 500; font-size: 14px; cursor: pointer; text-decoration: none;
       transition: background 0.15s, color 0.15s; border-right: 3px solid transparent; }
     .nav-item:hover { background: var(--surface-2); color: #4f46e5; }
+    .nav-item:focus-visible, button:focus-visible, a:focus-visible { outline: 2px solid #6366f1; outline-offset: 2px; }
 
     /* Type buttons */
     .type-btn { padding: 12px 16px; border-radius: 12px; border: 2px solid var(--border); font-weight: 600;
@@ -152,6 +153,15 @@
 
     /* Modal backdrop */
     #modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 999; display: flex; align-items: center; justify-content: center; }
+    /* Monitor largo: editar transação e faturas viram painel lateral, a lista continua visível */
+    @media (min-width: 1500px) {
+      #edit-modal #modal-backdrop, #fatura-modal #modal-backdrop { justify-content: flex-end; background: rgba(0,0,0,0.18); }
+      #edit-modal #modal-backdrop > div, #fatura-modal #modal-backdrop > div {
+        width: 560px !important; max-width: 560px !important; height: 100vh; max-height: 100vh !important;
+        border-radius: 0 !important; box-shadow: -12px 0 40px rgba(0,0,0,0.25) !important; animation: slideIn 0.18s ease-out;
+      }
+      @keyframes slideIn { from { transform: translateX(40px); opacity: 0; } to { transform: none; opacity: 1; } }
+    }
 
     /* Badge */
     .badge { font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 20px; }
@@ -458,63 +468,63 @@
   </div>
 
   <!-- Nav -->
-  <nav style="flex:1;padding:12px 10px;display:flex;flex-direction:column;gap:2px;">
-    <a class="nav-item" data-page="dashboard" onclick="goto('dashboard')">
+  <nav aria-label="Menu principal" style="flex:1;padding:12px 10px;display:flex;flex-direction:column;gap:2px;">
+    <a class="nav-item" role="button" tabindex="0" data-page="dashboard" onclick="goto('dashboard')">
       <svg class="ico"><use href="#i-dashboard"/></svg> Dashboard
     </a>
-    <a class="nav-item" data-page="contas" onclick="goto('contas')">
+    <a class="nav-item" role="button" tabindex="0" data-page="contas" onclick="goto('contas')">
       <svg class="ico"><use href="#i-contas"/></svg> Contas
     </a>
-    <a class="nav-item" data-page="nova" onclick="goto('nova')">
+    <a class="nav-item" role="button" tabindex="0" data-page="nova" onclick="goto('nova')">
       <svg class="ico"><use href="#i-nova"/></svg> Nova Transação
     </a>
-    <a class="nav-item" data-page="historico" onclick="goto('historico')">
+    <a class="nav-item" role="button" tabindex="0" data-page="historico" onclick="goto('historico')">
       <svg class="ico"><use href="#i-historico"/></svg> Histórico
     </a>
-    <a class="nav-item" data-page="categorias" onclick="goto('categorias')">
+    <a class="nav-item" role="button" tabindex="0" data-page="categorias" onclick="goto('categorias')">
       <svg class="ico"><use href="#i-categorias"/></svg> Categorias
     </a>
-    <a class="nav-item" data-page="orcamento" onclick="goto('orcamento')">
+    <a class="nav-item" role="button" tabindex="0" data-page="orcamento" onclick="goto('orcamento')">
       <svg class="ico"><use href="#i-orcamento"/></svg> Orçamento
     </a>
-    <a class="nav-item" data-page="dividas" onclick="goto('dividas')">
+    <a class="nav-item" role="button" tabindex="0" data-page="dividas" onclick="goto('dividas')">
       <svg class="ico"><use href="#i-dividas"/></svg> Dívidas
     </a>
-    <a class="nav-item" data-page="investimentos" onclick="goto('investimentos')">
+    <a class="nav-item" role="button" tabindex="0" data-page="investimentos" onclick="goto('investimentos')">
       <svg class="ico"><use href="#i-investimentos"/></svg> Investimentos
     </a>
-    <a class="nav-item" data-page="graficos" onclick="goto('graficos')">
+    <a class="nav-item" role="button" tabindex="0" data-page="graficos" onclick="goto('graficos')">
       <svg class="ico"><use href="#i-graficos"/></svg> Gráficos
     </a>
-    <a class="nav-item" data-page="chat" onclick="goto('chat')">
+    <a class="nav-item" role="button" tabindex="0" data-page="chat" onclick="goto('chat')">
       <svg class="ico"><use href="#i-chat"/></svg> Assistente IA
     </a>
   </nav>
 
   <div style="padding:10px 10px 16px;border-top:1px solid var(--surface-2);display:flex;flex-direction:column;gap:2px;">
-    <a class="nav-item" id="theme-toggle" onclick="toggleTheme()" title="Alternar tema claro/escuro">
+    <a class="nav-item" role="button" tabindex="0" id="theme-toggle" onclick="toggleTheme()" title="Alternar tema claro/escuro">
       <svg class="ico"><use href="#i-moon"/></svg> <span id="theme-label">Modo escuro</span>
     </a>
-    <a class="nav-item" data-page="config" onclick="goto('config')">
+    <a class="nav-item" role="button" tabindex="0" data-page="config" onclick="goto('config')">
       <svg class="ico"><use href="#i-config"/></svg> Configurações
     </a>
-    <a class="nav-item" data-page="mensagens" onclick="goto('mensagens')" id="nav-mensagens" style="display:none;">
+    <a class="nav-item" role="button" tabindex="0" data-page="mensagens" onclick="goto('mensagens')" id="nav-mensagens" style="display:none;">
       <svg class="ico"><use href="#i-mensagens"/></svg> Enviar Mensagem
     </a>
-    <a class="nav-item" data-page="leiaaqui" onclick="goto('leiaaqui')" id="nav-leiaaqui" style="display:none;">
+    <a class="nav-item" role="button" tabindex="0" data-page="leiaaqui" onclick="goto('leiaaqui')" id="nav-leiaaqui" style="display:none;">
       <svg class="ico"><use href="#i-leiaaqui"/></svg> Leia aqui <span id="badge-leiaaqui" style="display:none;background:#e11d48;color:#fff;font-size:10px;padding:1px 6px;border-radius:10px;margin-left:4px;">0</span>
     </a>
-    <a class="nav-item" onclick="logout()" style="color:#e11d48;">
+    <a class="nav-item" role="button" tabindex="0" onclick="logout()" style="color:#e11d48;">
       <svg class="ico"><use href="#i-sair"/></svg> Sair
     </a>
   </div>
 </aside>
 
 <!-- ============================================================ MAIN -->
-<main id="app-main" style="flex:1;overflow-y:auto;padding:32px;">
+<main id="app-main" role="main" style="flex:1;overflow-y:auto;padding:32px;">
 
 <!-- ==================== DASHBOARD ==================== -->
-<section id="page-dashboard" style="display:none;max-width:1100px;">
+<section id="page-dashboard" style="display:none;max-width:1400px;">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:28px;flex-wrap:wrap;gap:12px;">
     <div>
       <h1 id="dash-greeting" style="font-size:24px;font-weight:800;color:var(--text);">Olá! 👋</h1>
@@ -971,7 +981,7 @@
 </section>
 
 <!-- ==================== HISTÓRICO ==================== -->
-<section id="page-historico" style="display:none;max-width:1100px;">
+<section id="page-historico" style="display:none;max-width:1400px;">
   <!-- Header with summary cards -->
   <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:16px;margin-bottom:20px;">
     <div class="card" style="padding:16px;">
@@ -1102,7 +1112,7 @@
           <p style="font-weight:800;font-size:17px;color:var(--text);">Gerenciar Faturas dos Cartões</p>
           <p style="font-size:13px;color:var(--muted);margin-top:2px;">Visualize e pague as faturas do seu cartão de crédito</p>
         </div>
-        <button onclick="fecharFaturaModal()" style="background:none;border:none;cursor:pointer;color:var(--muted);padding:6px;border-radius:8px;display:inline-flex;" class="ico-btn"><svg class="ico-sm"><use href="#i-x"/></svg></button>
+        <button onclick="fecharFaturaModal()" style="background:none;border:none;cursor:pointer;color:var(--muted);padding:6px;border-radius:8px;display:inline-flex;" class="ico-btn" aria-label="Fechar"><svg class="ico-sm"><use href="#i-x"/></svg></button>
       </div>
 
       <!-- Titular filter -->
@@ -1181,7 +1191,7 @@
     <div onclick="event.stopPropagation()" style="background:var(--surface);border-radius:18px;padding:28px;max-width:480px;width:95%;box-shadow:0 20px 60px rgba(0,0,0,0.15);">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
         <p style="font-weight:800;font-size:17px;color:var(--text);">Importar Transações</p>
-        <button onclick="fecharImportModal()" style="background:none;border:none;cursor:pointer;color:var(--muted);padding:6px;border-radius:8px;display:inline-flex;" class="ico-btn"><svg class="ico-sm"><use href="#i-x"/></svg></button>
+        <button onclick="fecharImportModal()" style="background:none;border:none;cursor:pointer;color:var(--muted);padding:6px;border-radius:8px;display:inline-flex;" class="ico-btn" aria-label="Fechar"><svg class="ico-sm"><use href="#i-x"/></svg></button>
       </div>
       <p style="font-size:13px;color:var(--text-3);margin-bottom:16px;">Importe extratos do banco nos formatos TXT, CSV ou Excel (.xlsx). O arquivo deve ter colunas de data, descrição e valor.</p>
 
@@ -1266,7 +1276,7 @@
 </section>
 
 <!-- ==================== ORÇAMENTO ==================== -->
-<section id="page-orcamento" style="display:none;max-width:1200px;">
+<section id="page-orcamento" style="display:none;max-width:1400px;">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;flex-wrap:wrap;gap:12px;">
     <div style="display:flex;align-items:center;gap:14px;">
       <span style="font-size:28px;">🎯</span>
@@ -1352,7 +1362,7 @@
 </section>
 
 <!-- ==================== GRÁFICOS ==================== -->
-<section id="page-graficos" style="display:none;max-width:1100px;">
+<section id="page-graficos" style="display:none;max-width:1400px;">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:28px;">
     <div>
       <h1 style="font-size:24px;font-weight:800;color:var(--text);">Gráficos</h1>
@@ -1474,6 +1484,17 @@
 
   <!-- Data -->
   <div class="card" style="margin-bottom:16px;">
+    <p style="font-weight:700;font-size:15px;color:var(--text-2);margin-bottom:10px;">⌨️ Atalhos de teclado</p>
+    <div style="display:grid;grid-template-columns:auto 1fr;gap:6px 14px;font-size:13px;color:var(--text-2);align-items:center;">
+      <kbd class="kbd">N</kbd><span>Nova transação</span>
+      <kbd class="kbd">/</kbd><span>Buscar no histórico</span>
+      <kbd class="kbd">← →</kbd><span>Mês anterior / próximo no dashboard</span>
+      <kbd class="kbd">Ctrl+Enter</kbd><span>Salvar a transação</span>
+      <kbd class="kbd">Esc</kbd><span>Fechar a janela aberta</span>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:16px;">
     <p style="font-weight:700;font-size:15px;color:var(--text-2);margin-bottom:16px;">💾 Dados</p>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
       <button onclick="exportarDados()" style="padding:12px;background:var(--tint-green);color:var(--on-green);border:1.5px solid #a7f3d0;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;"><svg class="ico-sm"><use href="#i-upload"/></svg> Exportar JSON</button>
@@ -1535,7 +1556,7 @@
 </section>
 
 <!-- ==================== DÍVIDAS ==================== -->
-<section id="page-dividas" style="display:none;max-width:1100px;">
+<section id="page-dividas" style="display:none;max-width:1400px;">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:28px;flex-wrap:wrap;gap:12px;">
     <div>
       <h1 style="font-size:24px;font-weight:800;color:var(--text);">Controle de Dívidas</h1>
@@ -1571,7 +1592,7 @@
 </section>
 
 <!-- ==================== INVESTIMENTOS ==================== -->
-<section id="page-investimentos" style="display:none;max-width:1100px;">
+<section id="page-investimentos" style="display:none;max-width:1400px;">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:28px;flex-wrap:wrap;gap:12px;">
     <div>
       <h1 style="font-size:24px;font-weight:800;color:var(--text);">Investimentos</h1>
@@ -1683,7 +1704,7 @@
 </main><!-- end main -->
 
 <!-- ============================================================ TOAST -->
-<div id="toast" style="display:none;"></div>
+<div id="toast" role="status" aria-live="polite" style="display:none;"></div>
 
 <!-- ============================================================ DELETE MODAL -->
 <div id="del-modal" style="display:none;">
@@ -1900,7 +1921,7 @@
     <div onclick="event.stopPropagation()" style="background:var(--surface);border-radius:18px;padding:28px;max-width:520px;width:95%;box-shadow:0 20px 60px rgba(0,0,0,0.15);max-height:90vh;overflow-y:auto;">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
         <p id="divida-modal-title" style="font-weight:800;font-size:17px;color:var(--text);">Nova Dívida</p>
-        <button onclick="fecharDividaModal()" style="background:none;border:none;cursor:pointer;color:var(--muted);padding:6px;border-radius:8px;display:inline-flex;" class="ico-btn"><svg class="ico-sm"><use href="#i-x"/></svg></button>
+        <button onclick="fecharDividaModal()" style="background:none;border:none;cursor:pointer;color:var(--muted);padding:6px;border-radius:8px;display:inline-flex;" class="ico-btn" aria-label="Fechar"><svg class="ico-sm"><use href="#i-x"/></svg></button>
       </div>
       <div style="margin-bottom:14px;">
         <label class="flabel">Banco / Instituição *</label>
@@ -2020,7 +2041,7 @@
     <div onclick="event.stopPropagation()" style="background:var(--surface);border-radius:18px;padding:28px;max-width:420px;width:95%;box-shadow:0 20px 60px rgba(0,0,0,0.15);">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
         <p style="font-weight:800;font-size:17px;color:var(--text);">Pagar Parcela</p>
-        <button onclick="fecharPagarParcelaModal()" style="background:none;border:none;cursor:pointer;color:var(--muted);padding:6px;border-radius:8px;display:inline-flex;" class="ico-btn"><svg class="ico-sm"><use href="#i-x"/></svg></button>
+        <button onclick="fecharPagarParcelaModal()" style="background:none;border:none;cursor:pointer;color:var(--muted);padding:6px;border-radius:8px;display:inline-flex;" class="ico-btn" aria-label="Fechar"><svg class="ico-sm"><use href="#i-x"/></svg></button>
       </div>
       <div style="border:2px solid var(--tint-green);border-radius:12px;padding:14px 18px;margin-bottom:18px;">
         <p style="font-size:12px;color:var(--muted);">Parcela</p>
@@ -2057,7 +2078,7 @@
     <div onclick="event.stopPropagation()" style="background:var(--surface);border-radius:18px;padding:28px;max-width:400px;width:95%;box-shadow:0 20px 60px rgba(0,0,0,0.15);">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
         <p style="font-weight:800;font-size:17px;color:var(--text);">Como deseja pagar?</p>
-        <button onclick="fecharEscolhaPgtoModal()" style="background:none;border:none;cursor:pointer;color:var(--muted);padding:6px;border-radius:8px;display:inline-flex;" class="ico-btn"><svg class="ico-sm"><use href="#i-x"/></svg></button>
+        <button onclick="fecharEscolhaPgtoModal()" style="background:none;border:none;cursor:pointer;color:var(--muted);padding:6px;border-radius:8px;display:inline-flex;" class="ico-btn" aria-label="Fechar"><svg class="ico-sm"><use href="#i-x"/></svg></button>
       </div>
       <p id="escolha-pgto-info" style="font-size:13px;color:var(--text-3);margin-bottom:18px;"></p>
       <input type="hidden" id="escolha-pgto-divida-id" value="">
@@ -2081,7 +2102,7 @@
     <div onclick="event.stopPropagation()" style="background:var(--surface);border-radius:18px;padding:28px;max-width:420px;width:95%;box-shadow:0 20px 60px rgba(0,0,0,0.15);">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
         <p style="font-weight:800;font-size:17px;color:#4f46e5;">Amortização</p>
-        <button onclick="fecharPagarAmortModal()" style="background:none;border:none;cursor:pointer;color:var(--muted);padding:6px;border-radius:8px;display:inline-flex;" class="ico-btn"><svg class="ico-sm"><use href="#i-x"/></svg></button>
+        <button onclick="fecharPagarAmortModal()" style="background:none;border:none;cursor:pointer;color:var(--muted);padding:6px;border-radius:8px;display:inline-flex;" class="ico-btn" aria-label="Fechar"><svg class="ico-sm"><use href="#i-x"/></svg></button>
       </div>
       <div style="border:2px solid var(--tint-indigo);border-radius:12px;padding:14px 18px;margin-bottom:18px;">
         <p style="font-size:12px;color:var(--muted);">Saldo Devedor Atual</p>
@@ -2126,7 +2147,7 @@
     <div onclick="event.stopPropagation()" style="background:var(--surface);border-radius:18px;padding:28px;max-width:900px;width:95%;box-shadow:0 20px 60px rgba(0,0,0,0.15);max-height:90vh;overflow-y:auto;">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
         <p id="amort-modal-title" style="font-weight:800;font-size:17px;color:var(--text);">Tabela de Amortização</p>
-        <button onclick="fecharAmortModal()" style="background:none;border:none;cursor:pointer;color:var(--muted);padding:6px;border-radius:8px;display:inline-flex;" class="ico-btn"><svg class="ico-sm"><use href="#i-x"/></svg></button>
+        <button onclick="fecharAmortModal()" style="background:none;border:none;cursor:pointer;color:var(--muted);padding:6px;border-radius:8px;display:inline-flex;" class="ico-btn" aria-label="Fechar"><svg class="ico-sm"><use href="#i-x"/></svg></button>
       </div>
       <!-- Resumo do empréstimo -->
       <div id="amort-resumo" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:20px;"></div>
@@ -2158,7 +2179,7 @@
     <div onclick="event.stopPropagation()" style="background:var(--surface);border-radius:18px;padding:28px;max-width:700px;width:95%;box-shadow:0 20px 60px rgba(0,0,0,0.15);max-height:90vh;overflow-y:auto;">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
         <p style="font-weight:800;font-size:17px;color:var(--text);">Simulador de Amortização Extraordinária</p>
-        <button onclick="fecharSimulModal()" style="background:none;border:none;cursor:pointer;color:var(--muted);padding:6px;border-radius:8px;display:inline-flex;" class="ico-btn"><svg class="ico-sm"><use href="#i-x"/></svg></button>
+        <button onclick="fecharSimulModal()" style="background:none;border:none;cursor:pointer;color:var(--muted);padding:6px;border-radius:8px;display:inline-flex;" class="ico-btn" aria-label="Fechar"><svg class="ico-sm"><use href="#i-x"/></svg></button>
       </div>
       <div id="simul-divida-info" style="border:2px solid var(--tint-indigo);border-radius:12px;padding:14px 18px;margin-bottom:18px;"></div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
@@ -2224,7 +2245,7 @@
     <div onclick="event.stopPropagation()" style="background:var(--surface);border-radius:18px;padding:28px;max-width:520px;width:95%;box-shadow:0 20px 60px rgba(0,0,0,0.15);max-height:90vh;overflow-y:auto;">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
         <p id="invest-modal-title" style="font-weight:800;font-size:17px;color:var(--text);">Novo Investimento</p>
-        <button onclick="fecharInvestModal()" style="background:none;border:none;cursor:pointer;color:var(--muted);padding:6px;border-radius:8px;display:inline-flex;" class="ico-btn"><svg class="ico-sm"><use href="#i-x"/></svg></button>
+        <button onclick="fecharInvestModal()" style="background:none;border:none;cursor:pointer;color:var(--muted);padding:6px;border-radius:8px;display:inline-flex;" class="ico-btn" aria-label="Fechar"><svg class="ico-sm"><use href="#i-x"/></svg></button>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
         <div>
@@ -2377,7 +2398,7 @@
     <div onclick="event.stopPropagation()" style="background:var(--surface);border-radius:18px;padding:28px;max-width:420px;width:95%;box-shadow:0 20px 60px rgba(0,0,0,0.15);">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
         <p style="font-weight:800;font-size:17px;color:var(--text);">Registrar Rendimento</p>
-        <button onclick="fecharRendimentoModal()" style="background:none;border:none;cursor:pointer;color:var(--muted);padding:6px;border-radius:8px;display:inline-flex;" class="ico-btn"><svg class="ico-sm"><use href="#i-x"/></svg></button>
+        <button onclick="fecharRendimentoModal()" style="background:none;border:none;cursor:pointer;color:var(--muted);padding:6px;border-radius:8px;display:inline-flex;" class="ico-btn" aria-label="Fechar"><svg class="ico-sm"><use href="#i-x"/></svg></button>
       </div>
       <div id="rend-invest-info" style="border:2px solid var(--tint-blue);border-radius:12px;padding:14px 18px;margin-bottom:18px;"></div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
@@ -2422,7 +2443,7 @@
     <div onclick="event.stopPropagation()" style="background:var(--surface);border-radius:18px;padding:28px;max-width:420px;width:95%;box-shadow:0 20px 60px rgba(0,0,0,0.15);">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
         <p style="font-weight:800;font-size:17px;color:var(--text);">Registrar Aporte</p>
-        <button onclick="fecharAporteModal()" style="background:none;border:none;cursor:pointer;color:var(--muted);padding:6px;border-radius:8px;display:inline-flex;" class="ico-btn"><svg class="ico-sm"><use href="#i-x"/></svg></button>
+        <button onclick="fecharAporteModal()" style="background:none;border:none;cursor:pointer;color:var(--muted);padding:6px;border-radius:8px;display:inline-flex;" class="ico-btn" aria-label="Fechar"><svg class="ico-sm"><use href="#i-x"/></svg></button>
       </div>
       <div id="aporte-invest-info" style="border:2px solid var(--tint-pink);border-radius:12px;padding:14px 18px;margin-bottom:18px;"></div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
@@ -2464,7 +2485,7 @@
     <div onclick="event.stopPropagation()" style="background:var(--surface);border-radius:18px;padding:28px;max-width:420px;width:95%;box-shadow:0 20px 60px rgba(0,0,0,0.15);">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
         <p style="font-weight:800;font-size:17px;color:var(--text);">Atualizar Saldo</p>
-        <button onclick="fecharAtualizarSaldoModal()" style="background:none;border:none;cursor:pointer;color:var(--muted);padding:6px;border-radius:8px;display:inline-flex;" class="ico-btn"><svg class="ico-sm"><use href="#i-x"/></svg></button>
+        <button onclick="fecharAtualizarSaldoModal()" style="background:none;border:none;cursor:pointer;color:var(--muted);padding:6px;border-radius:8px;display:inline-flex;" class="ico-btn" aria-label="Fechar"><svg class="ico-sm"><use href="#i-x"/></svg></button>
       </div>
       <div id="atsaldo-invest-info" style="border:2px solid var(--tint-green);border-radius:12px;padding:14px 18px;margin-bottom:18px;"></div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
@@ -2493,7 +2514,7 @@
     <div onclick="event.stopPropagation()" style="background:var(--surface);border-radius:18px;padding:28px;max-width:420px;width:95%;box-shadow:0 20px 60px rgba(0,0,0,0.15);max-height:90vh;overflow-y:auto;">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
         <p style="font-weight:800;font-size:17px;color:var(--text);">Nova Compra</p>
-        <button onclick="fecharCompraCriptoModal()" style="background:none;border:none;cursor:pointer;color:var(--muted);padding:6px;border-radius:8px;display:inline-flex;" class="ico-btn"><svg class="ico-sm"><use href="#i-x"/></svg></button>
+        <button onclick="fecharCompraCriptoModal()" style="background:none;border:none;cursor:pointer;color:var(--muted);padding:6px;border-radius:8px;display:inline-flex;" class="ico-btn" aria-label="Fechar"><svg class="ico-sm"><use href="#i-x"/></svg></button>
       </div>
       <div id="compra-cripto-info" style="border:2px solid var(--tint-blue);border-radius:12px;padding:14px 18px;margin-bottom:18px;"></div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
@@ -3088,16 +3109,16 @@ function renderContaCard(a) {
     ${bankIcon(a.bank, 48)}
     <div style="flex:1;">
       <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-        <p style="font-weight:700;font-size:15px;color:var(--text);">${b.name}</p>
+        <p style="font-weight:700;font-size:15px;color:var(--text);">${escapeHtml(b.name)}</p>
         <span style="font-size:12px;color:var(--muted);">•</span>
-        <p style="font-size:13px;color:var(--text-3);">${a.label}</p>
+        <p style="font-size:13px;color:var(--text-3);">${escapeHtml(a.label)}</p>
         ${isUSD ? `<span class="badge" style="background:#FFFBEA;color:var(--on-amber);">USD</span>` : ''}
       </div>
-      <p style="font-size:12px;color:var(--muted);margin-top:3px;">${sub}</p>
+      <p style="font-size:12px;color:var(--muted);margin-top:3px;">${escapeHtml(sub)}</p>
     </div>
     <div style="display:flex;gap:4px;">
-      <button onclick="editarConta('${a.id}')" style="background:none;border:none;cursor:pointer;padding:8px;border-radius:8px;font-size:16px;" title="Editar" class="ico-btn"><svg class="ico-sm"><use href="#i-edit"/></svg></button>
-      <button onclick="deletarConta('${a.id}')" style="background:none;border:none;cursor:pointer;padding:8px;border-radius:8px;font-size:16px;" title="Excluir" class="ico-btn"><svg class="ico-sm"><use href="#i-trash"/></svg></button>
+      <button onclick="editarConta('${a.id}')" style="background:none;border:none;cursor:pointer;padding:8px;border-radius:8px;font-size:16px;" title="Editar" class="ico-btn" aria-label="Editar"><svg class="ico-sm"><use href="#i-edit"/></svg></button>
+      <button onclick="deletarConta('${a.id}')" style="background:none;border:none;cursor:pointer;padding:8px;border-radius:8px;font-size:16px;" title="Excluir" class="ico-btn" aria-label="Excluir"><svg class="ico-sm"><use href="#i-trash"/></svg></button>
     </div>
   </div>`;
 }
@@ -3109,12 +3130,12 @@ function renderContas() {
   const elC = document.getElementById('contas-list');
   elC.innerHTML = contas.length
     ? contas.map(renderContaCard).join('')
-    : `<p style="color:var(--muted);font-size:13px;padding:12px 0;">Nenhuma conta cadastrada ainda.</p>`;
+    : `<div class="empty-state" style="padding:28px 16px;"><div class="icon">🏦</div><p style="font-weight:600;color:var(--text-3);">Nenhuma conta ainda</p><p style="font-size:13px;margin-top:4px;">Cadastre a conta corrente ou carteira de cada um pra acompanhar os saldos.</p><button onclick="abrirModalConta()" style="margin-top:12px;padding:10px 18px;background:#4f46e5;color:white;border:none;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;">Adicionar conta</button></div>`;
 
   const elK = document.getElementById('cartoes-list');
   elK.innerHTML = cartoes.length
     ? cartoes.map(renderContaCard).join('')
-    : `<p style="color:var(--muted);font-size:13px;padding:12px 0;">Nenhum cartão cadastrado ainda.</p>`;
+    : `<div class="empty-state" style="padding:28px 16px;"><div class="icon">💳</div><p style="font-weight:600;color:var(--text-3);">Nenhum cartão ainda</p><p style="font-size:13px;margin-top:4px;">Com o cartão cadastrado, as faturas fecham e vencem nas datas certas.</p><button onclick="abrirModalConta()" style="margin-top:12px;padding:10px 18px;background:#4f46e5;color:white;border:none;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;">Adicionar cartão</button></div>`;
 }
 
 // Carrega bancos customizados salvos no state
@@ -3127,7 +3148,7 @@ function refreshBancoSelect(selectedBank) {
   const sel = document.getElementById('cm-banco');
   const banks = getAllBanks();
   sel.innerHTML = Object.entries(banks).map(([key, b]) =>
-    `<option value="${key}">${b.name}${b.currency === 'USD' ? ' (USD)' : ''}</option>`
+    `<option value="${key}">${escapeHtml(b.name)}${b.currency === 'USD' ? ' (USD)' : ''}</option>`
   ).join('') + '<option value="__novo__">+ Novo Banco...</option>';
   if (selectedBank && banks[selectedBank]) sel.value = selectedBank;
   onCmBancoChange();
@@ -3417,8 +3438,9 @@ function goto(page) {
   const el = document.getElementById('page-' + page);
   if (el) el.style.display = (page === 'chat') ? 'flex' : 'block';
 
-  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('nav-active'));
+  document.querySelectorAll('.nav-item').forEach(n => { n.classList.remove('nav-active'); n.removeAttribute('aria-current'); });
   const nav = document.querySelector(`.nav-item[data-page="${page}"]`);
+  if (nav) nav.setAttribute('aria-current', 'page');
   if (nav) nav.classList.add('nav-active');
 
   if (page === 'dashboard') renderDashboard();
@@ -3492,7 +3514,7 @@ function refreshContaSelect(filterType = 'all') {
   sel.innerHTML = accounts.map(a => {
     const b = BANKS[a.bank];
     const cur = b.currency === 'USD' ? ' (USD)' : '';
-    return `<option value="${a.id}">${b.name} — ${a.label}${cur}</option>`;
+    return `<option value="${a.id}">${escapeHtml(b.name)} — ${escapeHtml(a.label)}${cur}</option>`;
   }).join('');
   onContaChange();
 }
@@ -3509,7 +3531,7 @@ function onTitularChange() {
     const destSel = document.getElementById('f-conta-destino');
     let destAccounts = S.accounts.filter(a => a.accountType === 'conta');
     if (titular) destAccounts = destAccounts.filter(a => a.owner === titular);
-    destSel.innerHTML = destAccounts.map(a => `<option value="${a.id}">${BANKS[a.bank]?.name || a.bank} — ${a.label}</option>`).join('');
+    destSel.innerHTML = destAccounts.map(a => `<option value="${a.id}">${BANKS[a.bank]?.name || a.bank} — ${escapeHtml(a.label)}</option>`).join('');
   }
 }
 
@@ -3573,7 +3595,7 @@ function setType(t) {
     const destSel = document.getElementById('f-conta-destino');
     let destAccounts = S.accounts.filter(a => a.accountType === 'conta');
     if (titular) destAccounts = destAccounts.filter(a => a.owner === titular);
-    destSel.innerHTML = destAccounts.map(a => `<option value="${a.id}">${BANKS[a.bank]?.name || a.bank} — ${a.label}</option>`).join('');
+    destSel.innerHTML = destAccounts.map(a => `<option value="${a.id}">${BANKS[a.bank]?.name || a.bank} — ${escapeHtml(a.label)}</option>`).join('');
   }
 }
 
@@ -4023,7 +4045,7 @@ function onEditTypeChange() {
   }
   contaSel.innerHTML = accounts.map(a => {
     const b = BANKS[a.bank];
-    return `<option value="${a.id}">${b ? b.name : a.bank} — ${a.label}</option>`;
+    return `<option value="${a.id}">${b ? b.name : a.bank} — ${escapeHtml(a.label)}</option>`;
   }).join('');
 
   // Populate category select
@@ -4476,8 +4498,8 @@ function renderMensagensEnviadas(senderKey, destKey) {
     return `<div class="card" style="padding:20px;border:1.5px solid #fecdd3;background:linear-gradient(135deg,var(--tint-rose),#ffffff);${now > expira ? 'opacity:0.6;' : ''}">
       <div style="display:flex;justify-content:flex-end;align-items:center;margin-bottom:10px;gap:8px;">
         <span style="font-size:11px;padding:3px 10px;border-radius:20px;background:${statusBg};color:${statusColor};font-weight:600;">${status}</span>
-        <button onclick="editarMensagem('${m.id}')" style="background:none;border:none;cursor:pointer;font-size:16px;padding:2px;" title="Editar" class="ico-btn"><svg class="ico-sm"><use href="#i-edit"/></svg></button>
-        <button onclick="deletarMensagem('${m.id}')" style="background:none;border:none;cursor:pointer;font-size:16px;padding:2px;" title="Excluir" class="ico-btn"><svg class="ico-sm"><use href="#i-trash"/></svg></button>
+        <button onclick="editarMensagem('${m.id}')" style="background:none;border:none;cursor:pointer;font-size:16px;padding:2px;" title="Editar" class="ico-btn" aria-label="Editar"><svg class="ico-sm"><use href="#i-edit"/></svg></button>
+        <button onclick="deletarMensagem('${m.id}')" style="background:none;border:none;cursor:pointer;font-size:16px;padding:2px;" title="Excluir" class="ico-btn" aria-label="Excluir"><svg class="ico-sm"><use href="#i-trash"/></svg></button>
       </div>
       <div id="msg-view-${m.id}">
         <p style="font-size:14px;line-height:1.7;color:#4a1d2e;white-space:pre-wrap;">${escapeHtml(m.texto)}</p>
@@ -4610,9 +4632,8 @@ function renderLeiaAqui() {
 }
 
 function escapeHtml(text) {
-  const div = document.createElement('div');
-  div.textContent = text;
-  return div.innerHTML;
+  return String(text === null || text === undefined ? '' : text)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
 function fmtDatetime(dt) {
@@ -4799,7 +4820,7 @@ function renderCardBreakdowns(mTx) {
     const b = BANKS[bank];
     return `<div style="display:flex;align-items:center;gap:10px;padding:6px 0;">
       ${bankIcon(bank, 28)}
-      <span style="font-size:13px;font-weight:600;color:var(--text-2);flex:1;">${b.name}</span>
+      <span style="font-size:13px;font-weight:600;color:var(--text-2);flex:1;">${escapeHtml(b.name)}</span>
       <span style="font-size:13px;font-weight:700;color:${color};">${brl(val)}</span>
     </div>`;
   }
@@ -4848,7 +4869,7 @@ function renderCardBreakdowns(mTx) {
     const rend = (i.rendimentos||[]).reduce((s,r) => s + (r.valor||0), 0);
     invHtml += `<div style="display:flex;align-items:center;gap:10px;padding:6px 0;">
       <span style="font-size:18px;">${tp.icon || '💼'}</span>
-      <span style="font-size:13px;font-weight:600;color:var(--text-2);flex:1;">${i.desc}</span>
+      <span style="font-size:13px;font-weight:600;color:var(--text-2);flex:1;">${escapeHtml(i.desc)}</span>
       <span style="font-size:13px;font-weight:700;color:#2563eb;">${brl(i.valorInvestido)}</span>
     </div>`;
   });
@@ -4934,7 +4955,7 @@ function renderDebitCatBreakdown(txs) {
       <div style="width:10px;height:10px;border-radius:50%;background:${COLORS[i % COLORS.length]};flex-shrink:0;"></div>
       <div style="flex:1;">
         <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
-          <span style="font-size:13px;font-weight:600;color:var(--text-2);">${cat}</span>
+          <span style="font-size:13px;font-weight:600;color:var(--text-2);">${escapeHtml(cat)}</span>
           <span style="font-size:13px;font-weight:700;color:var(--text-2);">${brl(val)}</span>
         </div>
         <div style="height:6px;background:var(--surface-2);border-radius:3px;overflow:hidden;">
@@ -4985,7 +5006,7 @@ function insightCard(emoji, titulo, valor, sub, cor) {
   return `<div class="card" style="min-width:200px;flex:1;padding:16px;border-left:4px solid ${cor};">
     <div style="font-size:12px;color:var(--muted);font-weight:600;display:flex;align-items:center;gap:6px;">${emoji} ${titulo}</div>
     <div class="hv" style="font-size:20px;font-weight:800;color:var(--text);margin:6px 0 2px;">${valor}</div>
-    <div class="hv" style="font-size:12px;color:var(--text-3);line-height:1.4;">${sub}</div>
+    <div class="hv" style="font-size:12px;color:var(--text-3);line-height:1.4;">${escapeHtml(sub)}</div>
   </div>`;
 }
 
@@ -5163,7 +5184,7 @@ function renderCreditView() {
     cartoesFiltered.map(c => {
       const b = BANKS[c.bank];
       const active = ccCardFilter === c.id;
-      return `<button onclick="ccCardFilter='${c.id}';renderCreditView()" class="tf-btn ${active ? 'tf-active' : ''}" style="font-size:12px;">${b.name} Cartão</button>`;
+      return `<button onclick="ccCardFilter='${c.id}';renderCreditView()" class="tf-btn ${active ? 'tf-active' : ''}" style="font-size:12px;">${escapeHtml(b.name)} Cartão</button>`;
     }).join('');
 
   // Render faturas bar chart
@@ -5360,7 +5381,7 @@ function renderCreditCatBreakdown() {
       <div style="width:10px;height:10px;border-radius:50%;background:${COLORS[i % COLORS.length]};flex-shrink:0;"></div>
       <div style="flex:1;">
         <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
-          <span style="font-size:13px;font-weight:600;color:var(--text-2);">${cat}</span>
+          <span style="font-size:13px;font-weight:600;color:var(--text-2);">${escapeHtml(cat)}</span>
           <span style="font-size:13px;font-weight:700;color:var(--text-2);">${brl(val)}</span>
         </div>
         <div style="height:6px;background:var(--surface-2);border-radius:3px;overflow:hidden;">
@@ -5459,7 +5480,7 @@ function refreshHistContaFilter() {
     filtered.map(a => {
       const b = BANKS[a.bank];
       const icon = a.accountType === 'cartao' ? '💳' : '🏦';
-      return `<option value="${a.id}">${icon} ${b ? b.name : a.bank} — ${a.label} [${a.owner}]</option>`;
+      return `<option value="${a.id}">${icon} ${b ? b.name : a.bank} — ${escapeHtml(a.label)} [${escapeHtml(a.owner)}]</option>`;
     }).join('');
   if (prevConta && filtered.some(a => a.id === prevConta)) contaSel.value = prevConta;
 }
@@ -5659,7 +5680,7 @@ function renderHistorico() {
         </div>
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
           <span style="font-size:11px;color:var(--muted);">${bankIcon} ${bankName}</span>
-          ${acc ? `<span style="font-size:11px;color:var(--muted);">· ${acc.label}</span>` : ''}
+          ${acc ? `<span style="font-size:11px;color:var(--muted);">· ${escapeHtml(acc.label)}</span>` : ''}
           <span style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px;background:${s.badgeBg};color:${s.badgeTxt};">${s.label}</span>
           <span style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px;background:var(--surface-2);color:var(--text-2);">${catLabel}</span>
           ${t.formaPgto ? `<span style="font-size:11px;padding:2px 8px;border-radius:20px;background:var(--bg);color:var(--muted);">${t.formaPgto==='credito'?'Crédito':'Débito'}</span>` : ''}
@@ -5673,8 +5694,8 @@ function renderHistorico() {
         <p style="font-size:11px;color:var(--muted);margin-top:2px;">${fmtDate(t.date)}</p>
       </div>
       <div style="display:flex;gap:2px;flex-shrink:0;">
-        <button onclick="abrirEditModal('${t.id}')" style="background:none;border:none;cursor:pointer;padding:6px;border-radius:8px;transition:background 0.1s;" onmouseover="this.style.background='var(--tint-indigo)'" onmouseout="this.style.background='none'" title="Editar" class="ico-btn"><svg class="ico-sm"><use href="#i-edit"/></svg></button>
-        <button onclick="del('${t.id}')" style="background:none;border:none;cursor:pointer;padding:6px;border-radius:8px;transition:background 0.1s;" onmouseover="this.style.background='var(--tint-rose)'" onmouseout="this.style.background='none'" title="Excluir" class="ico-btn"><svg class="ico-sm"><use href="#i-trash"/></svg></button>
+        <button onclick="abrirEditModal('${t.id}')" style="background:none;border:none;cursor:pointer;padding:6px;border-radius:8px;transition:background 0.1s;" onmouseover="this.style.background='var(--tint-indigo)'" onmouseout="this.style.background='none'" title="Editar" class="ico-btn" aria-label="Editar"><svg class="ico-sm"><use href="#i-edit"/></svg></button>
+        <button onclick="del('${t.id}')" style="background:none;border:none;cursor:pointer;padding:6px;border-radius:8px;transition:background 0.1s;" onmouseover="this.style.background='var(--tint-rose)'" onmouseout="this.style.background='none'" title="Excluir" class="ico-btn" aria-label="Excluir"><svg class="ico-sm"><use href="#i-trash"/></svg></button>
       </div>
     </div>`;
   }).join('');
@@ -5764,7 +5785,7 @@ function abrirFaturaModal() {
   const instSel = document.getElementById('fat-inst');
   const contas = S.accounts.filter(a => a.accountType !== 'cartao');
   instSel.innerHTML = '<option value="">Selecione a instituição</option>' +
-    contas.map(a => `<option value="${a.id}">${BANKS[a.bank].name} — ${a.label}</option>`).join('');
+    contas.map(a => `<option value="${a.id}">${BANKS[a.bank].name} — ${escapeHtml(a.label)}</option>`).join('');
 
   document.getElementById('fat-data-pgto').value = now.toISOString().split('T')[0];
 
@@ -5778,7 +5799,7 @@ function filtrarCartoesFatura() {
   const filtered = titular ? cartoes.filter(c => c.owner === titular) : cartoes;
   const sel = document.getElementById('fat-cartao');
   const prev = sel.value;
-  sel.innerHTML = filtered.map(c => `<option value="${c.id}">${BANKS[c.bank].name} Cartão — ${c.label}</option>`).join('');
+  sel.innerHTML = filtered.map(c => `<option value="${c.id}">${BANKS[c.bank].name} Cartão — ${escapeHtml(c.label)}</option>`).join('');
   if (prev && filtered.some(c => c.id === prev)) sel.value = prev;
 
   // Filtrar inst. financeira pelo titular também
@@ -5787,7 +5808,7 @@ function filtrarCartoesFatura() {
   const contasFiltradas = titular ? contas.filter(a => a.owner === titular) : contas;
   const prevInst = instSel.value;
   instSel.innerHTML = '<option value="">Selecione a instituição</option>' +
-    contasFiltradas.map(a => `<option value="${a.id}">${BANKS[a.bank].name} — ${a.label}</option>`).join('');
+    contasFiltradas.map(a => `<option value="${a.id}">${BANKS[a.bank].name} — ${escapeHtml(a.label)}</option>`).join('');
   if (prevInst && contasFiltradas.some(a => a.id === prevInst)) instSel.value = prevInst;
 
   renderFaturaDetail();
@@ -5897,8 +5918,8 @@ function renderFaturaDetail() {
       </div>
       <p style="font-size:14px;font-weight:700;color:${val < 0 ? '#059669' : '#e11d48'};flex-shrink:0;">${val < 0 ? '+' : ''}${brl(Math.abs(val))}</p>
       <div style="display:flex;gap:2px;flex-shrink:0;">
-        <button onclick="fecharFaturaModal();abrirEditModal('${t.id}')" style="background:none;border:none;cursor:pointer;padding:4px;border-radius:6px;font-size:13px;" title="Editar" class="ico-btn"><svg class="ico-sm"><use href="#i-edit"/></svg></button>
-        <button onclick="del('${t.id}');renderFaturaDetail()" style="background:none;border:none;cursor:pointer;padding:4px;border-radius:6px;font-size:13px;" title="Excluir" class="ico-btn"><svg class="ico-sm"><use href="#i-trash"/></svg></button>
+        <button onclick="fecharFaturaModal();abrirEditModal('${t.id}')" style="background:none;border:none;cursor:pointer;padding:4px;border-radius:6px;font-size:13px;" title="Editar" class="ico-btn" aria-label="Editar"><svg class="ico-sm"><use href="#i-edit"/></svg></button>
+        <button onclick="del('${t.id}');renderFaturaDetail()" style="background:none;border:none;cursor:pointer;padding:4px;border-radius:6px;font-size:13px;" title="Excluir" class="ico-btn" aria-label="Excluir"><svg class="ico-sm"><use href="#i-trash"/></svg></button>
       </div>
     </div>`;
   }).join('');
@@ -6022,7 +6043,7 @@ function filtrarContasImport() {
   sel.innerHTML = filtered.map(a => {
     const b = BANKS[a.bank] || { name: a.bank };
     const icon = a.accountType === 'cartao' ? '💳' : '🏦';
-    return `<option value="${a.id}">${icon} ${b.name} — ${a.label} [${a.owner}]</option>`;
+    return `<option value="${a.id}">${icon} ${b.name} — ${escapeHtml(a.label)} [${escapeHtml(a.owner)}]</option>`;
   }).join('');
 }
 
@@ -6252,7 +6273,7 @@ function renderCategorias() {
         <div style="display:flex;justify-content:space-between;align-items:center;">
           <div style="display:flex;align-items:center;gap:10px;">
             <span style="color:#e11d48;font-size:10px;">●</span>
-            <input type="text" value="${cat}" onchange="renameCatDespesa('${cat}',this.value)"
+            <input type="text" value="${escapeHtml(cat)}" onchange="renameCatDespesa('${cat}',this.value)"
               style="border:none;font-size:14px;font-weight:700;color:var(--text);background:transparent;padding:0;outline:none;width:160px;">
           </div>
           <div style="display:flex;align-items:center;gap:6px;">
@@ -6261,13 +6282,13 @@ function renderCategorias() {
               <option value="essencial" ${grupo === 'essencial' ? 'selected' : ''} style="color:#10b981;">Essencial</option>
               <option value="estilo" ${grupo === 'estilo' ? 'selected' : ''} style="color:#3b82f6;">Estilo de Vida</option>
             </select>
-            <button onclick="deleteCatDespesa('${cat}')" style="background:none;border:none;cursor:pointer;padding:4px 8px;border-radius:6px;font-size:13px;color:#e11d48;" onmouseover="this.style.background='var(--tint-rose)'" onmouseout="this.style.background='none'" title="Excluir" class="ico-btn"><svg class="ico-sm"><use href="#i-x"/></svg></button>
+            <button onclick="deleteCatDespesa('${cat}')" style="background:none;border:none;cursor:pointer;padding:4px 8px;border-radius:6px;font-size:13px;color:#e11d48;" onmouseover="this.style.background='var(--tint-rose)'" onmouseout="this.style.background='none'" title="Excluir" class="ico-btn" aria-label="Fechar"><svg class="ico-sm"><use href="#i-x"/></svg></button>
           </div>
         </div>
         ${subs.length ? `<div style="margin-top:8px;padding-left:20px;display:flex;flex-wrap:wrap;gap:6px;">
           ${subs.map(s => `<span style="display:inline-flex;align-items:center;gap:4px;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:4px 10px;font-size:12px;color:var(--text-2);">
             ${s}
-            <button onclick="deleteSubcat('${cat}','${s}')" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:11px;padding:0 0 0 4px;" class="ico-btn"><svg class="ico-sm"><use href="#i-x"/></svg></button>
+            <button onclick="deleteSubcat('${cat}','${s}')" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:11px;padding:0 0 0 4px;" class="ico-btn" aria-label="Fechar"><svg class="ico-sm"><use href="#i-x"/></svg></button>
           </span>`).join('')}
         </div>` : ''}
       </div>`;
@@ -6282,10 +6303,10 @@ function renderCategorias() {
         <div style="display:flex;justify-content:space-between;align-items:center;">
           <div style="display:flex;align-items:center;gap:10px;">
             <span style="color:${color};font-size:10px;">●</span>
-            <input type="text" value="${cat}" onchange="renameSimpleCat('${catTab}',${i},this.value)"
+            <input type="text" value="${escapeHtml(cat)}" onchange="renameSimpleCat('${catTab}',${i},this.value)"
               style="border:none;font-size:14px;font-weight:600;color:var(--text);background:transparent;padding:0;outline:none;width:250px;">
           </div>
-          <button onclick="deleteSimpleCat('${catTab}',${i})" style="background:none;border:none;cursor:pointer;padding:4px 8px;border-radius:6px;font-size:13px;color:#e11d48;" onmouseover="this.style.background='var(--tint-rose)'" onmouseout="this.style.background='none'" title="Excluir" class="ico-btn"><svg class="ico-sm"><use href="#i-x"/></svg></button>
+          <button onclick="deleteSimpleCat('${catTab}',${i})" style="background:none;border:none;cursor:pointer;padding:4px 8px;border-radius:6px;font-size:13px;color:#e11d48;" onmouseover="this.style.background='var(--tint-rose)'" onmouseout="this.style.background='none'" title="Excluir" class="ico-btn" aria-label="Fechar"><svg class="ico-sm"><use href="#i-x"/></svg></button>
         </div>
       </div>`;
     });
@@ -6502,7 +6523,7 @@ function renderOrcamento() {
 
       catRows.push(`<tr class="trow" style="border-bottom:1px solid var(--bg);">
         <td style="padding:10px 16px 10px 40px;color:var(--text-2);font-weight:500;">
-          <span style="color:${group.color};margin-right:6px;">●</span> ${cat}
+          <span style="color:${group.color};margin-right:6px;">●</span> ${escapeHtml(cat)}
         </td>
         <td style="padding:10px 16px;text-align:right;">
           <input type="number" value="${planejado || ''}" placeholder="R$ 0" min="0" step="0.01"
@@ -6558,6 +6579,20 @@ function renderGraficos() {
   const noPeriodo = t => !startStr || (t.date || '') >= startStr;
   // Despesa "real": exclui transferências, pagamento de fatura e itens que não contam
   const despReal = S.transactions.filter(t => noPeriodo(t) && t.type==='despesa' && !t.isTransfer && !isExcludedFromChart(t));
+
+  // Estado vazio: sem despesas no período, esconde os gráficos e explica
+  let emptyEl = document.getElementById('graf-empty');
+  if (!emptyEl) {
+    emptyEl = document.createElement('div');
+    emptyEl.id = 'graf-empty'; emptyEl.className = 'empty-state';
+    emptyEl.innerHTML = '<div class="icon">📈</div><p style="font-weight:600;color:var(--text-3);">Sem despesas neste período</p><p style="font-size:13px;margin-top:4px;">Troque o período acima ou lance a primeira despesa.</p><button onclick="goto(\'nova\')" style="margin-top:12px;padding:10px 18px;background:#4f46e5;color:white;border:none;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;">Nova transação</button>';
+    document.getElementById('graf-periodo').closest('section').appendChild(emptyEl);
+  }
+  const chartCards = [...document.querySelectorAll('#page-graficos canvas')].map(c => c.closest('.card') || c.parentElement);
+  const vazio = despReal.length === 0;
+  emptyEl.style.display = vazio ? 'block' : 'none';
+  chartCards.forEach(c => { if (c) c.style.display = vazio ? 'none' : ''; });
+  if (vazio) return;
 
   renderDonutG(despReal);
   renderBarG(periodo);
@@ -7570,7 +7605,7 @@ ${txs.length > 15 ? '<br><span style="color:var(--muted);">Mostrando 15 de ' + t
     const byCat = {};
     txs.forEach(t => byCat[t.category] = (byCat[t.category] || 0) + amountBrl(t));
     let rows = Object.entries(byCat).sort((a, b) => b[1] - a[1]).map(([cat, val]) =>
-      `<tr><td style="padding:4px 0;">${cat}</td><td style="text-align:right;color:#2563eb;font-weight:600;">${brl(val)}</td></tr>`
+      `<tr><td style="padding:4px 0;">${escapeHtml(cat)}</td><td style="text-align:right;color:#2563eb;font-weight:600;">${brl(val)}</td></tr>`
     ).join('');
     return `<b>Investimentos:</b><br><br>
 <span style="font-size:20px;font-weight:800;color:#2563eb;">${brl(total)}</span> total investido<br><br>
@@ -7606,7 +7641,7 @@ ${rows ? '<table style="width:100%;border-collapse:collapse;font-size:13px;">' +
     if (top.length === 0) return `Nenhuma despesa em ${MESES_FULL[month]} ${year}.`;
     let rows = top.map(([cat, val]) => {
       const pct = total > 0 ? ((val / total) * 100).toFixed(1) : 0;
-      return `<tr><td style="padding:5px 0;">${cat}</td><td style="text-align:right;color:#e11d48;font-weight:600;">${brl(val)}</td><td style="text-align:right;color:var(--muted);font-size:12px;padding-left:8px;">${pct}%</td></tr>`;
+      return `<tr><td style="padding:5px 0;">${escapeHtml(cat)}</td><td style="text-align:right;color:#e11d48;font-weight:600;">${brl(val)}</td><td style="text-align:right;color:var(--muted);font-size:12px;padding-left:8px;">${pct}%</td></tr>`;
     }).join('');
     const title = (n.includes('top') || n.includes('mais gastei')) ? 'Top 5 categorias' : 'Despesas por categoria';
     return `<b>${title} — ${MESES_FULL[month]} ${year}:</b><br><br>
@@ -7684,13 +7719,13 @@ function handleImportFlow(msg) {
       st.tipo = 'credito';
       st.step = 'awaiting_card';
       const cards = S.accounts.filter(a => a.accountType === 'cartao');
-      const list = cards.map((c, i) => `${i + 1}. ${getAccName(c)} — ${c.label}`).join('<br>');
+      const list = cards.map((c, i) => `${i + 1}. ${getAccName(c)} — ${escapeHtml(c.label)}`).join('<br>');
       return `Qual <b>cartão</b>?<br><br>${list}<br><br>Digite o número ou nome.`;
     } else if (n.includes('debit') || n.includes('banco') || n.includes('conta') || n === '2') {
       st.tipo = 'debito';
       st.step = 'awaiting_card';
       const contas = S.accounts.filter(a => a.accountType !== 'cartao');
-      const list = contas.map((c, i) => `${i + 1}. ${getAccName(c)} — ${c.label}`).join('<br>');
+      const list = contas.map((c, i) => `${i + 1}. ${getAccName(c)} — ${escapeHtml(c.label)}`).join('<br>');
       return `Qual <b>conta bancária</b>?<br><br>${list}<br><br>Digite o número ou nome.`;
     }
     return 'Digite <b>1</b> para Crédito (cartão) ou <b>2</b> para Débito (banco).';
@@ -8256,7 +8291,7 @@ function renderDividas() {
             <span style="font-size:15px;font-weight:700;color:var(--text);">${bank.name}</span>
             <span style="font-size:11px;font-weight:600;padding:2px 10px;border-radius:20px;background:${st.bg};color:${st.color};">${st.label}</span>
           </div>
-          <p style="font-size:13px;color:var(--text-3);margin-top:2px;">${d.desc}</p>
+          <p style="font-size:13px;color:var(--text-3);margin-top:2px;">${escapeHtml(d.desc)}</p>
         </div>
         <div style="text-align:right;">
           <span style="font-size:12px;color:var(--muted);">Parcela ${d.parcelasPagas||0}/${d.totalParcelas||0}</span>
@@ -8581,7 +8616,7 @@ function abrirEscolhaPgto(id) {
   document.getElementById('escolha-pgto-divida-id').value = id;
   const proxParcela = (d.parcelasPagas || 0) + 1;
   const saldo = (d.sistema === 'price' || d.sistema === 'sac') ? calcSaldoDevedor(d) : Math.max(0, (d.totalAmount||0) - (d.parcelasPagas||0) * (d.parcelaAmount||0));
-  document.getElementById('escolha-pgto-info').innerHTML = `<b>${d.desc}</b> — Parcela ${proxParcela}/${d.totalParcelas} | Saldo: ${brl(saldo)}`;
+  document.getElementById('escolha-pgto-info').innerHTML = `<b>${escapeHtml(d.desc)}</b> — Parcela ${proxParcela}/${d.totalParcelas} | Saldo: ${brl(saldo)}`;
   document.getElementById('escolha-pgto-modal').style.display = 'block';
 }
 
@@ -8898,7 +8933,7 @@ function abrirSimulAmort(id) {
     <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;">
       <div>
         <p style="font-size:12px;color:var(--muted);">Dívida</p>
-        <p style="font-size:15px;font-weight:700;color:var(--text);">${d.desc}</p>
+        <p style="font-size:15px;font-weight:700;color:var(--text);">${escapeHtml(d.desc)}</p>
       </div>
       <div style="text-align:right;">
         <p style="font-size:12px;color:var(--muted);">Saldo Devedor Atual</p>
@@ -9383,7 +9418,7 @@ function renderInvestimentos() {
         </div>
         <div style="flex:1;min-width:0;">
           <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-            <span style="font-size:15px;font-weight:700;color:var(--text);">${inv.desc}</span>
+            <span style="font-size:15px;font-weight:700;color:var(--text);">${escapeHtml(inv.desc)}</span>
             <span style="font-size:11px;font-weight:600;padding:2px 10px;border-radius:20px;background:${tp.bg};color:${tp.color};">${tp.label}</span>
             ${objHtml}
           </div>
@@ -9761,7 +9796,7 @@ function abrirCompraCriptoModal(id) {
 
   const nCompras = (inv.compras || []).length;
   document.getElementById('compra-cripto-info').innerHTML = `
-    <p style="font-size:14px;font-weight:700;color:var(--text);">${inv.desc}</p>
+    <p style="font-size:14px;font-weight:700;color:var(--text);">${escapeHtml(inv.desc)}</p>
     <p style="font-size:12px;color:var(--text-3);margin-top:4px;">Total: US$ ${inv.criptoUSD.toFixed(2)} · ${inv.criptoTokens.toLocaleString('pt-BR',{maximumFractionDigits:6})} tokens · ${nCompras} compra${nCompras!==1?'s':''}</p>
   `;
 }
@@ -9822,7 +9857,7 @@ function verComprasCripto(id) {
       <td style="padding:8px 12px;text-align:right;font-size:13px;color:var(--text-3);">R$ ${c.ptax.toFixed(2)}</td>
       <td style="padding:8px 12px;text-align:right;font-size:13px;font-weight:600;color:#2563eb;">${brl(brlVal)}</td>
       <td style="padding:8px 12px;text-align:center;">
-        <button onclick="deletarCompraCripto('${inv.id}','${c.id}')" style="background:none;border:none;color:#e11d48;cursor:pointer;font-size:14px;" title="Excluir" class="ico-btn"><svg class="ico-sm"><use href="#i-trash"/></svg></button>
+        <button onclick="deletarCompraCripto('${inv.id}','${c.id}')" style="background:none;border:none;color:#e11d48;cursor:pointer;font-size:14px;" title="Excluir" class="ico-btn" aria-label="Excluir"><svg class="ico-sm"><use href="#i-trash"/></svg></button>
       </td>
     </tr>`;
   }).join('');
@@ -9914,7 +9949,7 @@ function abrirRendimentoModal(id) {
   const moedaLabel = inv.moedaRetorno === 'USD' ? 'USD' : 'BRL';
   const totalOriginal = (inv.rendimentos||[]).reduce((s,r) => s + (r.valor||0), 0);
   document.getElementById('rend-invest-info').innerHTML = `
-    <p style="font-size:14px;font-weight:700;color:var(--text);">${inv.desc}</p>
+    <p style="font-size:14px;font-weight:700;color:var(--text);">${escapeHtml(inv.desc)}</p>
     <p style="font-size:12px;color:var(--text-3);margin-top:4px;">Investido: ${brl(inv.valorInvestido)} · Rendimentos: ${brl(totalRend)}${inv.moedaRetorno === 'USD' ? ' ('+totalOriginal.toFixed(2)+' USD)' : ''}</p>
     ${inv.tipo === 'renda_fixa' ? '<p style="font-size:11px;color:var(--muted);margin-top:2px;">IR: '+Math.round(calcIRAliquota(inv.dataInicio)*100)+'% ('+Math.floor((new Date()-new Date(inv.dataInicio+"T12:00:00"))/(1000*60*60*24))+' dias)</p>' : ''}
   `;
@@ -9976,12 +10011,12 @@ function abrirAporteModal(id) {
   sel.innerHTML = '<option value="">Não descontar</option>' +
     contas.map(a => {
       const b = BANKS[a.bank] || { name: a.bank };
-      return `<option value="${a.id}">${b.name} — ${a.label}</option>`;
+      return `<option value="${a.id}">${escapeHtml(b.name)} — ${escapeHtml(a.label)}</option>`;
     }).join('');
 
   const valorAtual = calcValorAtual(inv);
   document.getElementById('aporte-invest-info').innerHTML = `
-    <p style="font-size:14px;font-weight:700;color:var(--text);">${inv.desc} (${inv.prevTipo || 'VGBL'})</p>
+    <p style="font-size:14px;font-weight:700;color:var(--text);">${escapeHtml(inv.desc)} (${inv.prevTipo || 'VGBL'})</p>
     <p style="font-size:12px;color:var(--text-3);margin-top:4px;">Investido: ${brl(inv.valorInvestido)} · Valor Atual: ${brl(valorAtual)}</p>
     <p style="font-size:11px;color:var(--muted);margin-top:2px;">Aporte mensal: ${brl(inv.prevAporteMensal || 0)} · ${calcMesesPassados(inv.dataInicio)} meses</p>
   `;
@@ -10061,7 +10096,7 @@ function abrirAtualizarSaldoModal(id) {
 
   const valorAtual = calcValorAtual(inv);
   document.getElementById('atsaldo-invest-info').innerHTML = `
-    <p style="font-size:14px;font-weight:700;color:var(--text);">${inv.desc} (${inv.prevTipo || 'VGBL'})</p>
+    <p style="font-size:14px;font-weight:700;color:var(--text);">${escapeHtml(inv.desc)} (${inv.prevTipo || 'VGBL'})</p>
     <p style="font-size:12px;color:var(--text-3);margin-top:4px;">Investido: ${brl(inv.valorInvestido)} · Saldo atual: <strong>${brl(valorAtual)}</strong></p>
   `;
 }
@@ -10246,7 +10281,7 @@ function renderCatStackedChart() {
 
   // Legend
   document.getElementById('cat-ch-legend').innerHTML = topCats.map(([cat], i) =>
-    `<span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:3px;background:${COLORS[i % COLORS.length]};"></span>${cat}</span>`
+    `<span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:3px;background:${COLORS[i % COLORS.length]};"></span>${escapeHtml(cat)}</span>`
   ).join('');
 
   // Chart
@@ -10391,10 +10426,25 @@ function init() {
 //  N          → Nova transação (fora de campos de texto)
 //  Ctrl+Enter → salva o formulário de nova transação
 //  Esc        → fecha o modal aberto
+// Fecha o modal aberto (chama a função fecharXxxModal correspondente quando existe)
+function closeAnyModal() {
+  const special = { 'del-modal': 'closeModal', 'conta-modal': 'fecharModalConta', 'simul-amort-modal': 'fecharSimulModal', 'amort-table-modal': 'fecharAmortModal' };
+  const open = [...document.querySelectorAll('div[id$="-modal"]')].filter(d => d.style.display !== 'none' && d.querySelector('#modal-backdrop'));
+  if (!open.length) return false;
+  const wrap = open[open.length - 1];
+  const camel = wrap.id.replace(/-modal$/, '').replace(/-([a-z])/g, (_, c) => c.toUpperCase());
+  const fnName = special[wrap.id] || ('fechar' + camel.charAt(0).toUpperCase() + camel.slice(1) + 'Modal');
+  if (typeof window[fnName] === 'function') window[fnName]();
+  else wrap.style.display = 'none';
+  return true;
+}
 document.addEventListener('keydown', (ev) => {
+  if (ev.key === 'Escape' && closeAnyModal()) { ev.preventDefault(); return; }
   if (!sessionStorage.getItem('fincasal_auth')) return;
   const tag = (ev.target.tagName || '').toLowerCase();
   const typing = tag === 'input' || tag === 'textarea' || tag === 'select' || ev.target.isContentEditable;
+  // Enter/Espaço ativam itens da navegação focados por teclado
+  if ((ev.key === 'Enter' || ev.key === ' ') && ev.target.classList && ev.target.classList.contains('nav-item')) { ev.preventDefault(); ev.target.click(); return; }
   if (ev.key === 'Enter' && (ev.ctrlKey || ev.metaKey)) {
     const form = document.querySelector('#page-nova form');
     const visible = document.getElementById('page-nova').style.display !== 'none';
@@ -10402,7 +10452,12 @@ document.addEventListener('keydown', (ev) => {
     return;
   }
   if (typing || ev.ctrlKey || ev.metaKey || ev.altKey) return;
-  if (ev.key === 'n' || ev.key === 'N') { ev.preventDefault(); goto('nova'); }
+  const pageVisible = id => document.getElementById(id) && document.getElementById(id).style.display !== 'none';
+  if (ev.key === 'n' || ev.key === 'N') { ev.preventDefault(); goto('nova'); return; }
+  if (ev.key === '/' ) { ev.preventDefault(); if (!pageVisible('page-historico')) goto('historico'); setTimeout(() => { const f = document.getElementById('fil-search'); if (f) { f.focus(); f.select(); } }, 60); return; }
+  if ((ev.key === 'ArrowLeft' || ev.key === 'ArrowRight') && pageVisible('page-dashboard') && typeof dashNavMonth === 'function') {
+    ev.preventDefault(); dashNavMonth(ev.key === 'ArrowLeft' ? -1 : 1);
+  }
 });
 
 window.onload = function () {

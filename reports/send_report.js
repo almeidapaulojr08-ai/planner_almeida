@@ -9,6 +9,8 @@
 //   TELEGRAM_CHAT_IDS         → pares chatid:Nome separados por vírgula.
 //                               Ex: 7266680194:Paulo,8733572876:Thayse
 //                               O Nome tem que ser IGUAL ao usado nas transações.
+//   ANTHROPIC_API_KEY         → (opcional) chave da Anthropic. Se existir, o relatório Geral
+//                               ganha 2–3 frases de leitura geradas pelo Claude. Sem ela, nada muda.
 // ─────────────────────────────────────────────────────────────────────────────
 const admin = require('firebase-admin');
 
@@ -21,6 +23,40 @@ function fbToArray(obj) {
   if (!obj) return [];
   if (Array.isArray(obj)) return obj.filter(Boolean);
   return Object.values(obj);
+}
+
+// Chama a API da Anthropic (HTTP direto; sem SDK pra não inflar o npm install do Actions)
+async function gerarLeituraIA(relatorioHtml) {
+  const key = process.env.ANTHROPIC_API_KEY;
+  if (!key) return null;
+  const texto = relatorioHtml.replace(/<[^>]+>/g, '');
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': key,
+        'anthropic-version': '2023-06-01',
+        'anthropic-beta': 'server-side-fallback-2026-07-01'
+      },
+      body: JSON.stringify({
+        model: 'claude-opus-5',
+        max_tokens: 600,
+        fallbacks: 'default',
+        output_config: { effort: 'low' },
+        system: 'Você é Salem, assistente financeiro de um casal brasileiro (Paulo e Thayse). Recebe um relatório com saldos, gastos do mês, faturas e parcelas. Escreva 2 ou 3 frases curtas em PT-BR, tom de colega, apontando o que mais merece atenção (ritmo do mês, fatura pesada, algo fora do padrão) e, se couber, um elogio honesto. Sem saudação, sem lista, sem markdown, sem inventar números que não estejam no relatório.',
+        messages: [{ role: 'user', content: texto }]
+      })
+    });
+    if (!res.ok) { console.error('Leitura IA: HTTP', res.status, (await res.text()).slice(0, 200)); return null; }
+    const data = await res.json();
+    if (data.stop_reason === 'refusal') return null;
+    const out = (data.content || []).filter(b => b.type === 'text').map(b => b.text).join(' ').trim();
+    return out ? out.replace(/</g, '&lt;').replace(/>/g, '&gt;') : null;
+  } catch (e) {
+    console.error('Leitura IA falhou (segue sem):', e.message);
+    return null;
+  }
 }
 
 async function main() {
@@ -197,8 +233,12 @@ async function main() {
   // aceita "id:Nome" (personalizado) ou só "id" (recebe só o geral)
   const destinos = raw.map(e => { const i = e.indexOf(':'); return i > 0 ? { id: e.slice(0, i).trim(), nome: e.slice(i + 1).trim() } : { id: e, nome: null }; });
 
-  const relatorioCasal = buildReport(null);
+  let relatorioCasal = buildReport(null);
   const cachePessoa = {};
+
+  // ── Leitura em 2–3 frases pelo Claude (opcional) ──
+  const leitura = await gerarLeituraIA(relatorioCasal);
+  if (leitura) relatorioCasal = relatorioCasal.replace('\n', '\n' + `<i>${leitura}</i>\n`);
 
   async function enviar(chatId, texto) {
     const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {

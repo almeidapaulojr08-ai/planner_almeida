@@ -70,6 +70,7 @@ No repositório `planner_almeida` → **Settings** → **Secrets and variables**
 | `FIREBASE_DB_URL` | `https://almeida-wosniak-dre-default-rtdb.firebaseio.com` |
 | `TELEGRAM_BOT_TOKEN` | o token do passo 1 |
 | `TELEGRAM_CHAT_IDS` | pares `id:Nome` separados por vírgula, ex.: `111:Paulo,222:Thayse`. O Nome tem que ser igual ao das transações. |
+| `ANTHROPIC_API_KEY` | **(opcional)** chave da Anthropic (`sk-ant-...`). Com ela, a mensagem Geral ganha 2–3 frases de leitura escritas pelo Claude ("setembro está acima da média, puxado por Casa..."). Custa centavos por dia. Sem a secret, o relatório sai igual ao de sempre. |
 
 ### 5. Testar
 - Aba **Actions** → workflow **Relatório FinançasCasal** → **Run workflow** → aguarda ~1 min
