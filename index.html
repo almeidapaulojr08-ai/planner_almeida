@@ -7920,7 +7920,7 @@ function mdToHtml(md) {
     const line = raw.trimEnd();
     const li = /^\s*[-•*]\s+(.*)$/.exec(line);
     if (li) {
-      if (!inList) { html += '<ul style="margin:6px 0 6px 18px;padding:0;">'; inList = true; }
+      if (!inList) { html += '<ul style="margin:6px 0 6px 18px;padding:0;list-style:disc;">'; inList = true; }
       html += '<li style="margin:2px 0;">' + inline(li[1]) + '</li>';
       continue;
     }
