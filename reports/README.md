@@ -3,7 +3,7 @@
 Envia um resumo financeiro (saldos, gastos, faturas a vencer, parcelas, orçamento,
 patrimônio) pro Telegram de vocês dois, automático, pelo GitHub Actions.
 
-- **Todo dia às 08:07 e 20:07** (Brasília) → cada um recebe 2 mensagens: uma "Geral (casal)" e outra só com os valores dele.
+- **Toda segunda-feira às 08:07** (Brasília) → cada um recebe 2 mensagens: uma "Geral (casal)" e outra só com os valores dele. (Era 2x ao dia até 23/09/2026; Paulo pediu semanal.)
 - No **dia 1º** o texto vira "fechamento do mês anterior".
 - Botão **Run workflow** (aba Actions) → dispara na hora, pra testar (ignora a trava de 5 h).
 - Trava anti-duplicata: se já enviou há menos de 5 h, o script pula (grava `reportMeta/lastSentAt` no Firebase).
@@ -11,7 +11,7 @@ patrimônio) pro Telegram de vocês dois, automático, pelo GitHub Actions.
 
 ### ✅ Gatilho em uso: tarefa agendada no PC do Paulo (23/09/2026)
 Tarefa do Windows **"FinancasCasal - Relatorio Telegram"** (Agendador de Tarefas) roda `reports/disparar_relatorio.cmd`
-às **08:07 e 20:07**, que chama `gh workflow run relatorio.yml -f force=false`. Se o PC estava desligado no horário,
+toda **segunda-feira às 08:07**, que chama `gh workflow run relatorio.yml -f force=false`. Se o PC estava desligado no horário,
 roda assim que ligar. Log em `%LOCALAPPDATA%incasal_relatorio.log`. Se um dia quiser algo que não dependa do PC,
 usar o cron-job.org (abaixo).
 
