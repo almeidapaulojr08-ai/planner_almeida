@@ -6786,8 +6786,14 @@ function buildSystemPrompt() {
   const invInfo = S.investments.length ? S.investments.map(i => `- ${i.desc}: ${brl(i.currentValue || i.amount)}`).join('\n') : 'Nenhum';
 
   // Categories
-  const despCats = getDespesaCats().map(c => typeof c === 'string' ? c : c.name).join(', ');
-  const recCats = getReceitaCats().map(c => typeof c === 'string' ? c : c.name).join(', ');
+  // Categorias podem vir como array (receita) ou objeto {categoria: [subcategorias]} (despesa)
+  const catsToText = (x) => {
+    if (!x) return '';
+    if (Array.isArray(x)) return x.map(c => typeof c === 'string' ? c : (c && c.name) || '').filter(Boolean).join(', ');
+    return Object.entries(x).map(([c, subs]) => Array.isArray(subs) && subs.length ? `${c} (${subs.join(', ')})` : c).join('; ');
+  };
+  const despCats = catsToText(getDespesaCats());
+  const recCats = catsToText(getReceitaCats());
 
   return `Você é Salem, assistente financeiro de um casal brasileiro. Responda SEMPRE em PT-BR.
 Data atual: ${now.toISOString().slice(0,10)}. Usuários: ${S.settings.u1} e ${S.settings.u2}.
