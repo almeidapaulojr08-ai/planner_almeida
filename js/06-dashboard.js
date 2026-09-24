@@ -1087,9 +1087,12 @@ function renderProjecao(ym) {
   const real = t => !t.isTransfer && !isPgtoFatura(t);
   const addM = (k, n) => { const d = new Date(parseInt(k.slice(0, 4)), parseInt(k.slice(5, 7)) - 1 + n, 1); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`; };
   const soma = (fn, k) => my.filter(t => (t.date || '').startsWith(k) && real(t) && fn(t)).reduce((s, t) => s + amountBrl(t), 0);
-  const isEspont = t => t.type === 'despesa' && !t.recorrente && !t.parcela && !t.parcelaTotal;
-  // Base "típica" dos últimos 6 meses: mediana, descartando meses fora do padrão (venda de imóvel,
-  // gasto grande de uma vez). Média simples inflava tudo.
+  // "Dia a dia" = lançamentos avulsos até R$ 10 mil (despesa) / R$ 20 mil (receita). Acima disso é
+  // eventual (sinal de casa, amortização extra, venda de apartamento) e não entra na estimativa.
+  const TETO_DESP = 10000, TETO_REC = 20000;
+  const isEspont = t => t.type === 'despesa' && !t.recorrente && !t.parcela && !t.parcelaTotal && amountBrl(t) <= TETO_DESP;
+  const isRecNormal = t => t.type === 'receita' && amountBrl(t) <= TETO_REC;
+  // Base "típica" dos últimos 6 meses: mediana, descartando meses fora do padrão.
   const tipico = arr => {
     const v = arr.filter(x => x > 0).sort((a, b) => a - b);
     if (!v.length) return 0;
@@ -1098,7 +1101,7 @@ function renderProjecao(ym) {
     return ok.reduce((a, b) => a + b, 0) / ok.length;
   };
   const recs = [], esps = [];
-  for (let i = 1; i <= 6; i++) { const k = addM(ym, -i); recs.push(soma(t => t.type === 'receita', k)); esps.push(soma(isEspont, k)); }
+  for (let i = 1; i <= 6; i++) { const k = addM(ym, -i); recs.push(soma(isRecNormal, k)); esps.push(soma(isEspont, k)); }
   const n = recs.filter((r, i) => r > 0 || esps[i] > 0).length;
   if (!n) { el.style.display = 'none'; return; }
   const recAuto = tipico(recs);
@@ -1130,7 +1133,7 @@ function renderProjecao(ym) {
         <span style="position:relative;display:inline-block;"><span style="position:absolute;left:8px;top:50%;transform:translateY(-50%);font-size:11px;">R$</span>
         <input type="number" step="100" value="${Math.round(recM)}" onchange="S.settings.rendaMensal = parseFloat(this.value) || 0; save(); renderProjecao('${ym}')" title="Entradas mensais esperadas. Vazio = mediana dos últimos 6 meses (${brl(recAuto)}), ignorando meses fora do padrão" style="width:110px;padding:3px 6px 3px 26px;border:1px solid var(--border);border-radius:6px;font-size:11px;background:var(--surface);color:var(--text);"></span>
         ${rendaManual > 0 ? `<a href="#" onclick="S.settings.rendaMensal = 0; save(); renderProjecao('${ym}'); return false;" style="color:var(--text-3);">usar automático (${brl(recAuto)})</a>` : '<span>(automático: mediana de 6 meses)</span>'}
-        · variável estimado = mediana dos gastos não recorrentes</span></div>
+        · variável estimado = mediana dos gastos avulsos do dia a dia (ignora lançamentos acima de R$ 10 mil e receitas acima de R$ 20 mil)</span></div>
     <div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:13px;">
       <thead><tr style="color:var(--muted);font-size:11px;text-align:right;"><th style="text-align:left;padding:6px 8px;">Mês</th><th style="padding:6px 8px;">Entradas</th><th style="padding:6px 8px;">Já lançado</th><th style="padding:6px 8px;">Variável estimado</th><th style="padding:6px 8px;">Resultado</th><th style="padding:6px 8px;">Saldo projetado</th><th style="padding:6px 8px;text-align:center;">Cenário</th></tr></thead>
       <tbody>` + rows.map(r => `<tr style="border-top:1px solid var(--surface-2);text-align:right;">
