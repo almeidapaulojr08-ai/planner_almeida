@@ -11,7 +11,7 @@
  *
  * Trocar CACHE_VERSION força limpar o cache antigo no próximo deploy.
  */
-const CACHE_VERSION = 'fincasal-v2';
+const CACHE_VERSION = 'fincasal-v3';
 const OFFLINE_CACHE = CACHE_VERSION + '-shell';
 const ASSET_CACHE = CACHE_VERSION + '-assets';
 
@@ -40,7 +40,17 @@ self.addEventListener('fetch', (event) => {
   if (req.method !== 'GET') return;
   const url = new URL(req.url);
 
-  // 1. Navegação / index.html → rede primeiro (revalida), cache se offline
+  // 1. Navegação / index.html e os módulos do próprio app (js/, css/) → rede primeiro (revalida),
+  //    cache se offline. Os módulos têm ?v=carimbo, então cada index.html puxa exatamente a sua versão.
+  const isOwnModule = url.origin === self.location.origin && /\/(js|css)\/[^/]+\.(js|css)$/.test(url.pathname);
+  if (isOwnModule) {
+    event.respondWith(
+      fetch(new Request(req, { cache: 'no-cache' }))
+        .then(res => { if (res && res.ok) caches.open(ASSET_CACHE).then(c => c.put(req, res.clone())); return res; })
+        .catch(() => caches.match(req))
+    );
+    return;
+  }
   if (req.mode === 'navigate' || url.pathname.endsWith('/index.html')) {
     event.respondWith(
       fetch(new Request(req, { cache: 'no-cache' }))
