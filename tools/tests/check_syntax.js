@@ -1,5 +1,5 @@
 const fs = require('fs');
-const src = fs.readFileSync(process.argv[2], 'utf8');
+const src = fs.readFileSync(process.argv[2] || require('path').resolve(__dirname, '..', '..', 'index.html'), 'utf8');
 const blocks = src.match(/<script(?![^>]*\ssrc=)[^>]*>([\s\S]*?)<\/script>/g) || [];
 let ok = 0;
 for (const b of blocks) {

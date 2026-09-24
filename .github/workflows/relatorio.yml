@@ -38,3 +38,13 @@ jobs:
           FORCE: ${{ inputs.force }}
           TRIGGER: ${{ github.event_name }}
         run: node send_report.js
+
+      - name: Enviar backup semanal (JSON completo no Telegram)
+        if: always()
+        working-directory: reports
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          FIREBASE_DB_URL: ${{ secrets.FIREBASE_DB_URL }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_IDS: ${{ secrets.TELEGRAM_CHAT_IDS }}
+        run: node send_backup.js

@@ -6,6 +6,7 @@ patrimônio) pro Telegram de vocês dois, automático, pelo GitHub Actions.
 - **Toda segunda-feira às 08:07** (Brasília) → cada um recebe 2 mensagens: uma "Geral (casal)" e outra só com os valores dele. (Era 2x ao dia até 23/09/2026; Paulo pediu semanal.)
 - No **dia 1º** o texto vira "fechamento do mês anterior".
 - Botão **Run workflow** (aba Actions) → dispara na hora, pra testar (ignora a trava de 5 h).
+- **Backup semanal:** no mesmo run, `send_backup.js` manda o JSON completo do banco como arquivo pros dois chats (mesmo formato do Exportar JSON; restaura pelo Importar JSON). O backup sai SEMPRE que o workflow roda, mesmo quando o relatório é pulado pela trava.
 - Trava anti-duplicata: se já enviou há menos de 5 h, o script pula (grava `reportMeta/lastSentAt` no Firebase).
 - Trocar horário: editar o `cron` em `.github/workflows/relatorio.yml` (está em UTC; BRT = UTC-3) **e** o horário no cron-job.org (abaixo).
 

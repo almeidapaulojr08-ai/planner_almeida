@@ -1,4 +1,4 @@
-const src = require('fs').readdirSync('C:/Users/Dell/financas-casal/js').sort().map(f => require('fs').readFileSync('C:/Users/Dell/financas-casal/js/' + f, 'utf8')).join('\n');
+const src = require('fs').readdirSync(require('path').resolve(__dirname, '..', '..', 'js')).sort().map(f => require('fs').readFileSync(require('path').resolve(__dirname, '..', '..', 'js', f), 'utf8')).join('\n');
 const a = src.indexOf('function mdToHtml'), b = src.indexOf('function addBubble');
 const mdToHtml = new Function(src.slice(a, b) + '; return mdToHtml;')();
 const out = mdToHtml('**Pedro em 2026: R$ 8.162,18** (204)\n\nMês a mês:\n- Jan: R$ 766,10\n- **Ago: R$ 1.621,39** (maior)\n\nAté *setembro* <x>');

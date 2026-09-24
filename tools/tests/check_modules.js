@@ -1,7 +1,7 @@
 // Valida a versão modular: cada js/*.js parseia sozinho; index.html referencia todos em ordem;
 // nenhum módulo executa no topo algo definido só em módulo posterior (checagem estática simples).
 const fs = require('fs'), path = require('path');
-const ROOT = 'C:/Users/Dell/financas-casal';
+const ROOT = path.resolve(__dirname, '..', '..');
 const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
 const refs = [...html.matchAll(/<script src="js\/([^"?]+)\?v=(\d+)"><\/script>/g)].map(m => m[1]);
 const files = fs.readdirSync(path.join(ROOT, 'js')).filter(f => f.endsWith('.js')).sort();

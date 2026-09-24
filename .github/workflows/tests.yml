@@ -1,0 +1,19 @@
+name: Testes
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  testes:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Sintaxe, ordem dos módulos, sync e markdown
+        run: node tools/tests/run_all.js
+      - name: Carimbo de versão coerente (index.html referencia todos os js/ com o mesmo ?v=)
+        run: node tools/tests/check_modules.js

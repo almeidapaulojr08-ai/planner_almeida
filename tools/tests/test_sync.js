@@ -1,6 +1,6 @@
 // Testa pushToFirebase/_snapshotToRemote/_isLegacyShape extraídos do index.html com um Firebase falso
 const fs = require('fs');
-const src = fs.readdirSync('C:/Users/Dell/financas-casal/js').sort().map(f => fs.readFileSync('C:/Users/Dell/financas-casal/js/' + f, 'utf8')).join('\n');
+const src = fs.readdirSync(require('path').resolve(__dirname, '..', '..', 'js')).sort().map(f => fs.readFileSync(require('path').resolve(__dirname, '..', '..', 'js', f), 'utf8')).join('\n');
 const start = src.indexOf('// ─── SYNC GRANULAR');
 const end = src.indexOf('// Merge dois arrays por ID');
 const syncCode = src.slice(start, end);
