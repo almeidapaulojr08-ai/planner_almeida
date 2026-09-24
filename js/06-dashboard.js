@@ -1088,10 +1088,23 @@ function renderProjecao(ym) {
   const addM = (k, n) => { const d = new Date(parseInt(k.slice(0, 4)), parseInt(k.slice(5, 7)) - 1 + n, 1); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`; };
   const soma = (fn, k) => my.filter(t => (t.date || '').startsWith(k) && real(t) && fn(t)).reduce((s, t) => s + amountBrl(t), 0);
   const isEspont = t => t.type === 'despesa' && !t.recorrente && !t.parcela && !t.parcelaTotal;
-  let recM = 0, espM = 0, n = 0;
-  for (let i = 1; i <= 3; i++) { const k = addM(ym, -i); const r = soma(t => t.type === 'receita', k); if (r > 0 || soma(t => t.type === 'despesa', k) > 0) { recM += r; espM += soma(isEspont, k); n++; } }
+  // Base "típica" dos últimos 6 meses: mediana, descartando meses fora do padrão (venda de imóvel,
+  // gasto grande de uma vez). Média simples inflava tudo.
+  const tipico = arr => {
+    const v = arr.filter(x => x > 0).sort((a, b) => a - b);
+    if (!v.length) return 0;
+    const med = v[Math.floor(v.length / 2)];
+    const ok = v.filter(x => x <= med * 2.5 && x >= med * 0.3);
+    return ok.reduce((a, b) => a + b, 0) / ok.length;
+  };
+  const recs = [], esps = [];
+  for (let i = 1; i <= 6; i++) { const k = addM(ym, -i); recs.push(soma(t => t.type === 'receita', k)); esps.push(soma(isEspont, k)); }
+  const n = recs.filter((r, i) => r > 0 || esps[i] > 0).length;
   if (!n) { el.style.display = 'none'; return; }
-  recM /= n; espM /= n;
+  const recAuto = tipico(recs);
+  const rendaManual = parseFloat(S.settings.rendaMensal) || 0;   // ajuste manual (campo no card)
+  const recM = rendaManual > 0 ? rendaManual : recAuto;
+  const espM = tipico(esps);
   // saldo atual em contas (não cartão): receitas - despesas lançadas até hoje
   const contas = S.accounts.filter(a => a.accountType !== 'cartao' && (titularFilter === 'ambos' || a.owner === (titularFilter === 'paulo' ? S.settings.u1 : S.settings.u2)));
   const hoje = new Date().toISOString().slice(0, 10);
@@ -1113,7 +1126,11 @@ function renderProjecao(ym) {
   el.style.display = 'block';
   el.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px;">
       <span style="font-size:14px;font-weight:700;color:var(--text);">🔮 Projeção de caixa · próximos 3 meses</span>
-      <span style="font-size:11px;color:var(--muted);">estimativa: média dos últimos ${n} meses + o que já está lançado · saldo em conta hoje ${brl(saldo)}</span></div>
+      <span style="font-size:11px;color:var(--muted);display:flex;align-items:center;gap:6px;flex-wrap:wrap;">saldo em conta hoje ${brl(saldo)} · entradas/mês:
+        <span style="position:relative;display:inline-block;"><span style="position:absolute;left:8px;top:50%;transform:translateY(-50%);font-size:11px;">R$</span>
+        <input type="number" step="100" value="${Math.round(recM)}" onchange="S.settings.rendaMensal = parseFloat(this.value) || 0; save(); renderProjecao('${ym}')" title="Entradas mensais esperadas. Vazio = mediana dos últimos 6 meses (${brl(recAuto)}), ignorando meses fora do padrão" style="width:110px;padding:3px 6px 3px 26px;border:1px solid var(--border);border-radius:6px;font-size:11px;background:var(--surface);color:var(--text);"></span>
+        ${rendaManual > 0 ? `<a href="#" onclick="S.settings.rendaMensal = 0; save(); renderProjecao('${ym}'); return false;" style="color:var(--text-3);">usar automático (${brl(recAuto)})</a>` : '<span>(automático: mediana de 6 meses)</span>'}
+        · variável estimado = mediana dos gastos não recorrentes</span></div>
     <div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:13px;">
       <thead><tr style="color:var(--muted);font-size:11px;text-align:right;"><th style="text-align:left;padding:6px 8px;">Mês</th><th style="padding:6px 8px;">Entradas</th><th style="padding:6px 8px;">Já lançado</th><th style="padding:6px 8px;">Variável estimado</th><th style="padding:6px 8px;">Resultado</th><th style="padding:6px 8px;">Saldo projetado</th><th style="padding:6px 8px;text-align:center;">Cenário</th></tr></thead>
       <tbody>` + rows.map(r => `<tr style="border-top:1px solid var(--surface-2);text-align:right;">

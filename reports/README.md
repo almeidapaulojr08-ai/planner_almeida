@@ -95,21 +95,3 @@ node send_report.js
 A lógica do relatório (o `send_report.js`) fica igual. Pra trocar Telegram por
 WhatsApp oficial (Meta Cloud API), muda só o trecho final que faz o `fetch` de
 envio — o cálculo do resumo é reaproveitado 100%.
-
-
----
-
-## Salem no Telegram (bot bidirecional) — roda no PC do Paulo
-`telegram_bot.js` fica escutando o Telegram e responde perguntas com o Claude usando os dados do Firebase
-(mesmas ferramentas do Assistente IA do app) e também **lança gastos** ("gastei 48,90 no mercado no débito do Sicredi").
-Só responde aos chat ids configurados; qualquer outra pessoa é ignorada.
-
-### Configurar (uma vez)
-1. Firebase → ⚙️ Configurações do projeto → Contas de serviço → **Gerar nova chave privada**. Salve o `.json` como
-   `reports/.secrets/serviceAccount.json` (pasta ignorada pelo git).
-2. Copie `reports/.env.example` para `reports/.env` e preencha: token do bot, chat ids, chave da Anthropic.
-3. A tarefa agendada **"FinancasCasal - Salem Telegram"** já inicia o bot ao fazer logon no Windows (janela oculta).
-   Pra iniciar na hora sem relogar: Agendador de Tarefas → botão direito na tarefa → Executar.
-4. Log em `%LOCALAPPDATA%incasal_bot.log`. Comandos no Telegram: `/ajuda`, `/limpar` (reinicia a conversa).
-
-Limitação: só funciona com o PC ligado e logado. Se um dia precisar 24h, a alternativa é um Cloudflare Worker (grátis).
