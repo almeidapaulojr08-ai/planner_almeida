@@ -8,3 +8,7 @@ reports/.env
 index.html.bak
 index.html.bak2
 backups/
+
+# bot do Telegram (segredos e log locais)
+reports/.secrets/
+*.log
