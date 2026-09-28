@@ -282,7 +282,8 @@ function _onFirebaseValue(snapshot) {
     if (!(fbData.customCats && Array.isArray(fbData.customCats.despesaOrder))) { normalizeCustomCats(S.customCats); needsRepair = true; }
     const desp = S.customCats.despesa;
     if (desp) {
-      const required = { 'Diversos': [], 'Servicos': [], 'Presentes': [], 'Pedro': ['Festa de Aniversário'], 'Taxas': ['Pgto Fatura'] };
+      // 'Presentes' saiu em 2026-09-28: virou Diversos › Presentes (não recriar a categoria)
+      const required = { 'Diversos': [], 'Servicos': [], 'Pedro': ['Festa de Aniversário'], 'Taxas': ['Pgto Fatura'] };
       for (const [cat, subs] of Object.entries(required)) {
         // Firebase não armazena array vazio: categoria sem subcategoria SEMPRE chega ausente.
         // Só marca reparo quando há subcategorias a gravar (senão vira escrita infinita).
