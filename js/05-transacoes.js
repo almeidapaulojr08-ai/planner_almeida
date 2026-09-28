@@ -53,12 +53,63 @@ function setFormaPgto(tipo) {
   document.getElementById('btn-debito').style.cssText  = `padding:12px;border-radius:10px;border:2px solid ${isD?'#4f46e5':'var(--border)'};background:${isD?'var(--tint-indigo)':'var(--surface)'};color:${isD?'#4f46e5':'var(--text-3)'};font-weight:700;font-size:14px;cursor:pointer;`;
   document.getElementById('btn-credito').style.cssText = `padding:12px;border-radius:10px;border:2px solid ${!isD?'#4f46e5':'var(--border)'};background:${!isD?'var(--tint-indigo)':'var(--surface)'};color:${!isD?'#4f46e5':'var(--text-3)'};font-weight:700;font-size:14px;cursor:pointer;`;
   refreshContaSelect(isD ? 'conta' : 'cartao');
+  refreshFaturaForm();
   // Show/hide parcelamento (only for crédito)
   document.getElementById('f-row-parcela').style.display = !isD ? 'block' : 'none';
   if (isD) {
     document.getElementById('f-parcelado').checked = false;
     document.getElementById('f-parcela-num-row').style.display = 'none';
   }
+}
+
+// ─── FATURA DO CARTÃO (escolha explícita) ─────────────────────────────────────
+// A fatura é o mês do VENCIMENTO. O app sugere pela regra do fechamento, mas quem lança vê
+// "Mai/2026 · vence 20/05" e pode trocar. Antes era calculado escondido: quem lançava com a
+// data do vencimento (dia 20 no Mercado Pago, que fecha dia 15) caía sem perceber na fatura seguinte.
+function ymShift(ym, k) {
+  const [y, m] = ym.split('-').map(Number);
+  const n = y * 12 + (m - 1) + k;
+  return `${Math.floor(n / 12)}-${String(n % 12 + 1).padStart(2, '0')}`;
+}
+
+function faturaOptionsHtml(card, center, selected, sugerida) {
+  let html = '';
+  for (let k = -2; k <= 3; k++) {
+    const ym = ymShift(center, k);
+    const [y, m] = ym.split('-').map(Number);
+    const venc = card && card.vence ? ` · vence ${String(card.vence).padStart(2, '0')}/${String(m).padStart(2, '0')}` : '';
+    html += `<option value="${ym}"${ym === selected ? ' selected' : ''}>${MESES[m - 1]}/${y}${venc}${ym === sugerida ? ' (sugerida)' : ''}</option>`;
+  }
+  return html;
+}
+
+function refreshFaturaForm() {
+  const row = document.getElementById('f-row-fatura');
+  if (!row) return;
+  const isCred = currentType === 'despesa' && formaPgto === 'credito';
+  const card = S.accounts.find(a => a.id === document.getElementById('f-conta')?.value && a.accountType === 'cartao');
+  const date = document.getElementById('f-data')?.value;
+  const show = !!(isCred && card && date);
+  row.style.display = show ? 'block' : 'none';
+  if (!show) return;
+  const sug = getTxFaturaRef({ date, accountId: card.id });
+  document.getElementById('f-fatura').innerHTML = faturaOptionsHtml(card, sug, sug, sug);
+}
+
+// recalc=false: abre com a fatura gravada. recalc=true (data/cartão mudou): volta pra sugerida.
+function refreshFaturaEdit(recalc) {
+  const row = document.getElementById('ed-row-fatura');
+  if (!row) return;
+  const t = S.transactions.find(x => x.id === editTxId);
+  const isCred = document.getElementById('ed-type').value === 'despesa' && editFormaPgto === 'credito';
+  const card = S.accounts.find(a => a.id === document.getElementById('ed-conta')?.value && a.accountType === 'cartao');
+  const date = document.getElementById('ed-date')?.value;
+  const show = !!(isCred && card && date);
+  row.style.display = show ? 'block' : 'none';
+  if (!show) return;
+  const sug = getTxFaturaRef({ date, accountId: card.id });
+  const atual = !recalc && t && t.faturaRef && t.accountId === card.id ? t.faturaRef : sug;
+  document.getElementById('ed-fatura').innerHTML = faturaOptionsHtml(card, atual, atual, sug);
 }
 
 function toggleParcelas() {
@@ -194,7 +245,7 @@ function applySuggestion(i) {
   if (currentType !== tipo) setType(tipo);
   if (t.user && setSel('f-usuario', t.user)) onTitularChange();
   if (tipo === 'despesa') setFormaPgto(t.formaPgto === 'credito' ? 'credito' : 'debito');
-  if (t.accountId) setSel('f-conta', t.accountId);
+  if (t.accountId) { setSel('f-conta', t.accountId); refreshFaturaForm(); }
   if (t.category && setSel('f-categoria', t.category)) { onCatChange(); if (t.subcategory) setSel('f-subcategoria', t.subcategory); }
   if (tipo === 'despesa' && t.custoTipo) setCustoTipo(t.custoTipo);
   const valor = document.getElementById('f-valor');
@@ -309,11 +360,15 @@ function saveTransacao(e) {
     const fechaDia = card ? parseInt(card.fecha) || 1 : 1;
     const parcelaAmount = Math.round((amountRaw / numParcelas) * 100) / 100;
 
-    // Determine the first fatura month
+    // Fatura da 1ª parcela: a escolhida no campo "Fatura" (padrão = sugerida pelo fechamento)
     const d = new Date(date + 'T12:00:00');
     const day = d.getDate();
     let startMonth, startYear;
-    if (day > fechaDia) {
+    const fatEscolhida = document.getElementById('f-fatura')?.value || '';
+    if (/^\d{4}-\d{2}$/.test(fatEscolhida)) {
+      startYear = parseInt(fatEscolhida.slice(0, 4));
+      startMonth = parseInt(fatEscolhida.slice(5, 7)) - 1;
+    } else if (day > fechaDia) {
       // After closing → goes to next month's fatura
       const tmp = new Date(d.getFullYear(), d.getMonth() + 1, 1);
       startMonth = tmp.getMonth();
@@ -367,7 +422,8 @@ function saveTransacao(e) {
     // Single transaction
     const tx = { ...baseTx, id: Date.now().toString(), desc, amount: amountRaw };
     if (isCredito) {
-      tx.faturaRef = getTxFaturaRef(tx);
+      const fatEscolhida = document.getElementById('f-fatura')?.value || '';
+      tx.faturaRef = /^\d{4}-\d{2}$/.test(fatEscolhida) ? fatEscolhida : getTxFaturaRef(tx);
     }
     S.transactions.push(tx);
     toast('✅ Transação salva!');
@@ -461,6 +517,7 @@ function abrirEditModal(id) {
   if (t.type === 'despesa') document.getElementById('ed-pago').checked = t.pago !== false;
   if (t.type === 'despesa') document.getElementById('ed-recorrente').checked = t.recorrente === true;
   if (t.type === 'despesa') document.getElementById('ed-compartilhada').checked = t.compartilhada === true;
+  refreshFaturaEdit(false);
   if (t.type === 'despesa') {
     setEditCustoTipo(t.custoTipo || autoCustoTipo(t.category));
   }
@@ -507,6 +564,7 @@ function onEditTypeChange() {
     catSel.innerHTML = catList.map(c => `<option value="${c}">${c}</option>`).join('');
   }
   onEditCatChange();
+  refreshFaturaEdit(true);
 }
 
 // Categoria/sub que não está mais no cadastro: mantém como opção "(sem cadastro)" em vez de
@@ -578,17 +636,12 @@ function salvarEdicao() {
     updatedAt:  new Date().toISOString(),
   };
 
-  // Compra de crédito avulsa (não parcela): se a data/cartão mudou, recalcula a fatura.
-  // Parcelas têm faturaRef manual por mês — não mexer.
+  // Fatura: vale o campo "Fatura" (abre com a gravada; só volta pra sugerida se a data ou o
+  // cartão mudarem). Antes recalculava escondido a cada edição e desfazia correções manuais.
   const et = S.transactions[idx];
-  if (et.formaPgto === 'credito' && !et.parcela && !et.parcelaTotal) {
-    const card = S.accounts.find(a => a.id === et.accountId && a.accountType === 'cartao');
-    if (card && card.fecha && et.date) {
-      const fechaDia = parseInt(card.fecha) || 1;
-      const [ey, em, eday] = et.date.split('-').map(Number);
-      const eym = ey*12 + (em-1) + (eday > fechaDia ? 1 : 0);
-      et.faturaRef = `${Math.floor(eym/12)}-${String(eym%12+1).padStart(2,'0')}`;
-    }
+  const fatEd = document.getElementById('ed-fatura')?.value || '';
+  if (et.formaPgto === 'credito' && /^\d{4}-\d{2}$/.test(fatEd) && document.getElementById('ed-row-fatura').style.display !== 'none') {
+    et.faturaRef = fatEd;
   }
 
   save();

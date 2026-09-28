@@ -240,6 +240,7 @@ function onContaChange() {
   const isUSD = acc && BANKS[acc.bank]?.currency === 'USD';
   const prefix = document.getElementById('f-currency-prefix');
   if (prefix) prefix.textContent = isUSD ? '$' : 'R$';
+  if (typeof refreshFaturaForm === 'function') refreshFaturaForm();
 }
 
 function refreshTitularSelect() {

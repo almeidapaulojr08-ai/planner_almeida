@@ -29,7 +29,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/app.css?v=20260928162658" />
+  <link rel="stylesheet" href="css/app.css?v=20260928163309" />
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
@@ -533,7 +533,7 @@
       <!-- Data -->
       <div style="margin-bottom:14px;">
         <label class="flabel">Data</label>
-        <input class="finput" type="date" id="f-data" required>
+        <input class="finput" type="date" id="f-data" required onchange="refreshFaturaForm()">
       </div>
 
       <!-- Marcar como paga (só despesa) -->
@@ -590,6 +590,13 @@
           <label class="flabel">Número de Parcelas</label>
           <input class="finput" type="number" id="f-num-parcelas" min="1" max="48" value="1" style="width:120px;">
         </div>
+      </div>
+
+      <!-- Fatura (só crédito) -->
+      <div id="f-row-fatura" style="display:none;margin-bottom:18px;">
+        <label class="flabel">Fatura</label>
+        <select class="finput" id="f-fatura"></select>
+        <p style="font-size:11px;color:var(--muted);margin-top:4px;">Confira se é a fatura em que a compra vem. Parcelado: é a fatura da 1ª parcela.</p>
       </div>
 
       <!-- Custo Fixo/Variável (só despesa) -->
@@ -1411,7 +1418,7 @@
       <!-- Data -->
       <div style="margin-bottom:16px;">
         <label class="flabel">Data</label>
-        <input class="finput" type="date" id="ed-date">
+        <input class="finput" type="date" id="ed-date" onchange="refreshFaturaEdit(true)">
       </div>
 
       <!-- Forma de Pagamento (só despesa) -->
@@ -1426,7 +1433,13 @@
       <!-- Conta -->
       <div style="margin-bottom:16px;">
         <label class="flabel">Conta</label>
-        <select class="finput" id="ed-conta"></select>
+        <select class="finput" id="ed-conta" onchange="refreshFaturaEdit(true)"></select>
+      </div>
+
+      <!-- Fatura (só crédito) -->
+      <div id="ed-row-fatura" style="display:none;margin-bottom:16px;">
+        <label class="flabel">Fatura</label>
+        <select class="finput" id="ed-fatura"></select>
       </div>
 
       <!-- Titular -->
@@ -2213,18 +2226,18 @@
 </div>
 
 <!-- ============================================================ JAVASCRIPT -->
-<script src="js/01-firebase-sync.js?v=20260928162658"></script>
-<script src="js/02-state.js?v=20260928162658"></script>
-<script src="js/03-contas.js?v=20260928162658"></script>
-<script src="js/04-auth-nav.js?v=20260928162658"></script>
-<script src="js/05-transacoes.js?v=20260928162658"></script>
-<script src="js/06-dashboard.js?v=20260928162658"></script>
-<script src="js/07-historico-faturas.js?v=20260928162658"></script>
-<script src="js/08-categorias-orcamento-graficos.js?v=20260928162658"></script>
-<script src="js/09-assistente-ia.js?v=20260928162658"></script>
-<script src="js/10-config-init.js?v=20260928162658"></script>
-<script src="js/11-dividas.js?v=20260928162658"></script>
-<script src="js/12-investimentos.js?v=20260928162658"></script>
-<script src="js/13-boot.js?v=20260928162658"></script>
+<script src="js/01-firebase-sync.js?v=20260928163309"></script>
+<script src="js/02-state.js?v=20260928163309"></script>
+<script src="js/03-contas.js?v=20260928163309"></script>
+<script src="js/04-auth-nav.js?v=20260928163309"></script>
+<script src="js/05-transacoes.js?v=20260928163309"></script>
+<script src="js/06-dashboard.js?v=20260928163309"></script>
+<script src="js/07-historico-faturas.js?v=20260928163309"></script>
+<script src="js/08-categorias-orcamento-graficos.js?v=20260928163309"></script>
+<script src="js/09-assistente-ia.js?v=20260928163309"></script>
+<script src="js/10-config-init.js?v=20260928163309"></script>
+<script src="js/11-dividas.js?v=20260928163309"></script>
+<script src="js/12-investimentos.js?v=20260928163309"></script>
+<script src="js/13-boot.js?v=20260928163309"></script>
 </body>
 </html>
