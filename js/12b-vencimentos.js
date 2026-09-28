@@ -106,7 +106,8 @@ function renderVencimentos() {
       });
       html += '</tr>';
     });
-    const entradas = meses.map(ym => S.transactions.filter(t => t && t.type === 'receita' && !t.isTransfer && t.user === vencUser && (t.date || '').startsWith(ym)).reduce((s, t) => s + amountBrl(t), 0));
+    // Entradas do mês (salário, pensão, 13º…). Venda de bem fica de fora: é pontual e distorce o saldo.
+    const entradas = meses.map(ym => S.transactions.filter(t => t && t.type === 'receita' && !t.isTransfer && t.category !== 'Venda de bem' && t.user === vencUser && (t.date || '').startsWith(ym)).reduce((s, t) => s + amountBrl(t), 0));
     const linha = (rotulo, vals, cor) => `<tr><td style="${td}text-align:left;font-weight:700;${sticky}cursor:default;">${rotulo}</td><td style="${td}cursor:default;"></td>${vals.map((v, i) => `<td style="${td}cursor:default;font-weight:700;${meses[i] === ymAtual ? 'background:var(--surface-2);' : ''}color:${cor ? cor(v) : 'var(--text)'};">${v ? brl(v).replace('R$', '').trim() : ''}</td>`).join('')}</tr>`;
     html += linha('Total contas', totais);
     html += linha('Entradas', entradas, () => '#059669');
