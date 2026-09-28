@@ -454,9 +454,9 @@ function abrirEditModal(id) {
   // Now set values AFTER dropdowns are built
   if (t.accountId) document.getElementById('ed-conta').value = t.accountId;
   if (t.category) {
-    document.getElementById('ed-category').value = t.category;
+    ensureSelOption('ed-category', t.category);
     onEditCatChange();
-    if (t.subcategory) document.getElementById('ed-subcategory').value = t.subcategory;
+    if (t.subcategory) ensureSelOption('ed-subcategory', t.subcategory);
   }
   if (t.type === 'despesa') document.getElementById('ed-pago').checked = t.pago !== false;
   if (t.type === 'despesa') document.getElementById('ed-recorrente').checked = t.recorrente === true;
@@ -507,6 +507,19 @@ function onEditTypeChange() {
     catSel.innerHTML = catList.map(c => `<option value="${c}">${c}</option>`).join('');
   }
   onEditCatChange();
+}
+
+// Categoria/sub que não está mais no cadastro: mantém como opção "(sem cadastro)" em vez de
+// o select ficar vazio e o salvar gravar categoria em branco (bug das parcelas da Shein).
+function ensureSelOption(id, val) {
+  const sel = document.getElementById(id);
+  if (!sel || !val) return;
+  if (![...sel.options].some(o => o.value === val)) {
+    const o = document.createElement('option');
+    o.value = val; o.textContent = val + ' (sem cadastro)';
+    sel.appendChild(o);
+  }
+  sel.value = val;
 }
 
 function onEditCatChange() {

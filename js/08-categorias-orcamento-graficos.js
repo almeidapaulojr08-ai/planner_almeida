@@ -87,6 +87,7 @@ function renderCategorias() {
         </div>` : ''}
       </div>`;
     }
+    html += renderCatsSemCadastro(despCats);
   } else {
     subAdd.style.display = 'none';
     const arr = catTab === 'receita' ? cats.receita : cats.investimento;
@@ -145,19 +146,103 @@ function renameCatDespesa(oldName, newName) {
   newName = newName.trim();
   if (!newName || oldName === newName) return;
   const cats = getCats();
+  const merge = !!cats.despesa[newName];
+  if (merge && !confirm(`"${newName}" já existe. Juntar "${oldName}" dentro dela (subcategorias e lançamentos)?`)) { renderCategorias(); return; }
   const entries = Object.entries(cats.despesa);
   cats.despesa = {};
   for (const [k, v] of entries) {
-    cats.despesa[k === oldName ? newName : k] = v;
+    if (k === oldName) {
+      if (merge) continue;
+      cats.despesa[newName] = v;
+    } else if (merge && k === newName) {
+      cats.despesa[k] = [...new Set([...v, ...(entries.find(e => e[0] === oldName)[1] || [])])];
+    } else cats.despesa[k] = v;
   }
-  S.transactions.forEach(t => { if (t.type === 'despesa' && t.category === oldName) t.category = newName; });
-  save(); toast('✅ Categoria renomeada!'); renderCategorias();
+  const now = new Date().toISOString();
+  S.transactions.forEach(t => { if (t.type === 'despesa' && t.category === oldName) { t.category = newName; t.updatedAt = now; } });
+  save(); toast(merge ? '✅ Categorias unidas!' : '✅ Categoria renomeada!'); renderCategorias();
 }
 
 function deleteCatDespesa(name) {
+  const n = S.transactions.filter(t => t.type === 'despesa' && t.category === name).length;
+  const msg = n
+    ? `${n} lançamento(s) usam "${name}". Eles NÃO serão apagados: ficam em "Categorias sem cadastro", abaixo, para você mover. Excluir a categoria?`
+    : `Excluir a categoria "${name}"?`;
+  if (!confirm(msg)) return;
   const cats = getCats();
   delete cats.despesa[name];
   save(); toast('🗑️ Categoria removida'); renderCategorias();
+}
+
+// ─── CATEGORIAS SEM CADASTRO ──────────────────────────────────────────────────
+// Lançamentos de despesa cuja categoria (ou subcategoria) não existe no cadastro.
+// Antes eles só apareciam no filtro do Histórico; aqui dá pra ver e mover.
+let _semCadastro = [];
+
+function listCatsSemCadastro(despCats) {
+  const grupos = {};
+  S.transactions.forEach(t => {
+    if (!t || t.type !== 'despesa' || t.isTransfer) return;
+    const cat = t.category || '', sub = t.subcategory || '';
+    const catOk = cat && despCats[cat];
+    const subOk = !sub || (catOk && despCats[cat].includes(sub));
+    if (catOk && subOk) return;
+    const k = cat + '||' + sub;
+    const g = grupos[k] = grupos[k] || { cat, sub, n: 0, total: 0 };
+    g.n++; g.total += amountBrl(t);
+  });
+  return Object.values(grupos).sort((a, b) => b.n - a.n);
+}
+
+function renderCatsSemCadastro(despCats) {
+  _semCadastro = listCatsSemCadastro(despCats);
+  if (!_semCadastro.length) return '';
+  const destinos = [];
+  Object.entries(despCats).forEach(([c, subs]) => {
+    destinos.push(`<option value="${escapeHtml(c)}||">${escapeHtml(c)}</option>`);
+    subs.forEach(s => destinos.push(`<option value="${escapeHtml(c)}||${escapeHtml(s)}">${escapeHtml(c)} › ${escapeHtml(s)}</option>`));
+  });
+  const rows = _semCadastro.map((g, i) => `
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:8px 0;border-top:1px solid var(--border);">
+      <div style="flex:1;min-width:180px;">
+        <span style="font-weight:700;color:var(--text);">${g.cat ? escapeHtml(g.cat) : '<i>(sem categoria)</i>'}${g.sub ? ' › ' + escapeHtml(g.sub) : ''}</span>
+        <span style="font-size:12px;color:var(--muted);"> · ${g.n} lançamento(s) · ${brl(g.total)}</span>
+      </div>
+      <select id="semcad-dest-${i}" class="finput" style="width:220px;padding:6px 8px;font-size:12px;">
+        <option value="">Mover para…</option>${destinos.join('')}
+      </select>
+      <button onclick="moverCatSemCadastro(${i})" style="padding:6px 12px;background:#4f46e5;color:white;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;">Mover</button>
+      ${g.cat && !despCats[g.cat] ? `<button onclick="cadastrarCatSemCadastro(${i})" style="padding:6px 12px;background:var(--surface);color:var(--text-2);border:1px solid var(--border);border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;">Cadastrar</button>` : ''}
+    </div>`).join('');
+  return `<div class="card" style="padding:14px 18px;border:1.5px dashed #f59e0b;">
+    <div style="font-weight:700;font-size:14px;color:#b45309;margin-bottom:4px;">⚠ Categorias sem cadastro</div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:6px;">Aparecem em lançamentos, mas não existem aqui (por isso surgem no filtro do Histórico).</div>
+    ${rows}
+  </div>`;
+}
+
+function moverCatSemCadastro(i) {
+  const g = _semCadastro[i];
+  const v = document.getElementById('semcad-dest-' + i)?.value;
+  if (!g || !v) return toast('❌ Escolha o destino');
+  const [cat, sub] = v.split('||');
+  const de = (g.cat || '(sem categoria)') + (g.sub ? ' › ' + g.sub : '');
+  if (!confirm(`Mover ${g.n} lançamento(s) de "${de}" para "${cat}${sub ? ' › ' + sub : ''}"?`)) return;
+  const now = new Date().toISOString();
+  S.transactions.forEach(t => {
+    if (!t || t.type !== 'despesa' || t.isTransfer) return;
+    if ((t.category || '') === g.cat && (t.subcategory || '') === g.sub) { t.category = cat; t.subcategory = sub || ''; t.updatedAt = now; }
+  });
+  save(); toast(`✅ ${g.n} lançamento(s) movido(s)`); renderCategorias();
+}
+
+function cadastrarCatSemCadastro(i) {
+  const g = _semCadastro[i];
+  if (!g || !g.cat) return;
+  const cats = getCats();
+  if (!cats.despesa[g.cat]) cats.despesa[g.cat] = [];
+  if (g.sub && !cats.despesa[g.cat].includes(g.sub)) cats.despesa[g.cat].push(g.sub);
+  save(); toast('✅ Categoria cadastrada'); renderCategorias();
 }
 
 function deleteSubcat(cat, sub) {

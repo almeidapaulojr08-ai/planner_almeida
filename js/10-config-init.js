@@ -97,7 +97,7 @@ function importarDados(e) {
       if (d.deletedIds)   S.deletedIds   = tombstones;
       if (d.budget)       S.budget       = { ...(S.budget || {}), ...d.budget };
       if (d.catOrcGroup)  S.catOrcGroup  = { ...(S.catOrcGroup || {}), ...d.catOrcGroup };
-      if (d.customCats && !S.customCats) S.customCats = d.customCats;
+      if (d.customCats && !S.customCats) S.customCats = normalizeCustomCats(d.customCats);
       if (d.customBanks)  { S.customBanks = { ...(S.customBanks||{}), ...d.customBanks }; Object.assign(BANKS, d.customBanks); }
       if (d.settings)     S.settings     = { ...S.settings, ...d.settings };
       save();

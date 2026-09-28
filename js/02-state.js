@@ -61,6 +61,22 @@ const CATS_DESPESA = {
   'Outros':       [],
 };
 
+// O Firebase não guarda array vazio: categoria de despesa sem subcategoria chegava AUSENTE
+// e sumia do modal (foi assim que Vestuário/Mercado/Games/Presente viraram "fantasmas").
+// `despesaOrder` (lista de nomes, nunca vazia) diz quais categorias existem e em que ordem.
+// Rodar em TODO ponto que carrega customCats, antes de qualquer save().
+function normalizeCustomCats(cc) {
+  if (!cc || typeof cc !== 'object') return cc;
+  const desp = cc.despesa || {};
+  const subs = n => Array.isArray(desp[n]) ? desp[n].filter(Boolean) : [];
+  const out = {};
+  (Array.isArray(cc.despesaOrder) ? cc.despesaOrder : []).forEach(n => { if (n && !(n in out)) out[n] = subs(n); });
+  Object.keys(desp).forEach(n => { if (!(n in out)) out[n] = subs(n); });
+  cc.despesa = out;
+  cc.despesaOrder = Object.keys(out);
+  return cc;
+}
+
 const COLORS = ['#6366f1','#f59e0b','#10b981','#f43f5e','#3b82f6','#8b5cf6','#ec4899','#14b8a6','#f97316','#84cc16','#06b6d4','#a855f7'];
 const MESES  = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
 const MESES_FULL = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
@@ -110,13 +126,14 @@ function load() {
     if (d.deletedIds)   S.deletedIds   = d.deletedIds;
     if (d.loveMessages) S.loveMessages = d.loveMessages;
     if (d.acertos)      S.acertos      = d.acertos;
-    if (d.customCats)   S.customCats   = d.customCats;
+    if (d.customCats)   S.customCats   = normalizeCustomCats(d.customCats);
     if (d.customBanks)  { S.customBanks = d.customBanks; Object.assign(BANKS, d.customBanks); }
     if (d.settings)     S.settings     = { ...S.settings, ...d.settings };
   } catch(e) {}
 }
 
 function save() {
+  if (S.customCats && S.customCats.despesa) S.customCats.despesaOrder = Object.keys(S.customCats.despesa);
   localStorage.setItem('fincasal_v2', JSON.stringify(S));
   // Só envia pro Firebase se ele já carregou pelo menos 1x (evita sobrescrever dados reais
   // com defaults). Manda só o que mudou, por item — ver pushToFirebase().

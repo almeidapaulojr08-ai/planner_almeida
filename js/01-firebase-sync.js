@@ -256,7 +256,7 @@ function _onFirebaseValue(snapshot) {
     if (fbData.budget)       S.budget       = fbData.budget;
     if (fbData.catOrcGroup)  S.catOrcGroup  = fbData.catOrcGroup;
     if (fbData.chatHistory)  S.chatHistory  = fbToArray(fbData.chatHistory);
-    if (fbData.customCats)   S.customCats   = fbData.customCats;
+    if (fbData.customCats)   S.customCats   = normalizeCustomCats(fbData.customCats);
     if (fbData.acertos)      S.acertos      = fbData.acertos;
     if (fbData.customBanks)  { S.customBanks = fbData.customBanks; Object.assign(BANKS, S.customBanks); }
     if (fbData.loveMessages) S.loveMessages = fbToArray(fbData.loveMessages).filter(m => m && (!m.id || !tombSet.has(m.id)));
@@ -278,6 +278,8 @@ function _onFirebaseValue(snapshot) {
 
     // 2. Categorias customizadas — garantir que nunca fiquem faltando
     if (!S.customCats) S.customCats = JSON.parse(JSON.stringify(DEFAULT_CATS));
+    // Firebase ainda sem despesaOrder → grava 1x (idempotente: depois disso ela vem no snapshot)
+    if (!(fbData.customCats && Array.isArray(fbData.customCats.despesaOrder))) { normalizeCustomCats(S.customCats); needsRepair = true; }
     const desp = S.customCats.despesa;
     if (desp) {
       const required = { 'Diversos': [], 'Servicos': [], 'Presentes': [], 'Pedro': ['Festa de Aniversário'], 'Taxas': ['Pgto Fatura'] };

@@ -837,9 +837,9 @@ ${fmtDate(top.date)}${acc ? ' | ' + getAccName(acc) : ''}${top.formaPgto === 'cr
     // Extract category name: after "com"
     const comIdx = n.indexOf('com ');
     const catQuery = comIdx >= 0 ? n.substring(comIdx + 4).replace(/[?.!]/g, '').trim() : '';
-    const allCats = Object.keys(CATS_DESPESA).map(c => ({ name: c, norm: normalize(c) }));
+    const allCats = Object.keys(getDespesaCats()).map(c => ({ name: c, norm: normalize(c) }));
     const found = allCats.find(c => c.norm.includes(catQuery) || catQuery.includes(c.norm));
-    if (!found) return `Não encontrei a categoria "<b>${catQuery}</b>". Categorias disponíveis: ${Object.keys(CATS_DESPESA).join(', ')}`;
+    if (!found) return `Não encontrei a categoria "<b>${catQuery}</b>". Categorias disponíveis: ${Object.keys(getDespesaCats()).join(', ')}`;
     const txs = S.transactions.filter(t => t.type === 'despesa' && normalize(t.category) === found.norm && txMonth(t, month, year));
     const total = txs.reduce((s, t) => s + amountBrl(t), 0);
     let rows = txs.slice(0, 10).map(t => `<tr><td style="padding:3px 8px 3px 0;">${fmtDate(t.date)}</td><td style="padding:3px 0;">${escapeHtml(t.desc)}</td><td style="text-align:right;color:#e11d48;font-weight:600;">${brl(amountBrl(t))}</td></tr>`).join('');

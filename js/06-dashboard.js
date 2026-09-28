@@ -781,7 +781,7 @@ function isExcludedFromChart(t) {
   const cat = (t.category || '').toLowerCase();
   if (sub === 'investimento' || sub === 'investimentos') return true;
   if (sub === 'emprestimo' || sub === 'empréstimo' || sub === 'emprestimos' || sub === 'empréstimos') return true;
-  if (sub === 'ajuste saldo' || sub === 'conciliacao' || sub === 'conciliação') return true;
+  if (sub === 'ajuste saldo' || sub === 'conciliacao' || sub === 'conciliação' || sub.startsWith('ajuste saldo/')) return true;
   if (cat === 'taxas' && sub === 'banco') return true;
   return false;
 }
