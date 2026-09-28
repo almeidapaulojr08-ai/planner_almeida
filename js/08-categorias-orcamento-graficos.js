@@ -322,7 +322,7 @@ function sugerirOrcamento() {
     const key = getBudgetKey(orcAno, orcMes, cat);
     if (S.budget[key] > 0) return;                       // não mexe em meta já definida
     let soma = 0, meseComGasto = 0;
-    meses.forEach(ym => { const v = S.transactions.filter(t => t.type === 'despesa' && t.category === cat && !t.isTransfer && !isPgtoFatura(t) && (t.date || '').startsWith(ym)).reduce((s, t) => s + amountBrl(t), 0); if (v > 0) { soma += v; meseComGasto++; } });
+    meses.forEach(ym => { const v = S.transactions.filter(t => t.type === 'despesa' && t.category === cat && !t.isTransfer && !isPgtoFatura(t) && !isParcelamentoFatura(t) && (t.date || '').startsWith(ym)).reduce((s, t) => s + amountBrl(t), 0); if (v > 0) { soma += v; meseComGasto++; } });
     if (!meseComGasto) return;
     S.budget[key] = Math.ceil((soma / meseComGasto) / 10) * 10;
     n++;

@@ -776,7 +776,7 @@ function debCatDrill(cat) {
 }
 
 function isExcludedFromChart(t) {
-  if (isPgtoFatura(t)) return true;
+  if (isPgtoFatura(t) || isParcelamentoFatura(t)) return true;
   const sub = (t.subcategory || '').toLowerCase();
   const cat = (t.category || '').toLowerCase();
   if (sub === 'investimento' || sub === 'investimentos') return true;

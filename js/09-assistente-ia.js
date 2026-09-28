@@ -384,7 +384,7 @@ function executeAITool(name, args) {
   if (name === 'summarize_transactions') {
     const tipo = args.type || 'despesa';
     const q = args.query ? normDesc(args.query) : '';
-    let txs = S.transactions.filter(t => t && t.date && t.type === tipo && !t.isTransfer && !isPgtoFatura(t)
+    let txs = S.transactions.filter(t => t && t.date && t.type === tipo && !t.isTransfer && !isPgtoFatura(t) && !isParcelamentoFatura(t)
       && t.date >= args.start && t.date <= args.end);
     if (args.user)        txs = txs.filter(t => t.user === args.user);
     if (args.category)    txs = txs.filter(t => (t.category || '') === args.category);
@@ -435,7 +435,7 @@ function executeAITool(name, args) {
     const mes = args.month - 1, ano = args.year;
     const ym = `${ano}-${String(args.month).padStart(2, '0')}`;
     const gasto = {};
-    S.transactions.filter(t => t.type === 'despesa' && !t.isTransfer && !isPgtoFatura(t) && (t.date || '').startsWith(ym))
+    S.transactions.filter(t => t.type === 'despesa' && !t.isTransfer && !isPgtoFatura(t) && !isParcelamentoFatura(t) && (t.date || '').startsWith(ym))
       .forEach(t => { const c = t.category || '(sem)'; gasto[c] = (gasto[c] || 0) + amountBrl(t); });
     const cats = new Set(Object.keys(gasto));
     Object.keys(S.budget || {}).forEach(k => { if (k.startsWith(ym + '-')) cats.add(k.slice(ym.length + 1)); });

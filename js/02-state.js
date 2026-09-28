@@ -38,6 +38,12 @@ function isPgtoFatura(t) {
          (t.category === 'Taxas' && t.subcategory === 'Pgto Fatura');
 }
 
+// Parcela de fatura parcelada (quando não dá pra pagar a fatura cheia e o resto vira N parcelas).
+// Entra na FATURA (é o que se paga), mas NÃO é gasto novo: as compras já foram contadas quando feitas.
+function isParcelamentoFatura(t) {
+  return t.category === 'Taxas' && t.subcategory === 'Parcelamento Fatura';
+}
+
 const CATS = {
   receita:      ['Salário','Freelance','Bônus','Aluguel Recebido','Dividendos','Reembolso','Outros'],
   investimento: ['Renda Fixa','Ações','FIIs','Tesouro Direto','Criptomoedas','Poupança','Previdência','Outros']
