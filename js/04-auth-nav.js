@@ -151,6 +151,7 @@ function goto(page) {
     const h = document.getElementById('f-desc-hint'); if (h) h.style.display = 'none';
     setTimeout(() => { const d = document.getElementById('f-descricao'); if (d) d.focus(); }, 50); }
   if (page === 'orcamento')  renderOrcamento();
+  if (page === 'vencimentos') renderVencimentos();
   if (page === 'categorias') renderCategorias();
   if (page === 'dividas')    renderDividas();
   if (page === 'investimentos') renderInvestimentos();

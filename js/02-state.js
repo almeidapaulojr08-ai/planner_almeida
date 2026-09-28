@@ -13,6 +13,7 @@ let S = {
   deletedIds: [],
   loveMessages: [],
   acertos: {},          // { 'YYYY-MM': { amount, from, to, at } } — acerto de contas do casal
+  contasFixas: [],      // grade de Vencimentos (12b-vencimentos.js)
   customCats: null,
   settings: {
     u1: '', u2: '',
@@ -132,6 +133,7 @@ function load() {
     if (d.deletedIds)   S.deletedIds   = d.deletedIds;
     if (d.loveMessages) S.loveMessages = d.loveMessages;
     if (d.acertos)      S.acertos      = d.acertos;
+    if (d.contasFixas)  S.contasFixas  = d.contasFixas;
     if (d.customCats)   S.customCats   = normalizeCustomCats(d.customCats);
     if (d.customBanks)  { S.customBanks = d.customBanks; Object.assign(BANKS, d.customBanks); }
     if (d.settings)     S.settings     = { ...S.settings, ...d.settings };
