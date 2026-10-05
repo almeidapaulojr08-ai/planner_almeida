@@ -69,6 +69,28 @@ if ('serviceWorker' in navigator) {
       });
     }).catch(e => console.warn('SW register failed:', e));
 
+    // Deploy de js/css não muda o sw.js, então aba aberta o dia todo ficava no código velho
+    // (ex.: Confirmar conta marcando pago depois da correção). Compara o carimbo ?v= da página
+    // aberta com o do index.html publicado e avisa pra recarregar (não recarrega sozinho pra
+    // não perder formulário preenchido).
+    const meuCarimbo = ((document.querySelector('script[src*="13-boot.js"]') || {}).src || '').split('v=')[1];
+    const checarVersao = () => {
+      if (!meuCarimbo || document.getElementById('nova-versao-banner')) return;
+      fetch('./?_=' + Date.now(), { cache: 'no-store' }).then(r => r.ok ? r.text() : '').then(html => {
+        const pub = (html.match(/13-boot\.js\?v=(\d+)/) || [])[1];
+        if (!pub || pub === meuCarimbo) return;
+        const b = document.createElement('div');
+        b.id = 'nova-versao-banner';
+        b.style.cssText = 'position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:9999;background:#4f46e5;color:white;padding:10px 16px;border-radius:12px;font-size:13px;font-weight:600;box-shadow:0 6px 20px rgba(0,0,0,.25);cursor:pointer;';
+        b.textContent = '🔄 O site foi atualizado. Clique aqui pra recarregar.';
+        b.onclick = () => location.reload();
+        document.body.appendChild(b);
+      }).catch(() => {});
+    };
+    setInterval(checarVersao, 5 * 60 * 1000);
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') checarVersao(); });
+    window.addEventListener('focus', checarVersao);
+
     // Só recarrega quando TROCA de versão (não na primeira instalação)
     let reloaded = false;
     navigator.serviceWorker.addEventListener('controllerchange', () => {
