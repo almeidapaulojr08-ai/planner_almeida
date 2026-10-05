@@ -153,7 +153,7 @@ function renderVencDetalhe() {
   const linhas = cel.txs.slice().sort((a, b) => (a.date || '').localeCompare(b.date || '')).map(t => `
     <div style="display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-top:1px solid var(--border);font-size:13px;cursor:pointer;" onclick="abrirEditModal('${t.id}')" title="Abrir lançamento">
       <span style="color:var(--text-2);">${fmtDate(t.date)} · ${escapeHtml(t.desc || '')}</span>
-      <span style="white-space:nowrap;font-weight:600;color:${t.pago === false ? 'var(--text)' : '#059669'};">${brl(amountBrl(t))}${t.pago === false ? ' · em aberto' : ''}</span></div>`).join('');
+      <span style="white-space:nowrap;font-weight:600;color:${t.pago === false ? 'var(--text)' : '#059669'};">${brl(amountBrl(t))}${t.pago === false ? (t.confirmado ? ' · valor confirmado, em aberto' : ' · em aberto') : ''}</span></div>`).join('');
   const pagos = cel.pagamentos.map(p => `<div style="font-size:12px;color:#059669;">✓ Pago ${brl(Math.abs(p.amount))} em ${fmtDate(p.date)}</div>`).join('');
   el.innerHTML = `<div class="card" style="margin-top:16px;padding:16px 20px;">
     <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:6px;">

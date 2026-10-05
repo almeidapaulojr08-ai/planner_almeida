@@ -1024,11 +1024,12 @@ function desfazerAcerto(ym) {
 
 // ─── CONTAS DO MÊS PRA CONFIRMAR ──────────────────────────────────────────────
 // Despesas de débito ainda pendentes no mês (recorrentes geradas + lançadas como pendentes).
-// Confirmar = marcar como paga (com o valor ajustado); "Não veio" = remove só esta ocorrência.
+// Confirmar = a conta chegou com esse valor (confirmado: true). Continua PENDENTE: pagar é outro
+// passo (editar o lançamento / Vencimentos). "Não veio" = remove só esta ocorrência.
 function renderConfirmar(ym) {
   const el = document.getElementById('dash-confirmar');
   if (!el) return;
-  const pend = txByTitular(S.transactions).filter(t => t.type === 'despesa' && t.pago === false && t.formaPgto !== 'credito'
+  const pend = txByTitular(S.transactions).filter(t => t.type === 'despesa' && t.pago === false && !t.confirmado && t.formaPgto !== 'credito'
     && !t.isTransfer && !isPgtoFatura(t) && (t.date || '').startsWith(ym)).sort((a, b) => (a.date || '').localeCompare(b.date || ''));
   if (!pend.length) { el.style.display = 'none'; return; }
   const total = pend.reduce((s, t) => s + amountBrl(t), 0);
@@ -1055,13 +1056,13 @@ function confirmarConta(id) {
   const t = S.transactions.find(x => x.id === id); if (!t) return;
   const v = parseFloat((document.getElementById('conf-val-' + id) || {}).value);
   if (v > 0) t.amount = v;
-  t.pago = true; t.updatedAt = new Date().toISOString();
+  t.confirmado = true; t.updatedAt = new Date().toISOString();
   save(); renderDashboard();
   toast(`✅ ${t.desc} confirmada: ${brl(t.amount)}`);
 }
 function confirmarTodas(ym) {
-  const pend = txByTitular(S.transactions).filter(t => t.type === 'despesa' && t.pago === false && t.formaPgto !== 'credito' && !t.isTransfer && !isPgtoFatura(t) && (t.date || '').startsWith(ym));
-  pend.forEach(t => { const v = parseFloat((document.getElementById('conf-val-' + t.id) || {}).value); if (v > 0) t.amount = v; t.pago = true; t.updatedAt = new Date().toISOString(); });
+  const pend = txByTitular(S.transactions).filter(t => t.type === 'despesa' && t.pago === false && !t.confirmado && t.formaPgto !== 'credito' && !t.isTransfer && !isPgtoFatura(t) && (t.date || '').startsWith(ym));
+  pend.forEach(t => { const v = parseFloat((document.getElementById('conf-val-' + t.id) || {}).value); if (v > 0) t.amount = v; t.confirmado = true; t.updatedAt = new Date().toISOString(); });
   save(); renderDashboard();
   toast(`✅ ${pend.length} conta${pend.length !== 1 ? 's' : ''} confirmada${pend.length !== 1 ? 's' : ''}`);
 }
