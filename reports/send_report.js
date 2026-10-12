@@ -124,14 +124,6 @@ async function main() {
   const alvoYM = fechamentoMes ? ymPrev : ym;
   const dComp = new Date(parseInt(alvoYM.slice(0, 4)), parseInt(alvoYM.slice(5, 7)) - 2, 1);
   const compYM = `${dComp.getFullYear()}-${String(dComp.getMonth() + 1).padStart(2, '0')}`;
-  const fatYM = (() => {
-    let m = hoje.getMonth(), y = hoje.getFullYear();
-    const cartoes = accountsAll.filter(a => a.accountType === 'cartao');
-    const minFecha = cartoes.length ? Math.min(...cartoes.map(c => parseInt(c.fecha) || 1)) : 1;
-    if (diaDoMes > minFecha) m += 1;
-    if (m > 11) { m -= 12; y++; }
-    return `${y}-${String(m + 1).padStart(2, '0')}`;
-  })();
 
   // ── Monta o relatório. scopeName=null → casal; senão só os dados dessa pessoa ──
   function buildReport(scopeName) {
@@ -179,14 +171,24 @@ async function main() {
 
     // Próximas faturas
     const fats = [];
+    // Fatura do mês X vence no mês X (mesma regra do app). Pra cada cartão, a primeira fatura
+    // (este mês ou o próximo) que ainda não venceu e não está paga.
+    const hoje0 = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
     accounts.filter(a => a.accountType === 'cartao').forEach(c => {
-      const total = txs.filter(t => t.type === 'despesa' && t.formaPgto === 'credito' && faturaRefDe(t) === fatYM && t.accountId === c.id).reduce((s, t) => s + amountBrl(t), 0);
-      if (total <= 0) return;
       const venceDia = parseInt(c.vence) || 10;
-      let venc = new Date(hoje.getFullYear(), hoje.getMonth(), venceDia);
-      if (venc < hoje) venc = new Date(hoje.getFullYear(), hoje.getMonth() + 1, venceDia);
-      const dias = Math.ceil((venc - hoje) / 86400000);
-      fats.push({ nome: c.label || bankName(c), total, dias });
+      for (let k = 0; k < 2; k++) {
+        const d = new Date(hoje.getFullYear(), hoje.getMonth() + k, 1);
+        const venc = new Date(d.getFullYear(), d.getMonth(), Math.min(venceDia, new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate()));
+        if (venc < hoje0) continue;
+        const ymF = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        const doCartao = txs.filter(t => t.type === 'despesa' && t.formaPgto === 'credito' && faturaRefDe(t) === ymF && t.accountId === c.id);
+        const total = doCartao.reduce((s, t) => s + amountBrl(t), 0);
+        if (total <= 0) continue;
+        const pago = txs.filter(t => isPgtoFatura(t) && t.faturaCartaoId === c.id && t.faturaYM === ymF).reduce((s, t) => s + Math.abs(t.amount || 0), 0);
+        if (pago >= total - 0.01 || doCartao.every(t => t.pago === true)) continue;
+        fats.push({ nome: c.label || bankName(c), total, dias: Math.round((venc - hoje0) / 86400000) });
+        break;
+      }
     });
     if (fats.length) { fats.sort((a, b) => a.dias - b.dias); L.push(`<b>💳 Próximas faturas</b>`); fats.forEach(f => L.push(`• ${f.nome}: <b>${brl(f.total)}</b> — vence em ${f.dias} dia${f.dias !== 1 ? 's' : ''}`)); L.push(''); }
 

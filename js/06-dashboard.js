@@ -930,16 +930,27 @@ function renderInsights(ym) {
   // 3. Próxima fatura a vencer
   try {
     const cartoes = S.accounts.filter(a => a.accountType === 'cartao' && (titularFilter === 'ambos' || a.owner === (titularFilter === 'paulo' ? S.settings.u1 : S.settings.u2)));
-    const hoje = new Date(); let prox = null;
-    const fatYM = getCurrentFaturaYM();
+    const hoje = new Date(); hoje.setHours(0, 0, 0, 0); let prox = null;
+    // Fatura do mês X vence no mês X (mesma regra da tela Vencimentos). Pra cada cartão, pega a
+    // primeira fatura (este mês ou o próximo) que ainda não venceu e não está paga.
     cartoes.forEach(c => {
-      const total = txByTitular(getCreditTxByFatura(fatYM, c.id)).reduce((s, t) => s + amountBrl(t), 0);
-      if (total <= 0) return;
       const venceDia = parseInt(c.vence) || 10;
-      let venc = new Date(hoje.getFullYear(), hoje.getMonth(), venceDia);
-      if (venc < hoje) venc = new Date(hoje.getFullYear(), hoje.getMonth() + 1, venceDia);
-      const dias = Math.ceil((venc - hoje) / 86400000);
-      if (!prox || dias < prox.dias) prox = { nome: BANKS[c.bank] ? BANKS[c.bank].name : c.label, total, dias };
+      for (let k = 0; k < 2; k++) {
+        const d = new Date(hoje.getFullYear(), hoje.getMonth() + k, 1);
+        const venc = new Date(d.getFullYear(), d.getMonth(), Math.min(venceDia, new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate()));
+        if (venc < hoje) continue;
+        const ym = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        const todas = getCreditTxByFatura(ym, c.id);
+        const totalCartao = todas.reduce((s, t) => s + amountBrl(t), 0);
+        if (totalCartao <= 0) continue;
+        const pago = getPagamentosFatura(c.id, d.getMonth(), d.getFullYear()).reduce((s, p) => s + Math.abs(p.amount || 0), 0);
+        if (pago >= totalCartao - 0.01 || todas.every(t => t.pago === true)) continue;
+        const total = txByTitular(todas).reduce((s, t) => s + amountBrl(t), 0);
+        if (total <= 0) break;
+        const dias = Math.round((venc - hoje) / 864e5);
+        if (!prox || dias < prox.dias) prox = { nome: BANKS[c.bank] ? BANKS[c.bank].name : c.label, total, dias };
+        break;
+      }
     });
     if (prox) cards.push(insightCard('💳', 'Próxima fatura', brl(prox.total), `${escapeHtml(prox.nome)} · vence em <b>${prox.dias} dia${prox.dias !== 1 ? 's' : ''}</b>`, prox.dias <= 5 ? '#f43f5e' : '#4f46e5'));
   } catch (e) {}
