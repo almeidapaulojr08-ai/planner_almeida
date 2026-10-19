@@ -163,11 +163,15 @@ async function main() {
     L.push(`• Saldo do mês: <b>${brl(recAlvo - gastoAlvo)}</b>`);
     L.push('');
 
-    // Top categorias
-    const porCat = {};
-    txs.filter(t => (t.date || '').startsWith(alvoYM) && gastoReal(t)).forEach(t => porCat[t.category] = (porCat[t.category] || 0) + amountBrl(t));
-    const top = Object.entries(porCat).sort((a, b) => b[1] - a[1]).slice(0, 5);
-    if (top.length) { L.push(`<b>🏷️ Top categorias</b>`); top.forEach(([c, v]) => L.push(`• ${c}: ${brl(v)}`)); L.push(''); }
+    // Top subcategorias (rótulo "Sub (Categoria)"; sem sub, usa só a categoria)
+    const porSub = {};
+    txs.filter(t => (t.date || '').startsWith(alvoYM) && gastoReal(t)).forEach(t => {
+      const cat = t.category || 'Sem categoria';
+      const k = t.subcategory ? `${t.subcategory} (${cat})` : cat;
+      porSub[k] = (porSub[k] || 0) + amountBrl(t);
+    });
+    const top = Object.entries(porSub).sort((a, b) => b[1] - a[1]).slice(0, 5);
+    if (top.length) { L.push(`<b>🏷️ Top subcategorias</b>`); top.forEach(([c, v]) => L.push(`• ${c}: ${brl(v)}`)); L.push(''); }
 
     // Próximas faturas
     const fats = [];
