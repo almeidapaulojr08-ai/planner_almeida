@@ -780,6 +780,7 @@ function isExcludedFromChart(t) {
   const sub = (t.subcategory || '').toLowerCase();
   const cat = (t.category || '').toLowerCase();
   if (sub === 'investimento' || sub === 'investimentos') return true;
+  if (cat === 'théo' && sub === 'poupança') return true;   // poupança do Théo é guardar, não gastar
   if (sub === 'emprestimo' || sub === 'empréstimo' || sub === 'emprestimos' || sub === 'empréstimos') return true;
   if (sub === 'ajuste saldo' || sub === 'conciliacao' || sub === 'conciliação' || sub.startsWith('ajuste saldo/')) return true;
   if (cat === 'taxas' && sub === 'banco') return true;
@@ -897,18 +898,28 @@ function renderInsights(ym) {
   // 1. Ritmo / gasto do mês
   try {
     const gasto = somaMes(my, ym);
+    // Comparação "dia a dia": lançamentos acima de R$ 10 mil (mudança, amortização) ficam fora da
+    // média e da extrapolação — mesmo corte da projeção de caixa — e entram só pelo valor real.
+    const TETO = 10000;
+    const normal = t => gastoReal(t) && amountBrl(t) <= TETO;
+    const somaNormal = (k, ate) => my.filter(t => (t.date || '').startsWith(k) && normal(t) && (!ate || t.date <= ate)).reduce((s, t) => s + amountBrl(t), 0);
     let soma3 = 0, n3 = 0;
-    for (let i = 1; i <= 3; i++) { const g = somaMes(my, ymPrev(i)); if (g > 0) { soma3 += g; n3++; } }
+    for (let i = 1; i <= 3; i++) { const g = somaNormal(ymPrev(i)); if (g > 0) { soma3 += g; n3++; } }
     const media3 = n3 ? soma3 / n3 : 0;
     if (isCurMonth) {
       const hoje = new Date(), diaHoje = hoje.getDate();
       const diasMes = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0).getDate();
-      const proj = diaHoje > 0 ? gasto / diaHoje * diasMes : gasto;
+      const hojeStr = `${ym}-${String(diaHoje).padStart(2, '0')}`;
+      const ateHoje = somaNormal(ym, hojeStr);
+      const normalMes = somaNormal(ym);
+      // extrapola só o que já aconteceu; o já lançado pra depois de hoje entra pelo valor, se for maior
+      const projNormal = Math.max(diaHoje > 0 ? ateHoje / diaHoje * diasMes : ateHoje, normalMes);
+      const proj = projNormal + (gasto - normalMes);
       let sub = `Projeção fim do mês: <b>${brl(proj)}</b>`;
-      if (media3 > 0) { const dif = (proj - media3) / media3 * 100; sub += ` · ${dif >= 0 ? '+' : ''}${dif.toFixed(0)}% vs média`; }
-      cards.push(insightCard('📈', 'Ritmo do mês', brl(gasto) + ' até agora', sub, (proj > media3 && media3 > 0) ? '#f43f5e' : '#059669'));
+      if (media3 > 0) { const dif = (projNormal - media3) / media3 * 100; sub += ` · ${dif >= 0 ? '+' : ''}${dif.toFixed(0)}% vs média`; }
+      cards.push(insightCard('📈', 'Ritmo do mês', brl(gasto) + ' até agora', sub, (projNormal > media3 && media3 > 0) ? '#f43f5e' : '#059669'));
     } else {
-      cards.push(insightCard('📊', 'Gasto do mês', brl(gasto), media3 > 0 ? `Média 3 meses: ${brl(media3)}` : 'Sem histórico p/ comparar', '#4f46e5'));
+      cards.push(insightCard('📊', 'Gasto do mês', brl(gasto), media3 > 0 ? `Média 3 meses (sem itens > R$ 10 mil): ${brl(media3)}` : 'Sem histórico p/ comparar', '#4f46e5'));
     }
   } catch (e) {}
 
@@ -1087,8 +1098,8 @@ function pularConta(id) {
 }
 
 // ─── PROJEÇÃO DE CAIXA (3 meses) ──────────────────────────────────────────────
-// Estimativa simples: entradas = média das receitas dos últimos 3 meses; saídas = o que já está
-// lançado no mês (recorrentes, parcelas) + média do gasto "espontâneo" (não recorrente, não parcela)
+// Estimativa simples: entradas = mediana das receitas dos últimos 6 meses; saídas = o que já está
+// lançado no mês (recorrentes, parcelas) + mediana do gasto "espontâneo" (não recorrente, não parcela)
 // dos últimos 3 meses. Compras no cartão contam pela data da compra.
 function renderProjecao(ym) {
   const el = document.getElementById('dash-projecao');
@@ -1113,7 +1124,8 @@ function renderProjecao(ym) {
     return ok.reduce((a, b) => a + b, 0) / ok.length;
   };
   const recs = [], esps = [];
-  for (let i = 1; i <= 6; i++) { const k = addM(ym, -i); recs.push(soma(isRecNormal, k)); esps.push(soma(isEspont, k)); }
+  // receitas: 6 meses; variável: só os 3 últimos (abr–ago/26 tinham mudança de casa e carro, inflavam a média)
+  for (let i = 1; i <= 6; i++) { const k = addM(ym, -i); recs.push(soma(isRecNormal, k)); if (i <= 3) esps.push(soma(isEspont, k)); }
   const n = recs.filter((r, i) => r > 0 || esps[i] > 0).length;
   if (!n) { el.style.display = 'none'; return; }
   const recAuto = tipico(recs);
@@ -1149,8 +1161,8 @@ function renderProjecao(ym) {
         ${rendaManual > 0 ? `<a href="#" onclick="S.settings.rendaMensal = 0; save(); renderProjecao('${ym}'); return false;" style="color:var(--text-3);">(auto: ${brl(recAuto)})</a>` : '<span>(auto)</span>'}
         · variável/mês:
         <span style="position:relative;display:inline-block;"><span style="position:absolute;left:8px;top:50%;transform:translateY(-50%);font-size:11px;">R$</span>
-        <input type="number" step="100" value="${Math.round(espM)}" onchange="S.settings.variavelMensal = parseFloat(this.value) || 0; save(); renderProjecao('${ym}')" title="Gasto variável esperado por mês (fora recorrentes e parcelas). Vazio = mediana dos últimos 6 meses (${brl(espAuto)}), ignorando lançamentos acima de R$ 10 mil" style="width:110px;padding:3px 6px 3px 26px;border:1px solid var(--border);border-radius:6px;font-size:11px;background:var(--surface);color:var(--text);"></span>
-        ${varManual > 0 ? `<a href="#" onclick="S.settings.variavelMensal = 0; save(); renderProjecao('${ym}'); return false;" style="color:var(--text-3);">(auto: ${brl(espAuto)})</a>` : '<span>(auto: mediana de 6 meses, sem lançamentos > R$ 10 mil)</span>'}</span></div>
+        <input type="number" step="100" value="${Math.round(espM)}" onchange="S.settings.variavelMensal = parseFloat(this.value) || 0; save(); renderProjecao('${ym}')" title="Gasto variável esperado por mês (fora recorrentes e parcelas). Vazio = mediana dos últimos 3 meses (${brl(espAuto)}), ignorando lançamentos acima de R$ 10 mil" style="width:110px;padding:3px 6px 3px 26px;border:1px solid var(--border);border-radius:6px;font-size:11px;background:var(--surface);color:var(--text);"></span>
+        ${varManual > 0 ? `<a href="#" onclick="S.settings.variavelMensal = 0; save(); renderProjecao('${ym}'); return false;" style="color:var(--text-3);">(auto: ${brl(espAuto)})</a>` : '<span>(auto: mediana de 3 meses, sem lançamentos > R$ 10 mil)</span>'}</span></div>
     <div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:13px;">
       <thead><tr style="color:var(--muted);font-size:11px;text-align:right;"><th style="text-align:left;padding:6px 8px;">Mês</th><th style="padding:6px 8px;">Entradas</th><th style="padding:6px 8px;">Já lançado</th><th style="padding:6px 8px;">Variável estimado</th><th style="padding:6px 8px;">Resultado</th><th style="padding:6px 8px;">Saldo projetado</th><th style="padding:6px 8px;text-align:center;">Cenário</th></tr></thead>
       <tbody>` + rows.map(r => `<tr style="border-top:1px solid var(--surface-2);text-align:right;">

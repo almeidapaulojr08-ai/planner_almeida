@@ -99,6 +99,7 @@ async function main() {
     const sub = (t.subcategory || '').toLowerCase(), cat = (t.category || '').toLowerCase();
     if (['investimento','investimentos','emprestimo','empréstimo','emprestimos','empréstimos','ajuste saldo','conciliacao','conciliação'].includes(sub)) return true;
     if (cat === 'taxas' && sub === 'banco') return true;
+    if (cat === 'théo' && sub === 'poupança') return true;
     return false;
   };
   const gastoReal = t => t.type === 'despesa' && !t.isTransfer && !isExcl(t);
